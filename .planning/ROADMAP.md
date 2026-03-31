@@ -12,7 +12,7 @@ Three phases follow the strict dependency order the architecture demands: the Co
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script
+- [x] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
 - [ ] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works
 - [ ] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows
 
@@ -28,12 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A Python script that creates ChatCopilot and calls ainvoke([HumanMessage("hello")]) receives a non-empty AIMessage response
   4. Changing the model parameter (e.g., gpt-4.1 vs claude-sonnet-4-5) produces a response without error
   5. CopilotClient start/stop lifecycle completes without subprocess leaks or warnings
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Project setup + CopilotAuthManager (Device Flow + Fernet encryption)
 - [x] 01-02-PLAN.md — ChatCopilot BaseChatModel provider (SDK 0.2.0 wrapper)
-- [ ] 01-03-PLAN.md — End-to-end validation script + live Copilot verification
+- [x] 01-03-PLAN.md — End-to-end validation script + live Copilot verification
 
 ### Phase 2: Graph Layer
 **Goal**: Multi-turn conversation flows through a LangGraph StateGraph backed by ChatCopilot, with correct history accumulation and thread isolation
@@ -67,6 +67,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth + Provider Foundation | 2/3 | In Progress|  |
+| 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 0/? | Not started | - |
 | 3. Web + Chat UI | 0/? | Not started | - |
