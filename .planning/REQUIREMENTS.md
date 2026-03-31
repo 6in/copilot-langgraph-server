@@ -13,9 +13,9 @@
 
 ### Provider
 
-- [ ] **PROV-01**: `ChatCopilot`（`BaseChatModel` 継承）が LangGraph ノード内で `ChatOpenAI` と差し替え可能な形で動作する
-- [ ] **PROV-02**: UI またはコンフィグで Copilot 提供モデル（gpt-4.1 等）を選択できる
-- [ ] **PROV-03**: `CopilotClient` の start/stop ライフサイクルをアプリ起動・終了時に正しく管理する
+- [x] **PROV-01**: `ChatCopilot`（`BaseChatModel` 継承）が LangGraph ノード内で `ChatOpenAI` と差し替え可能な形で動作する
+- [x] **PROV-02**: UI またはコンフィグで Copilot 提供モデル（gpt-4.1 等）を選択できる
+- [x] **PROV-03**: `CopilotClient` の start/stop ライフサイクルをアプリ起動・終了時に正しく管理する
 
 ### Graph
 
@@ -60,9 +60,9 @@
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 3 | Pending |
-| PROV-01 | Phase 1 | Pending |
-| PROV-02 | Phase 1 | Pending |
-| PROV-03 | Phase 1 | Pending |
+| PROV-01 | Phase 1 | Complete |
+| PROV-02 | Phase 1 | Complete |
+| PROV-03 | Phase 1 | Complete |
 | GRPH-01 | Phase 2 | Pending |
 | GRPH-02 | Phase 2 | Pending |
 | GRPH-03 | Phase 2 | Pending |

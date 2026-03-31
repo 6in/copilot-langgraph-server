@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Roadmap created, STATE.md initialized
-last_updated: "2026-03-31T07:20:46.753Z"
-last_activity: 2026-03-31 -- Phase 01 execution started
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-31T07:30:36.020Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 01 (auth-provider-foundation) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 01
-Last activity: 2026-03-31 -- Phase 01 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P02 | 5min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Recent decisions affecting current work:
 - [Init]: Device Flow only — PAT auth is out of scope
 - [Init]: SDK pinned to 0.2.0 exact — Technical Preview, isolate behind app/providers/copilot.py only
 - [Research]: Pydantic v2 patterns required — use ConfigDict/PrivateAttr, not class Config
+- [Phase 01]: SDK imports at module top-level in app/providers/copilot.py so unittest.mock.patch works at import time
+- [Phase 01]: send_and_wait() used directly in _agenerate — no event-listener fallback (confirmed SDK 0.2.0)
+- [Phase 01]: Error recovery in _agenerate: any exception stops and nulls _client before re-raising
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31
-Stopped at: Roadmap created, STATE.md initialized
+Last session: 2026-03-31T07:30:36.018Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
