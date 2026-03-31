@@ -219,6 +219,15 @@ async function sendMessage() {
     } catch (err) {
       console.error('Failed to create thread:', err);
     }
+    if (!activeThreadId) {
+      hideTyping();
+      appendMessage('error', 'Could not create a conversation thread. Please try again.');
+      userInput.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('disabled');
+      userInput.focus();
+      return;
+    }
   }
 
   // Show typing indicator (D-12)
@@ -234,6 +243,12 @@ async function sendMessage() {
         model: selectedModel
       })
     });
+
+    if (!resp.ok) {
+      hideTyping();
+      appendMessage('error', `Server error: ${resp.status} ${resp.statusText}`);
+      return;
+    }
 
     const data = await resp.json();
 
@@ -253,7 +268,7 @@ async function sendMessage() {
       }
 
       // AI reply uses innerHTML with marked.js output scoped under .prose
-      appendMessage('ai', data.reply);
+      appendMessage('ai', data.reply || '');
     }
   } catch (err) {
     hideTyping();
