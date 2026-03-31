@@ -13,7 +13,7 @@ Three phases follow the strict dependency order the architecture demands: the Co
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
-- [ ] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works
+- [x] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
 - [ ] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows
 
 ## Phase Details
@@ -44,7 +44,7 @@ Plans:
   2. Two separate thread_ids maintain completely independent conversation histories
   3. Calling build_graph() once at startup and invoking it multiple times per thread does not recompile or recreate the graph
   4. The StateGraph structure has a clear extension point where tool-calling nodes could be added without rewiring the core graph
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — TDD: build_graph() with MessagesState, multi-turn history, thread isolation, extension point
@@ -72,5 +72,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
-| 2. Graph Layer | 1/2 | In Progress|  |
+| 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 0/? | Not started | - |
