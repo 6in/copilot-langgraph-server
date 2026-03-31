@@ -81,9 +81,14 @@ Recent decisions affecting current work:
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260331-uy2 | Fix Copilot SDK send_and_wait API: pass prompt string directly instead of dict | 2026-03-31 | 2ce10e7 | [260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p](.planning/quick/260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p/) |
+
 ### Blockers/Concerns
 
-- [Phase 1 risk]: Copilot SDK send_and_wait exact API shape is unverified — validate against pinned 0.2.0 before finalizing _messages_to_prompt() serialization strategy
 - [Phase 1 risk]: Device Flow CLIENT_ID (Iv1.b507a08c87ecfe98) is non-official use — validate still functional early
 
 ## Session Continuity
