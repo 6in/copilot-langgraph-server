@@ -210,6 +210,17 @@ async function sendMessage() {
   userInput.value = '';
   userInput.style.height = 'auto';
 
+  // Auto-create a thread if none is active
+  if (!activeThreadId) {
+    try {
+      const threadResp = await fetch('/api/threads', { method: 'POST' });
+      const threadData = await threadResp.json();
+      activeThreadId = threadData.thread_id;
+    } catch (err) {
+      console.error('Failed to create thread:', err);
+    }
+  }
+
   // Show typing indicator (D-12)
   showTyping();
 
