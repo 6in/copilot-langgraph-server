@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
+from httpx import AsyncClient, ASGITransport
 from app.auth.manager import CopilotAuthManager
 
 
@@ -34,4 +35,25 @@ def mock_auth_manager(tmp_path):
     manager.check_device_flow = AsyncMock(return_value=None)
     return manager
 
-# api_client fixture — added in Plan 02 when app/api/main.py exists
+
+@pytest.fixture
+async def api_client(mock_graph, mock_auth_manager):
+    """Async HTTP client for testing FastAPI routes with mocked dependencies.
+
+    Lifespan does NOT fire with ASGITransport — inject mocks directly into app.state.
+    """
+    from app.api.main import app
+
+    # Inject mocked state directly (lifespan doesn't fire in test)
+    app.state.graph = mock_graph
+    app.state.auth_manager = mock_auth_manager
+    app.state.llm = MagicMock()
+    app.state.llm.model = "gpt-4.1"
+    app.state.db_path = ":memory:"
+    app.state.auth_expired = False
+    app.state.device_flows = {}
+    app.state.checkpointer = MagicMock()
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
