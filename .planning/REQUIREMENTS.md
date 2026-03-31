@@ -27,7 +27,7 @@
 
 - [x] **CHAT-01**: ユーザー・AI の発言を時系列で表示するメッセージ一覧を持つ
 - [x] **CHAT-02**: テキスト入力・送信ボタン・ローディング表示を含む送受信フローが動作する
-- [ ] **CHAT-03**: AI 回答の Markdown およびコードブロックを整形レンダリングする
+- [x] **CHAT-03**: AI 回答の Markdown およびコードブロックを整形レンダリングする
 - [x] **CHAT-04**: 新規チャットボタンで会話スレッドをリセットできる
 
 ## v2 Requirements
@@ -68,7 +68,7 @@
 | GRPH-03 | Phase 2 | Complete |
 | CHAT-01 | Phase 3 | Complete |
 | CHAT-02 | Phase 3 | Complete |
-| CHAT-03 | Phase 3 | Pending |
+| CHAT-03 | Phase 3 | Complete |
 | CHAT-04 | Phase 3 | Complete |
 
 **Coverage:**

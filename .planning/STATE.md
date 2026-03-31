@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-web-chat-ui 03-01-PLAN.md
-last_updated: "2026-04-01T00:00:00.000Z"
-last_activity: 2026-04-01 -- Phase 03 execution in progress
+stopped_at: Completed 03-web-chat-ui 03-02-PLAN.md
+last_updated: "2026-03-31T16:48:28.804Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 9
-  completed_plans: 5
+  completed_plans: 7
   percent: 67
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 03 (web-chat-ui) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 03
-Last activity: 2026-03-31 -- Phase 03 execution started
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-03-31
 
 Progress: [██████░░░░] 67%
 
@@ -57,6 +57,7 @@ Progress: [██████░░░░] 67%
 | Phase 02-graph-layer P01 | 7min | 2 tasks | 5 files |
 | Phase 02-graph-layer P02 | 1min | 1 tasks | 1 files |
 | Phase 03-web-chat-ui P01 | 2min | 3 tasks | 8 files |
+| Phase 03-web-chat-ui P02 | 3min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 03-web-chat-ui]: start_device_flow/check_device_flow split: web routes cannot use blocking device_login() — initiate + single-poll split for web compatibility
 - [Phase 03-web-chat-ui]: check_device_flow() calls save_token() on success to persist token before returning to caller
 - [Phase 03-web-chat-ui]: API models in app/api/models.py; test stubs define mock contract now, full HTTP assertions in Plan 02
+- [Phase 03-web-chat-ui]: device_flows dict uses 'current' key — single-user app, one active Device Flow at a time
+- [Phase 03-web-chat-ui]: app.state.auth_expired flag: chat route sets on SDK auth errors, auth/status route reads — decoupled detection from surfacing
+- [Phase 03-web-chat-ui]: ASGITransport in tests bypasses lifespan — inject mocks directly into app.state fields
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-01T00:00:00.000Z
-Stopped at: Completed 03-web-chat-ui 03-01-PLAN.md
-Resume file: .planning/phases/03-web-chat-ui/03-02-PLAN.md
+Last session: 2026-03-31T16:48:28.802Z
+Stopped at: Completed 03-web-chat-ui 03-02-PLAN.md
+Resume file: None
