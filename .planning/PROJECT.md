@@ -15,13 +15,13 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 - [x] `ChatCopilot` — `BaseChatModel` を継承した LangChain 互換ラッパーを実装する — Validated in Phase 1: Auth + Provider Foundation
 - [x] Device Flow 認証 — GitHub OAuth でトークンを取得し、暗号化してローカルに保存・再利用する — Validated in Phase 1: Auth + Provider Foundation
+- [x] 会話スレッド維持 — 複数ターンの会話履歴を LangGraph の State として管理する — Validated in Phase 2: Graph Layer
+- [x] LangGraph グラフ設計 — 将来のツール呼び出し・マルチエージェント拡張を見越した素直な構造 — Validated in Phase 2: Graph Layer
 
 ### Active
 
-- [ ] 会話スレッド維持 — 複数ターンの会話履歴を LangGraph の State として管理する
 - [ ] モデル選択 — UI またはコンフィグでモデルを切り替えられる（デフォルト: gpt-4.1）
 - [ ] Web UI — ブラウザで動作するチャット画面（送信・受信・履歴表示）
-- [ ] LangGraph グラフ設計 — 将来のツール呼び出し・マルチエージェント拡張を見越した素直な構造
 
 ### Out of Scope
 
@@ -50,7 +50,8 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 | `BaseChatModel` ラッパー実装 | Copilot SDK は JSON-RPC 通信のため OpenAI 互換 URL では代替不可 | ✓ `app/providers/copilot.py` — `ChatCopilot(BaseChatModel)` 実装済み |
 | Device Flow 認証 | ブラウザ経由で簡単に認証でき、トークン再利用でインタラクション最小化 | ✓ `app/auth/manager.py` — Fernet暗号化 + Device Flow 実装済み |
 | モデル選択可能 | gpt-4.1 固定より、Copilot が提供する他モデルも試せる柔軟性を優先 | ✓ `ChatCopilot(model=...)` フィールドで実装済み |
-| LangGraph をグラフ基盤に採用 | 今後のエージェント化（ツール呼び出し・マルチノード）への拡張性を確保 | — Pending |
+| LangGraph をグラフ基盤に採用 | 今後のエージェント化（ツール呼び出し・マルチノード）への拡張性を確保 | ✓ `app/graph/builder.py` — `build_graph(llm, checkpointer)` 実装済み、ToolNode 拡張ポイント文書化 |
+| `send_and_wait(prompt)` — dict ではなく str を渡す | SDK 0.2.0 で API シグネチャが変更、dict 渡しは JS バイナリで TypeError | ✓ `app/providers/copilot.py:95` 修正済み (quick task 260331-uy2) |
 
 ## Evolution
 
@@ -70,4 +71,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 1 complete (Auth + Provider Foundation)*
+*Last updated: 2026-03-31 — Phase 2 complete (Graph Layer — LangGraph StateGraph + thread isolation confirmed with live Copilot)*
