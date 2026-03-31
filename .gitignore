@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Token and encryption key files (never commit secrets)
+.enc_key
+token.enc
+~/.copilot_sdk/
