@@ -61,8 +61,8 @@
 | AUTH-02 | Phase 1 | Pending |
 | AUTH-03 | Phase 3 | Pending |
 | PROV-01 | Phase 1 | Pending |
-| PROV-02 | Phase 3 | Pending |
-| PROV-03 | Phase 2 | Pending |
+| PROV-02 | Phase 1 | Pending |
+| PROV-03 | Phase 1 | Pending |
 | GRPH-01 | Phase 2 | Pending |
 | GRPH-02 | Phase 2 | Pending |
 | GRPH-03 | Phase 2 | Pending |
@@ -78,4 +78,4 @@
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-03-31 after roadmap creation*
