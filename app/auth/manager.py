@@ -168,6 +168,58 @@ class CopilotAuthManager:
                 raise RuntimeError(f"Device Flow failed with error: {error}")
 
     # ------------------------------------------------------------------
+    # Web-compatible Device Flow (AUTH-03)
+    # ------------------------------------------------------------------
+
+    async def start_device_flow(self) -> dict:
+        """Start GitHub Device Flow and return codes for the web UI.
+
+        Returns dict with keys: user_code, verification_uri, device_code, interval.
+        Does NOT block — returns immediately after getting codes from GitHub.
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                GITHUB_DEVICE_CODE_URL,
+                data={"client_id": CLIENT_ID, "scope": "read:user"},
+                headers={"Accept": "application/x-www-form-urlencoded"},
+            )
+        params = parse_qs(response.text)
+        return {
+            "user_code": params["user_code"][0],
+            "verification_uri": params["verification_uri"][0],
+            "device_code": params["device_code"][0],
+            "interval": int(params.get("interval", ["5"])[0]),
+        }
+
+    async def check_device_flow(self, device_code: str) -> str | None:
+        """Make a single poll attempt for Device Flow completion.
+
+        Returns the access_token string if auth completed, None if still pending.
+        Raises RuntimeError on terminal errors (e.g., expired_token, access_denied).
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                GITHUB_TOKEN_URL,
+                data={
+                    "client_id": CLIENT_ID,
+                    "device_code": device_code,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                },
+                headers={"Accept": "application/x-www-form-urlencoded"},
+            )
+        result = parse_qs(response.text)
+
+        if "access_token" in result:
+            token = result["access_token"][0]
+            self.save_token(token)
+            return token
+
+        error = result.get("error", ["unknown"])[0]
+        if error in ("authorization_pending", "slow_down"):
+            return None
+        raise RuntimeError(f"Device Flow failed: {error}")
+
+    # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
 
