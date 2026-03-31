@@ -8,7 +8,7 @@
 
 // ---- Global state ----
 let activeThreadId = null;
-let selectedModel = 'gpt-4.1';
+let selectedModel = 'claude-sonnet-4.5';
 let isAuthenticated = false;
 let authPollInterval = null;
 
