@@ -48,7 +48,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — TDD: build_graph() with MessagesState, multi-turn history, thread isolation, extension point
-- [ ] 02-02-PLAN.md — Integration validation script + live Copilot verification
+- [x] 02-02-PLAN.md — Integration validation script + live Copilot verification
 
 ### Phase 3: Web + Chat UI
 **Goal**: User can open a browser, authenticate via Device Flow, and hold a multi-turn chat conversation with Copilot
