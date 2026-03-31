@@ -1,0 +1,611 @@
+/* ============================================================
+   Copilot Chat — Main Stylesheet
+   Dark theme: developer tool, single-user personal app
+   Color palette: UI-SPEC Design System
+   ============================================================ */
+
+/* ---- Reset & Base ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #e8e8f0;
+  background: #1e1e2e;
+}
+
+/* ---- Scrollbar styling (dark theme) ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a52;
+  border-radius: 3px;
+}
+
+/* ---- Header ---- */
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: #2a2a3e;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  border-bottom: 1px solid #3a3a52;
+}
+
+.app-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8e8f0;
+  line-height: 1.2;
+}
+
+.auth-status {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #9090a8;
+}
+
+.auth-status.authenticated {
+  color: #9090a8;
+}
+
+.auth-status.expired {
+  color: #e05252;
+  cursor: pointer;
+}
+
+.auth-status.expired:hover {
+  text-decoration: underline;
+}
+
+.auth-status.login-btn {
+  color: #7c6ff7;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-status.login-btn:hover {
+  opacity: 0.85;
+}
+
+/* ---- Main Layout ---- */
+.main-layout {
+  display: flex;
+  margin-top: 48px;
+}
+
+/* ---- Sidebar ---- */
+#sidebar {
+  position: fixed;
+  left: 0;
+  top: 48px;
+  width: 240px;
+  height: calc(100vh - 48px);
+  background: #2a2a3e;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0 16px 0;
+  border-right: 1px solid #3a3a52;
+  z-index: 50;
+}
+
+/* ---- New Chat Button ---- */
+.new-chat-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 0 16px 16px 16px;
+  height: 36px;
+  background: #7c6ff7;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.new-chat-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ---- Thread List ---- */
+.thread-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.thread-item {
+  height: 40px;
+  line-height: 40px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 400;
+  color: #e8e8f0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+
+.thread-item:hover {
+  background: #313145;
+}
+
+.thread-item.active {
+  border-left: 3px solid #7c6ff7;
+  background: #313145;
+}
+
+/* ---- Model Selector ---- */
+.model-selector {
+  padding: 12px 16px 0 16px;
+  border-top: 1px solid #3a3a52;
+}
+
+.model-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: #9090a8;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+#model-select {
+  width: 100%;
+  background: #1e1e2e;
+  color: #e8e8f0;
+  font-family: inherit;
+  font-size: 14px;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+#model-select:focus {
+  border-color: #7c6ff7;
+}
+
+/* ---- Chat Area ---- */
+#chat-area {
+  flex: 1;
+  margin-left: 240px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px);
+}
+
+/* ---- Message List ---- */
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #1e1e2e;
+}
+
+/* Clear floats after each message block */
+.message-list::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* Clearfix for individual messages */
+.message::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* ---- Empty State ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  text-align: center;
+  color: #9090a8;
+}
+
+.empty-state h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #e8e8f0;
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: #9090a8;
+}
+
+/* ---- Message Bubbles ---- */
+.message {
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+/* User messages — right-aligned */
+.message.user .bubble {
+  float: right;
+  max-width: 72%;
+  background: #313145;
+  border-radius: 16px 16px 4px 16px;
+  padding: 8px 16px;
+  color: #e8e8f0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* AI messages — left-aligned */
+.message.ai .bubble {
+  float: left;
+  max-width: 72%;
+  background: #252535;
+  border-radius: 16px 16px 16px 4px;
+  padding: 8px 16px;
+  color: #e8e8f0;
+  word-wrap: break-word;
+}
+
+/* Error messages — left-aligned, error style */
+.message.error .bubble {
+  float: left;
+  max-width: 72%;
+  background: #2a1a1a;
+  border: 1px solid #e05252;
+  border-radius: 16px 16px 16px 4px;
+  padding: 8px 16px;
+  color: #e05252;
+  word-wrap: break-word;
+}
+
+/* ---- Typing Indicator (D-12) ---- */
+.message.typing .bubble {
+  float: left;
+  background: #252535;
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #9090a8;
+  border-radius: 50%;
+  animation: dotPulse 1.2s infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---- Input Bar ---- */
+.input-bar {
+  background: #2a2a3e;
+  padding: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  border-top: 1px solid #3a3a52;
+}
+
+#user-input {
+  flex: 1;
+  background: #1e1e2e;
+  color: #e8e8f0;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  border: 1px solid #3a3a52;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+}
+
+#user-input::placeholder {
+  color: #9090a8;
+}
+
+#user-input:focus {
+  border-color: #7c6ff7;
+}
+
+#user-input:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.send-btn {
+  width: 36px;
+  height: 36px;
+  background: #7c6ff7;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: filter 0.15s;
+}
+
+.send-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.send-btn:disabled,
+.send-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ---- Prose (Markdown rendering scope) ---- */
+.prose h1 {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.prose h2 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.prose h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.prose p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.prose li {
+  margin-bottom: 2px;
+}
+
+.prose code {
+  background: #313145;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.prose pre {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prose a {
+  color: #7c6ff7;
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  opacity: 0.85;
+}
+
+.prose blockquote {
+  border-left: 3px solid #3a3a52;
+  padding-left: 12px;
+  color: #9090a8;
+  margin: 0 0 8px;
+}
+
+.prose table {
+  border-collapse: collapse;
+  margin: 0 0 8px;
+  width: 100%;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #3a3a52;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.prose th {
+  background: #313145;
+  font-weight: 600;
+}
+
+/* ---- Device Flow Auth Panel ---- */
+.auth-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.auth-panel-content {
+  background: #2a2a3e;
+  border: 1px solid #3a3a52;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 480px;
+  width: calc(100% - 32px);
+  text-align: center;
+}
+
+.auth-panel-content h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8e8f0;
+  margin-bottom: 12px;
+}
+
+.auth-panel-content p {
+  font-size: 15px;
+  color: #9090a8;
+  margin-bottom: 16px;
+}
+
+.auth-url {
+  display: block;
+  color: #7c6ff7;
+  text-decoration: underline;
+  font-size: 15px;
+  margin-bottom: 20px;
+  word-break: break-all;
+}
+
+.auth-url:hover {
+  opacity: 0.85;
+}
+
+.device-code-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.device-code {
+  font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #e8e8f0;
+}
+
+.copy-btn {
+  background: #313145;
+  color: #e8e8f0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.copy-btn:hover {
+  background: #3a3a52;
+}
+
+.auth-polling-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #9090a8;
+  font-size: 14px;
+}
+
+/* CSS spinner */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #3a3a52;
+  border-top-color: #7c6ff7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Auth error message in panel ---- */
+.auth-error-msg {
+  color: #e05252;
+  font-size: 13px;
+  margin-top: 8px;
+}

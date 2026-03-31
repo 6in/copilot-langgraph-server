@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Chat</title>
+    <link rel="stylesheet" href="/style.css">
+    <!-- highlight.js github-dark theme (UI-SPEC: Markdown Rendering Contract) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+</head>
+<body>
+    <!-- HEADER: 48px fixed, app name + auth status (D-07) -->
+    <header id="header">
+        <span class="app-name">Copilot Chat</span>
+        <span id="auth-status" class="auth-status"></span>
+    </header>
+
+    <div class="main-layout">
+        <!-- SIDEBAR: 240px fixed (D-05) -->
+        <aside id="sidebar">
+            <!-- New Chat button at top (D-06) -->
+            <button id="new-chat-btn" class="new-chat-btn">New Chat</button>
+
+            <!-- Thread list (SESS-02) -->
+            <div id="thread-list" class="thread-list"></div>
+
+            <!-- Model selector at bottom (D-09, D-10) -->
+            <div class="model-selector">
+                <label class="model-label" for="model-select">Model:</label>
+                <select id="model-select">
+                    <option value="gpt-4.1" selected>gpt-4.1</option>
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="o3">o3</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- CHAT AREA -->
+        <main id="chat-area">
+            <!-- Message list (scrollable) (CHAT-01) -->
+            <div id="message-list" class="message-list">
+                <!-- Empty state -->
+                <div id="empty-state" class="empty-state">
+                    <h2>New conversation</h2>
+                    <p>Ask Copilot anything to get started.</p>
+                </div>
+            </div>
+
+            <!-- Input bar anchored to bottom (CHAT-02, D-13) -->
+            <div class="input-bar">
+                <textarea id="user-input" placeholder="Type a message..." rows="1"></textarea>
+                <button id="send-btn" class="send-btn" aria-label="Send message">&rarr;</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Device Flow Auth Panel (overlay) (D-01, D-02, D-03) -->
+    <div id="auth-panel" class="auth-panel" style="display:none;">
+        <div class="auth-panel-content">
+            <h2>Connect to GitHub Copilot</h2>
+            <p>Open the URL below and enter the code to authenticate.</p>
+            <a id="auth-url" class="auth-url" href="#" target="_blank"></a>
+            <div class="device-code-section">
+                <span id="device-code" class="device-code"></span>
+                <button id="copy-code-btn" class="copy-btn">Copy</button>
+            </div>
+            <div id="auth-polling-status" class="auth-polling-status">
+                <span class="spinner"></span>
+                <span>Waiting for authentication...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CDN scripts: marked.js + marked-highlight + highlight.js (UI-SPEC: Markdown Rendering Contract) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@17.0.5/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-highlight@2.2.3/lib/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/core.min.js"></script>
+    <!-- Common languages for code highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/css.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/xml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/sql.min.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>
