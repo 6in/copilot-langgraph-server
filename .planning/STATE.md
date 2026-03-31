@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-03-31T07:38:31.129Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-31T13:01:56.565Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01 P02 | 5min | 1 tasks | 2 files |
 | Phase 01 P03 | 2min | 2 tasks | 1 files |
+| Phase 02-graph-layer P01 | 7min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Error recovery in _agenerate: any exception stops and nulls _client before re-raising
 - [Phase 01]: E2E script uses ainvoke() public interface not _agenerate() — tests full LangChain dispatch path
 - [Phase 01]: close() in finally block is unconditional — guarantees CopilotClient subprocess terminates on success and error
+- [Phase 02-graph-layer]: build_graph(llm, checkpointer) factory: compile once at startup, checkpointer lifecycle owned by caller
+- [Phase 02-graph-layer]: ToolNode extension point documented in docstring, not as dead code — clean separation of v1 and v2 concerns
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T07:34:06.360Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-03-31T13:01:56.563Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None

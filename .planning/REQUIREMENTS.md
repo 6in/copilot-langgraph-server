@@ -19,9 +19,9 @@
 
 ### Graph
 
-- [ ] **GRPH-01**: `MessagesState` + `add_messages` リデューサーで複数ターンの会話履歴を LangGraph 内で維持する
-- [ ] **GRPH-02**: `thread_id` でセッションを分離し、新規チャット・履歴クリアに対応する
-- [ ] **GRPH-03**: 将来のツール呼び出し・マルチノード拡張を見越した `StateGraph` 構成にする
+- [x] **GRPH-01**: `MessagesState` + `add_messages` リデューサーで複数ターンの会話履歴を LangGraph 内で維持する
+- [x] **GRPH-02**: `thread_id` でセッションを分離し、新規チャット・履歴クリアに対応する
+- [x] **GRPH-03**: 将来のツール呼び出し・マルチノード拡張を見越した `StateGraph` 構成にする
 
 ### Chat UI
 
@@ -63,9 +63,9 @@
 | PROV-01 | Phase 1 | Complete |
 | PROV-02 | Phase 1 | Complete |
 | PROV-03 | Phase 1 | Complete |
-| GRPH-01 | Phase 2 | Pending |
-| GRPH-02 | Phase 2 | Pending |
-| GRPH-03 | Phase 2 | Pending |
+| GRPH-01 | Phase 2 | Complete |
+| GRPH-02 | Phase 2 | Complete |
+| GRPH-03 | Phase 2 | Complete |
 | CHAT-01 | Phase 3 | Pending |
 | CHAT-02 | Phase 3 | Pending |
 | CHAT-03 | Phase 3 | Pending |

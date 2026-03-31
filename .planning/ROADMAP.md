@@ -44,10 +44,10 @@ Plans:
   2. Two separate thread_ids maintain completely independent conversation histories
   3. Calling build_graph() once at startup and invoking it multiple times per thread does not recompile or recreate the graph
   4. The StateGraph structure has a clear extension point where tool-calling nodes could be added without rewiring the core graph
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — TDD: build_graph() with MessagesState, multi-turn history, thread isolation, extension point
+- [x] 02-01-PLAN.md — TDD: build_graph() with MessagesState, multi-turn history, thread isolation, extension point
 - [ ] 02-02-PLAN.md — Integration validation script + live Copilot verification
 
 ### Phase 3: Web + Chat UI
@@ -72,5 +72,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
-| 2. Graph Layer | 0/2 | Planned | - |
+| 2. Graph Layer | 1/2 | In Progress|  |
 | 3. Web + Chat UI | 0/? | Not started | - |
