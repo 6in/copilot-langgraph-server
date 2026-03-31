@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること
-**Current focus:** Phase 01 — auth-provider-foundation
+**Current focus:** Phase 02 — graph-layer
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-31
+Phase: 02 (graph-layer) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 02
+Last activity: 2026-03-31 -- Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
