@@ -28,10 +28,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A Python script that creates ChatCopilot and calls ainvoke([HumanMessage("hello")]) receives a non-empty AIMessage response
   4. Changing the model parameter (e.g., gpt-4.1 vs claude-sonnet-4-5) produces a response without error
   5. CopilotClient start/stop lifecycle completes without subprocess leaks or warnings
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 01-01-PLAN.md — Project setup + CopilotAuthManager (Device Flow + Fernet encryption)
+- [x] 01-01-PLAN.md — Project setup + CopilotAuthManager (Device Flow + Fernet encryption)
 - [ ] 01-02-PLAN.md — ChatCopilot BaseChatModel provider (SDK 0.2.0 wrapper)
 - [ ] 01-03-PLAN.md — End-to-end validation script + live Copilot verification
 
@@ -67,6 +67,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth + Provider Foundation | 0/3 | Planning complete | - |
+| 1. Auth + Provider Foundation | 1/3 | In Progress|  |
 | 2. Graph Layer | 0/? | Not started | - |
 | 3. Web + Chat UI | 0/? | Not started | - |

@@ -7,8 +7,8 @@
 
 ### Auth
 
-- [ ] **AUTH-01**: Device Flow で GitHub OAuth 認証を行い、Copilot トークン（`ghu_` prefix）を取得できる
-- [ ] **AUTH-02**: 取得したトークンを Fernet で暗号化し、ローカルに保存・再起動後も再利用できる
+- [x] **AUTH-01**: Device Flow で GitHub OAuth 認証を行い、Copilot トークン（`ghu_` prefix）を取得できる
+- [x] **AUTH-02**: 取得したトークンを Fernet で暗号化し、ローカルに保存・再起動後も再利用できる
 - [ ] **AUTH-03**: トークン期限切れ時に UI 上で Re-authenticate ボタンを表示し、再認証フローを起動できる
 
 ### Provider
@@ -57,8 +57,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 3 | Pending |
 | PROV-01 | Phase 1 | Pending |
 | PROV-02 | Phase 1 | Pending |
