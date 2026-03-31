@@ -1,33 +1,82 @@
-"""Tests for /api/chat and /api/threads endpoints (CHAT-01, CHAT-02, CHAT-04)."""
+"""Tests for /api/chat and /api/threads endpoints (CHAT-01, CHAT-02, CHAT-03, CHAT-04)."""
 import pytest
-
-# Tests require api_client fixture from Plan 02.
-# Stubs below validate mock graph contract.
+from unittest.mock import MagicMock
 
 
-async def test_chat_returns_reply(mock_graph):
-    """POST /api/chat returns AI reply with same thread_id."""
-    from langchain_core.messages import HumanMessage
-    result = await mock_graph.ainvoke(
-        {"messages": [HumanMessage(content="hello")]},
-        config={"configurable": {"thread_id": "test-thread"}},
-    )
-    assert result["messages"][-1].content == "Hello from AI"
+async def test_chat_returns_reply(api_client, mock_graph):
+    """POST /api/chat returns AI reply with same thread_id (CHAT-01)."""
+    resp = await api_client.post("/api/chat", json={
+        "message": "Hello",
+        "thread_id": "test-thread-1",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["reply"] == "Hello from AI"
+    assert data["thread_id"] == "test-thread-1"
+    assert data["error"] is None
 
 
-async def test_chat_mock_graph_callable(mock_graph):
-    """Mock graph is callable with thread config."""
-    result = await mock_graph.ainvoke(
-        {"messages": []},
-        config={"configurable": {"thread_id": "t1"}},
-    )
-    assert "messages" in result
+async def test_chat_rejects_empty_message(api_client):
+    """POST /api/chat with missing message field returns 422 (CHAT-02)."""
+    resp = await api_client.post("/api/chat", json={
+        "thread_id": "test-thread-1",
+    })
+    assert resp.status_code == 422
 
 
-async def test_new_thread_uuid_format():
-    """POST /api/threads returns a valid UUID4 thread_id."""
+async def test_chat_auth_expired_error(api_client, mock_graph):
+    """POST /api/chat returns error=auth_expired when token is invalid."""
+    mock_graph.ainvoke.side_effect = RuntimeError("Unauthorized: token expired")
+    resp = await api_client.post("/api/chat", json={
+        "message": "test",
+        "thread_id": "test-thread-1",
+    })
+    data = resp.json()
+    assert data["error"] == "auth_expired"
+
+
+async def test_chat_with_model_override(api_client, mock_graph):
+    """POST /api/chat with model field overrides LLM model (D-11)."""
+    resp = await api_client.post("/api/chat", json={
+        "message": "test",
+        "thread_id": "t1",
+        "model": "o3",
+    })
+    assert resp.status_code == 200
+    # Verify ainvoke was called (model override happens on LLM object)
+    mock_graph.ainvoke.assert_called()
+
+
+async def test_new_thread_returns_uuid(api_client):
+    """POST /api/threads returns a valid UUID4 thread_id (CHAT-04)."""
     import uuid
-    tid = str(uuid.uuid4())
+    resp = await api_client.post("/api/threads")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "thread_id" in data
     # Verify UUID format
-    parsed = uuid.UUID(tid, version=4)
-    assert str(parsed) == tid
+    uuid.UUID(data["thread_id"], version=4)
+    assert "label" in data
+    assert data["label"].startswith("Chat ")
+
+
+async def test_list_threads_empty(api_client):
+    """GET /api/threads returns empty list when no conversations exist."""
+    resp = await api_client.get("/api/threads")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+async def test_chat_markdown_passthrough(api_client, mock_graph):
+    """POST /api/chat passes through Markdown content unchanged (CHAT-03)."""
+    markdown_reply = "# Title\n\n**bold** and `code`\n\n```python\nprint('hello')\n```"
+    mock_graph.ainvoke.return_value = {
+        "messages": [MagicMock(content=markdown_reply)]
+    }
+    resp = await api_client.post("/api/chat", json={
+        "message": "test",
+        "thread_id": "t1",
+    })
+    data = resp.json()
+    assert data["reply"] == markdown_reply
+    assert "```python" in data["reply"]
