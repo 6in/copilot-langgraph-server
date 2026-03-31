@@ -9,7 +9,7 @@
 
 - [x] **AUTH-01**: Device Flow で GitHub OAuth 認証を行い、Copilot トークン（`ghu_` prefix）を取得できる
 - [x] **AUTH-02**: 取得したトークンを Fernet で暗号化し、ローカルに保存・再起動後も再利用できる
-- [ ] **AUTH-03**: トークン期限切れ時に UI 上で Re-authenticate ボタンを表示し、再認証フローを起動できる
+- [x] **AUTH-03**: トークン期限切れ時に UI 上で Re-authenticate ボタンを表示し、再認証フローを起動できる
 
 ### Provider
 
@@ -25,10 +25,10 @@
 
 ### Chat UI
 
-- [ ] **CHAT-01**: ユーザー・AI の発言を時系列で表示するメッセージ一覧を持つ
-- [ ] **CHAT-02**: テキスト入力・送信ボタン・ローディング表示を含む送受信フローが動作する
+- [x] **CHAT-01**: ユーザー・AI の発言を時系列で表示するメッセージ一覧を持つ
+- [x] **CHAT-02**: テキスト入力・送信ボタン・ローディング表示を含む送受信フローが動作する
 - [ ] **CHAT-03**: AI 回答の Markdown およびコードブロックを整形レンダリングする
-- [ ] **CHAT-04**: 新規チャットボタンで会話スレッドをリセットできる
+- [x] **CHAT-04**: 新規チャットボタンで会話スレッドをリセットできる
 
 ## v2 Requirements
 
@@ -59,17 +59,17 @@
 |-------------|-------|--------|
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Complete |
-| AUTH-03 | Phase 3 | Pending |
+| AUTH-03 | Phase 3 | Complete |
 | PROV-01 | Phase 1 | Complete |
 | PROV-02 | Phase 1 | Complete |
 | PROV-03 | Phase 1 | Complete |
 | GRPH-01 | Phase 2 | Complete |
 | GRPH-02 | Phase 2 | Complete |
 | GRPH-03 | Phase 2 | Complete |
-| CHAT-01 | Phase 3 | Pending |
-| CHAT-02 | Phase 3 | Pending |
+| CHAT-01 | Phase 3 | Complete |
+| CHAT-02 | Phase 3 | Complete |
 | CHAT-03 | Phase 3 | Pending |
-| CHAT-04 | Phase 3 | Pending |
+| CHAT-04 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 13 total

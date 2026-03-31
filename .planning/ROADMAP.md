@@ -61,7 +61,7 @@ Plans:
   4. Assistant replies containing Markdown headers, bold text, or fenced code blocks render formatted — not as raw markup
   5. Clicking "New Chat" clears the message list and the next message starts a fresh conversation with no prior context
   6. When the Copilot token is expired, the UI shows a Re-authenticate button instead of a generic error
-**Plans:** 4 plans
+**Plans:** 0/4 plans executed
 **UI hint**: yes
 
 Plans:
@@ -79,4 +79,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
-| 3. Web + Chat UI | 0/4 | Planning complete | - |
+| 3. Web + Chat UI | 0/4 | Planned    |  |

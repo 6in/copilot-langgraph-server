@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 02-02-PLAN.md — Phase 02 graph-layer complete
-last_updated: "2026-03-31T13:33:01.271Z"
+stopped_at: Completed 03-web-chat-ui 03-01-PLAN.md
+last_updated: "2026-03-31T16:42:30.897Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 5
+  total_plans: 9
   completed_plans: 5
   percent: 67
 ---
@@ -56,6 +56,7 @@ Progress: [██████░░░░] 67%
 | Phase 01 P03 | 2min | 2 tasks | 1 files |
 | Phase 02-graph-layer P01 | 7min | 2 tasks | 5 files |
 | Phase 02-graph-layer P02 | 1min | 1 tasks | 1 files |
+| Phase 03-web-chat-ui P01 | 2min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 02-graph-layer]: build_graph(llm, checkpointer) factory: compile once at startup, checkpointer lifecycle owned by caller
 - [Phase 02-graph-layer]: ToolNode extension point documented in docstring, not as dead code — clean separation of v1 and v2 concerns
 - [Phase 02-graph-layer]: MemorySaver sufficient for single-run validation scripts — caller-owned checkpointer pattern means tests pick the right impl
+- [Phase 03-web-chat-ui]: start_device_flow/check_device_flow split: web routes cannot use blocking device_login() — initiate + single-poll split for web compatibility
+- [Phase 03-web-chat-ui]: check_device_flow() calls save_token() on success to persist token before returning to caller
+- [Phase 03-web-chat-ui]: API models in app/api/models.py; test stubs define mock contract now, full HTTP assertions in Plan 02
 
 ### Pending Todos
 
@@ -93,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T13:10:00.000Z
-Stopped at: Completed 02-02-PLAN.md — Phase 02 graph-layer complete
+Last session: 2026-03-31T16:42:30.894Z
+Stopped at: Completed 03-web-chat-ui 03-01-PLAN.md
 Resume file: None
