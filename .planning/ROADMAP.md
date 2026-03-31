@@ -68,7 +68,7 @@ Plans:
 - [x] 03-01-PLAN.md — Dependencies, API models, auth manager refactor, test infrastructure
 - [x] 03-02-PLAN.md — FastAPI app with lifespan + all API routes (auth, chat, threads)
 - [x] 03-03-PLAN.md — Frontend: HTML/CSS/JS chat UI with markdown rendering
-- [ ] 03-04-PLAN.md — Visual verification checkpoint (human verify)
+- [x] 03-04-PLAN.md — Visual verification checkpoint (human verify)
 
 ## Progress
 
