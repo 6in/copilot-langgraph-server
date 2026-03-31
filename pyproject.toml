@@ -7,6 +7,9 @@ dependencies = [
     "github-copilot-sdk==0.2.0",
     "cryptography>=46.0.0",
     "httpx>=0.28.0",
+    "langgraph>=1.1.4",
+    "langgraph-checkpoint-sqlite>=3.0.3",
+    "aiosqlite>=0.22.1",
 ]
 
 [dependency-groups]
