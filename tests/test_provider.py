@@ -164,3 +164,14 @@ def test_ensure_client_no_token_no_manager():
 
     with pytest.raises(ValueError):
         asyncio.get_event_loop().run_until_complete(provider._ensure_client())
+
+
+@pytest.mark.asyncio
+async def test_send_and_wait_called_with_string(mock_copilot):
+    """send_and_wait must receive the prompt as a plain str, not a dict."""
+    from app.providers.copilot import ChatCopilot
+
+    provider = ChatCopilot(model="gpt-4.1", github_token="ghu_test")
+    await provider._agenerate([HumanMessage(content="hello")])
+
+    mock_copilot["session"].send_and_wait.assert_called_once_with("[User]: hello")

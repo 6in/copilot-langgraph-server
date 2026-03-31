@@ -92,7 +92,7 @@ class ChatCopilot(BaseChatModel):
                 model=self.model,
             )
 
-            response = await session.send_and_wait({"prompt": prompt})
+            response = await session.send_and_wait(prompt)
 
             if response is None or response.data.content is None:
                 raise RuntimeError(
