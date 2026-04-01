@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
 - [x] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
 - [x] **Phase 5: GitHub User Info + Header UI** - GET /api/me fetches GitHub profile, header displays avatar + login name (completed 2026-04-01)
-- [ ] **Phase 6: SQLite to PostgreSQL Checkpointer Migration** - AsyncPostgresSaver replaces AsyncSqliteSaver, postgres Docker service added, all tests pass
+- [x] **Phase 6: SQLite to PostgreSQL Checkpointer Migration** - AsyncPostgresSaver replaces AsyncSqliteSaver, postgres Docker service added, all tests pass (completed 2026-04-02)
 
 ## Phase Details
 
