@@ -1,9 +1,36 @@
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # ホストポートは公開しない（別Redisとの競合回避）
+    # api/worker コンテナからは redis:6379 でアクセス可能
     volumes:
       - redis-data:/data
+
+  api:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    working_dir: /app
+    command: uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ~/.copilot_sdk:/root/.copilot_sdk
+    depends_on:
+      - redis
+
+  worker:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    working_dir: /app
+    command: uv run arq app.jobs.worker.WorkerSettings
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - .:/app
+      - ~/.copilot_sdk:/root/.copilot_sdk
+    depends_on:
+      - redis
+
 volumes:
   redis-data:

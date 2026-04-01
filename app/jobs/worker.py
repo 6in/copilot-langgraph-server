@@ -7,6 +7,7 @@ its own Redis client, JobStore, and LangGraph graph per startup.
 """
 import os
 
+from arq.connections import RedisSettings
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from redis.asyncio import Redis
@@ -91,5 +92,5 @@ class WorkerSettings:
     functions = [process_chat]
     on_startup = startup
     on_shutdown = shutdown
-    # arq reads REDIS_URL from RedisSettings or uses default localhost:6379
+    redis_settings = RedisSettings.from_dsn(REDIS_URL)
     job_timeout = 300  # 5 minutes — matches send_and_wait timeout
