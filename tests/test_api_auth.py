@@ -61,7 +61,7 @@ async def test_auth_poll_pending(api_client, mock_auth_manager):
 
 async def test_auth_poll_success_sets_cookie(api_client, mock_auth_manager):
     """GET /api/auth/poll returns {done: true} and sets session cookie on success."""
-    mock_auth_manager.check_device_flow.return_value = "ghu_new_token"
+    mock_auth_manager.check_device_flow.return_value = ("ghu_new_token", None)
     start_resp = await api_client.post("/api/auth/start")
     flow_id = start_resp.json()["flow_id"]
 

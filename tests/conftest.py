@@ -39,7 +39,7 @@ def mock_auth_manager(tmp_path):
         "device_code": "dc_fake",
         "interval": 5,
     })
-    manager.check_device_flow = AsyncMock(return_value=None)
+    manager.check_device_flow = AsyncMock(return_value=(None, None))
     return manager
 
 
