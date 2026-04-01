@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-github-api-me-ui 05-02-PLAN.md
-last_updated: "2026-04-01T11:05:48.226Z"
-last_activity: 2026-04-01 -- Phase 06 execution started
+stopped_at: Completed 06-sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose 06-02-PLAN.md
+last_updated: "2026-04-01T11:16:13.493Z"
+last_activity: 2026-04-01
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 67
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 06 (sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 06
-Last activity: 2026-04-01 -- Phase 06 execution started
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-01
 
 Progress: [██████░░░░] 67%
 
@@ -65,6 +65,7 @@ Progress: [██████░░░░] 67%
 | Phase 04-sse-redis-worker-jobstore-notifier P03 | 8min | 2 tasks | 8 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P04 | 1min | 1 tasks | 1 files |
 | Phase 05-github-api-me-ui P02 | 3min | 2 tasks | 2 files |
+| Phase 06-sqlite-postgresql-checkpointer P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase 04-sse-redis-worker-jobstore-notifier]: sendMessage() async flow: POST gets job_id, EventSource for done signal, result from GET /api/job/{id}, polling fallback on SSE disconnect
 - [Phase 05-github-api-me-ui]: loadUserInfo() called without await — non-blocking so 'Authenticated' text shows immediately while avatar loads
 - [Phase 05-github-api-me-ui]: login rendered via textContent, not innerHTML — enforces XSS prevention convention from project
+- [Phase 06-sqlite-postgresql-checkpointer]: AsyncMock() used for checkpointer in conftest — MagicMock() does not support await on adelete_thread
+- [Phase 06-sqlite-postgresql-checkpointer]: test_delete_thread_calls_adelete does NOT manually reassign adelete_thread — AsyncMock auto-creates awaitable children; manual reassignment masks regressions
 
 ### Roadmap Evolution
 
@@ -138,6 +141,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T10:18:24.267Z
-Stopped at: Completed 05-github-api-me-ui 05-02-PLAN.md
+Last session: 2026-04-01T11:16:13.491Z
+Stopped at: Completed 06-sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose 06-02-PLAN.md
 Resume file: None
