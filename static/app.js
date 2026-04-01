@@ -147,6 +147,9 @@ async function startAuthFlow() {
     authUrl.textContent = data.verification_uri;
     deviceCode.textContent = data.user_code;
 
+    // Store flow_id for per-user Device Flow tracking
+    const flowId = data.flow_id;
+
     // Reset polling status display
     authPollingStatus.innerHTML =
       '<span class="spinner"></span><span>Waiting for authentication...</span>';
@@ -160,30 +163,29 @@ async function startAuthFlow() {
       authPollInterval = null;
     }
 
-    // Start polling every 5 seconds (D-03)
-    authPollInterval = setInterval(pollAuth, 5000);
+    // Start polling every 5 seconds (D-03), passing flow_id for per-user lookup
+    authPollInterval = setInterval(() => pollAuth(flowId), 5000);
   } catch (err) {
     console.error('Failed to start auth flow:', err);
   }
 }
 
 // ---- Poll for auth completion ----
-async function pollAuth() {
+async function pollAuth(flowId) {
   try {
-    const resp = await fetch('/api/auth/poll');
+    const resp = await fetch('/api/auth/poll?flow_id=' + flowId);
     const data = await resp.json();
 
     if (data.done === true) {
-      // Auth complete
+      // Auth complete — JWT cookie set automatically by browser from Set-Cookie header
       clearInterval(authPollInterval);
       authPollInterval = null;
 
       const authPanel = document.getElementById('auth-panel');
       authPanel.style.display = 'none';
 
-      // D-03: auto-refresh on success
+      // Update UI state from the newly set JWT cookie (no reload needed)
       await checkAuthStatus();
-      location.reload();
     } else if (data.error && !data.done) {
       // Show error in auth panel but keep polling (unless it's a terminal error)
       const authPollingStatus = document.getElementById('auth-polling-status');
@@ -294,6 +296,20 @@ async function sendMessage() {
       })
     });
 
+    if (resp.status === 401) {
+      // JWT auth failure: cookie missing, expired, or revoked
+      hideTyping();
+      const errData = await resp.json().catch(() => ({}));
+      const detail = errData.detail || '';
+      await checkAuthStatus();
+      if (detail === 'auth_expired') {
+        appendMessage('error', 'Session expired \u2014 click to re-auth in the header.');
+      } else {
+        appendMessage('error', 'Authentication required \u2014 click to log in in the header.');
+      }
+      return;
+    }
+
     if (!resp.ok) {
       hideTyping();
       appendMessage('error', `Server error: ${resp.status} ${resp.statusText}`);
@@ -305,7 +321,7 @@ async function sendMessage() {
     hideTyping();
 
     if (data.error === 'auth_expired') {
-      // D-04: trigger header update
+      // Fallback: SDK-level auth error surfaced via ChatResponse.error
       await checkAuthStatus();
       appendMessage('error', 'Session expired \u2014 click to re-auth in the header.');
     } else if (data.error) {
