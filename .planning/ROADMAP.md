@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
 - [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
 - [x] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
-- [ ] **Phase 5: GitHub User Info + Header UI** - GET /api/me fetches GitHub profile, header displays avatar + login name
+- [x] **Phase 5: GitHub User Info + Header UI** - GET /api/me fetches GitHub profile, header displays avatar + login name (completed 2026-04-01)
 
 ## Phase Details
 
@@ -104,7 +104,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 4/4 | Complete   | 2026-04-01 |
 | 4. Async Job Queue + SSE | 4/4 | Complete   | 2026-04-01 |
-| 5. GitHub User Info + Header UI | 0/2 | Planning   | — |
+| 5. GitHub User Info + Header UI | 2/2 | Complete   | 2026-04-01 |
 
 ### Phase 5: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
 
@@ -117,11 +117,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
   3. GET /api/me with expired JWT returns 401
   4. GET /api/me returns 502 when GitHub API fails
   5. Header displays GitHub avatar (circle) and login name when authenticated
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Backend: UserInfoResponse model + GET /api/me route + tests
-- [ ] 05-02-PLAN.md — Frontend: header avatar + login display + visual verification
+- [x] 05-02-PLAN.md — Frontend: header avatar + login display + visual verification
 
 ### Phase 6: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）
 
