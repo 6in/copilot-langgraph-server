@@ -84,7 +84,7 @@ Plans:
   5. Frontend sends message, shows typing indicator, receives AI reply via SSE or polling
   6. Worker process runs LangGraph in separate process, saves result to Redis before signalling done
   7. Polling fallback activates when SSE connection drops
-**Plans:** 4 plans
+**Plans:** 0/4 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Dependencies, docker-compose, JobStore, Notifier, Wave 0 test stubs
@@ -102,4 +102,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 3/4 | In Progress|  |
-| 4. Async Job Queue + SSE | 0/4 | Planned | |
+| 4. Async Job Queue + SSE | 0/4 | Planned    |  |
