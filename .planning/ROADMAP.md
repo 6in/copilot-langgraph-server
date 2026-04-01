@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
 - [x] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
 - [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
-- [ ] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback
+- [x] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
 
 ## Phase Details
 
@@ -84,13 +84,13 @@ Plans:
   5. Frontend sends message, shows typing indicator, receives AI reply via SSE or polling
   6. Worker process runs LangGraph in separate process, saves result to Redis before signalling done
   7. Polling fallback activates when SSE connection drops
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 04-01-PLAN.md — Dependencies, docker-compose, JobStore, Notifier, Wave 0 test stubs
 - [x] 04-02-PLAN.md — arq Worker (process_chat, WorkerSettings, startup/shutdown)
 - [x] 04-03-PLAN.md — Gateway refactor (POST enqueue, SSE stream, polling endpoint, lifespan)
-- [ ] 04-04-PLAN.md — Frontend JS async flow (SSE + polling) + visual verification
+- [x] 04-04-PLAN.md — Frontend JS async flow (SSE + polling) + visual verification
 
 ## Progress
 
@@ -102,4 +102,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 3/4 | In Progress|  |
-| 4. Async Job Queue + SSE | 3/4 | In Progress|  |
+| 4. Async Job Queue + SSE | 4/4 | Complete   | 2026-04-01 |
