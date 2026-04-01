@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-01-PLAN.md
-last_updated: "2026-04-01T07:32:27.658Z"
+stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-02-PLAN.md
+last_updated: "2026-04-01T07:37:53.086Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 4
@@ -61,6 +61,7 @@ Progress: [██████░░░░] 67%
 | Phase 03-web-chat-ui P03 | 3min | 2 tasks | 3 files |
 | Phase 03-web-chat-ui P04 | 2min | 1 tasks | 0 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P01 | 12min | 2 tasks | 10 files |
+| Phase 04-sse-redis-worker-jobstore-notifier P02 | 2min | 1 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Recent decisions affecting current work:
 - [Phase 04-sse-redis-worker-jobstore-notifier]: redis[asyncio]>=4.2.0 not >=7.0: arq 0.27.0 pins redis[hiredis]<6; redis 5.3.1 resolves with full asyncio support
 - [Phase 04-sse-redis-worker-jobstore-notifier]: build_notifier(reply_to, job_store) takes job_store as arg: avoids module-level singleton, testable
 - [Phase 04-sse-redis-worker-jobstore-notifier]: Wave 0 stubs: pytest.mark.skip with plan reference so CI tracks future test intent
+- [Phase 04-sse-redis-worker-jobstore-notifier]: save_result BEFORE notifier.done in process_chat — guarantees SSE client can fetch result on done signal
+- [Phase 04-sse-redis-worker-jobstore-notifier]: arq WorkerSettings job_timeout=300 — 5 minutes matches Copilot SDK send_and_wait timeout
 
 ### Roadmap Evolution
 
@@ -124,6 +127,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T07:32:27.655Z
-Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-01-PLAN.md
+Last session: 2026-04-01T07:37:53.084Z
+Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-02-PLAN.md
 Resume file: None
