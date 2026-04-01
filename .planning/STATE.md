@@ -115,8 +115,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 
-- GitHubログイン情報からユーザー情報取得＆ヘッダーにユーザー名表示 — ui
-- 会話保存をSQLiteからPostgreSQLへ移行しLangGraphチェックポインターを活用する — database
+
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
 - React製チャットUIの分離 — chat-ui-kit-react + Vite + Bun — ui
 
