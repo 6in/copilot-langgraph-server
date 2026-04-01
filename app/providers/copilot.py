@@ -88,7 +88,7 @@ class ChatCopilot(BaseChatModel):
 
         try:
             session = await self._client.create_session(
-                on_permission_request=lambda _: False,  # deny all SDK tools to prevent hallucination
+                on_permission_request=PermissionHandler.approve_all,
                 model=self.model,
             )
 
