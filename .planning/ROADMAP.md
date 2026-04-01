@@ -31,16 +31,22 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
 | 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
-| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 0/0 | Not planned | — |
+| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 0/4 | Planned | — |
 
 ## v2.0 Phases
 
-### Phase 7: React製チャットUI — chat-ui-kit-react + Vite + Bun で frontend/ ディレクトリに独立モジュールとして実装し、既存 Vanilla JS版と並存
+### Phase 7: React Chat UI — chatscope + Vite served at /react, full feature parity with Vanilla JS
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Build a full-featured React chat UI in `frontend/` using @chatscope/chat-ui-kit-react + Vite, served by FastAPI at `/react`, with full feature parity to the existing Vanilla JS version: Device Flow auth, multi-turn Markdown chat, thread sidebar, model selector (gpt-4.1 default), GitHub user info, SSE + polling fallback, logout.
+
+**Requirements:** D-01 (feature parity), D-02 (self-contained auth), D-03 (chatscope default CSS), D-04 (bun build → FastAPI /react), D-05 (message alignment), D-06 (thread sidebar), D-07 (gpt-4.1 default), D-08 (TypingIndicator)
+
 **Depends on:** Phase 6
-**Plans:** 0 plans
+
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 7 to break down)
+- [ ] 07-01-PLAN.md — Vite scaffold + npm install + FastAPI CORSMiddleware + /react StaticFiles mount
+- [ ] 07-02-PLAN.md — Core shell: types.ts, api/client.ts, useAuth, AuthPanel, Header, App, main.tsx
+- [ ] 07-03-PLAN.md — Chat features: useThreads, useChat, ThreadSidebar, MarkdownMessage, MessageArea, ChatApp
+- [ ] 07-04-PLAN.md — Visual verification: HUMAN-UAT.md + browser walkthrough of all 10 success criteria
