@@ -4,39 +4,43 @@ title: PoC の非同期イベント処理パターンをベースに移行
 area: general
 files:
   - app/providers/copilot.py
+  - app/api/routes/chat.py
+  - app/api/main.py
   - /home/parallels/work/copilot-server-poc/src/worker/scripts/code_review.py
+  - docs/pre/async_chat_sse_polling.md
 ---
 
 ## Problem
 
-現在の `ChatCopilot._agenerate()` は `send_and_wait()` を使っており、レスポンスが来るまでブロックする同期的なやり取りになっている。
+現在の `ChatCopilot._agenerate()` は `send_and_wait()` を使っており、レスポンスが来るまでブロックする同期的なやり取りになっている。また `/api/chat` はリクエスト中に LangGraph を直接実行しており、以下の問題がある:
 
-copilot-server-poc では `session.on()` イベントリスナー方式を採用:
-```python
-def on_event(event):
-    if event.type.value == "assistant.message":
-        result_content.append(event.data.content)
-    elif event.type.value == "session.idle":
-        done.set()
-
-session.on(on_event)
-await session.send({"prompt": prompt})
-await asyncio.wait_for(done.wait(), timeout=120.0)
-```
-
-このパターンにより:
-- ストリーミング（部分レスポンスの逐次受信）が可能
-- タイムアウト制御が明示的
-- イベント種別に応じた細かい処理が書ける
-- SDK の将来の拡張（ツール呼び出し等）に対応しやすい
+- サーバー再起動で実行中のタスクが消える
+- 重い AI 処理が FastAPI のイベントループを圧迫する
+- スケールアウト時に別インスタンスのジョブを追えない
+- ストリーミング（部分レスポンスの逐次受信）ができない
 
 ## Solution
 
-`app/providers/copilot.py` の `_agenerate()` を `send_and_wait()` から `session.on()` + `asyncio.Event` パターンに書き換える。
+`docs/pre/async_chat_sse_polling.md` に詳細な設計仕様あり。以下がターゲットアーキテクチャ:
 
-参考: `/home/parallels/work/copilot-server-poc/src/worker/scripts/code_review.py`
+```
+POST /chat → job_id 即時返却 → Redis キューにジョブ積む
+Worker（別プロセス）→ LangGraph 実行 → JobStore.save_result() → Notifier.done()
+GET /chat/{job_id}/stream → SSE（リアルタイム通知）
+GET /job/{job_id} → ポーリング API（リカバリ・再接続用）
+```
 
-注意点:
+**主要コンポーネント:**
+- `JobStore`: 結果の保存（Redis）と SSE キュー管理の分離
+- `Notifier`（Strategy パターン）: Web / Slack など通知先ごとに分離
+- `Worker`: 別プロセスで LangGraph 実行。`create_llm_for_user()` でユーザー別トークンを使用
+
+**PoC の SDK パターン（code_review.py）との組み合わせ:**
+- Worker 内で `session.on()` イベントリスナー方式を使用
+- `session.idle` イベントで完了を検知 → `job_store.save_result()` → `notifier.done()`
+
+**注意点:**
 - SDK バージョン差異の確認が必要（PoC は 0.1.0、現プロジェクトは 0.2.0）
-- `send_and_wait()` が SDK 0.2.0 で廃止されていないか確認
-- イベント名 (`assistant.message`, `session.idle`) が 0.2.0 で同じか確認
+- Redis の追加が必要（現在は SQLite のみ）
+- マルチユーザ対応 todo（JWT 導入）と合わせて実装するのが自然
+- Slack Bot 対応も仕様に含まれる（`reply_to` パターン）
