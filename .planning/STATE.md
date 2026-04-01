@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed quick task 260401-lkq (JWT multi-user auth)
-last_updated: "2026-04-01T04:00:00Z"
-last_activity: 2026-04-01 - Completed quick task 260401-lkq: 認証部分をマルチユーザ対応にする（JWT導入）
+status: verifying
+stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-03-PLAN.md
+last_updated: "2026-04-01T07:44:02.272Z"
+last_activity: 2026-04-01
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 13
+  completed_plans: 11
   percent: 67
 ---
 
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 03 (web-chat-ui) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-03-31
+Status: Phase complete — ready for verification
+Last activity: 2026-04-01
 
 Progress: [██████░░░░] 67%
 
@@ -60,6 +60,7 @@ Progress: [██████░░░░] 67%
 | Phase 03-web-chat-ui P02 | 3min | 3 tasks | 8 files |
 | Phase 03-web-chat-ui P03 | 3min | 2 tasks | 3 files |
 | Phase 03-web-chat-ui P04 | 2min | 1 tasks | 0 files |
+| Phase 04-sse-redis-worker-jobstore-notifier P03 | 8min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Quick 260401-lkq]: In-memory JTI blocklist: clears on restart, no Redis dependency — acceptable for personal tool
 - [Quick 260401-lkq]: Per-request github_token injection via llm.close() on token change — safe for sequential personal tool use
 - [Quick 260401-lkq]: Thread CRUD routes intentionally unprotected: local SQLite, personal tool, no auth value
+- [Phase 04-sse-redis-worker-jobstore-notifier]: POST /api/chat enqueues via arq.enqueue_job, returns ChatAsyncResponse(job_id, thread_id) immediately — gateway no longer blocks on LangGraph execution
+- [Phase 04-sse-redis-worker-jobstore-notifier]: SSE immediate-done check: job_store.get() before queue registration handles reload/reconnect (ASYNC-06)
 
 ### Roadmap Evolution
 
@@ -120,6 +123,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T16:55:24.740Z
-Stopped at: Completed 03-web-chat-ui 03-04-PLAN.md
+Last session: 2026-04-01T07:44:02.269Z
+Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-03-PLAN.md
 Resume file: None
