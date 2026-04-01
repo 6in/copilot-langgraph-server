@@ -376,6 +376,7 @@ async function sendMessage() {
     if (immediate.status === 'done') {
       hideTyping();
       appendMessage('ai', immediate.result || '');
+      await loadThreads();
       userInput.disabled = false;
       sendBtn.disabled = false;
       sendBtn.classList.remove('disabled');
@@ -399,6 +400,7 @@ async function sendMessage() {
         } else {
           appendMessage('error', 'Failed to retrieve response. Please try again.');
         }
+        await loadThreads();
         userInput.disabled = false;
         sendBtn.disabled = false;
         sendBtn.classList.remove('disabled');
@@ -438,6 +440,7 @@ function startPolling(jobId) {
         clearInterval(timer);
         hideTyping();
         appendMessage('ai', job.result || '');
+        await loadThreads();
         // Re-enable input
         userInput.disabled = false;
         sendBtn.disabled = false;
