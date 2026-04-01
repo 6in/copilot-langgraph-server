@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: 06
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-01
+Last activity: 2026-04-01 - Completed quick task 260401-t47: Add loadThreads() after job completion to refresh thread sidebar
 
 Progress: [██████░░░░] 67%
 
