@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Completed quick task 260401-lkq (JWT multi-user auth)
 last_updated: "2026-04-01T04:00:00Z"
-last_activity: 2026-04-01
+last_activity: 2026-04-01 - Completed quick task 260401-lkq: 認証部分をマルチユーザ対応にする（JWT導入）
 progress:
   total_phases: 3
   completed_phases: 3
