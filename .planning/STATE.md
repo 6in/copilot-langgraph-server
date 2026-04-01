@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-02-PLAN.md
-last_updated: "2026-04-01T07:37:53.086Z"
+stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-03-PLAN.md
+last_updated: "2026-04-01T07:44:02.272Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
   percent: 67
 ---
 
@@ -62,6 +62,7 @@ Progress: [██████░░░░] 67%
 | Phase 03-web-chat-ui P04 | 2min | 1 tasks | 0 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P01 | 12min | 2 tasks | 10 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P02 | 2min | 1 tasks | 7 files |
+| Phase 04-sse-redis-worker-jobstore-notifier P03 | 8min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Recent decisions affecting current work:
 - [Phase 04-sse-redis-worker-jobstore-notifier]: Wave 0 stubs: pytest.mark.skip with plan reference so CI tracks future test intent
 - [Phase 04-sse-redis-worker-jobstore-notifier]: save_result BEFORE notifier.done in process_chat — guarantees SSE client can fetch result on done signal
 - [Phase 04-sse-redis-worker-jobstore-notifier]: arq WorkerSettings job_timeout=300 — 5 minutes matches Copilot SDK send_and_wait timeout
+- [Phase 04-sse-redis-worker-jobstore-notifier]: POST /api/chat enqueues via arq.enqueue_job, returns ChatAsyncResponse(job_id, thread_id) immediately — gateway no longer blocks on LangGraph execution
+- [Phase 04-sse-redis-worker-jobstore-notifier]: SSE immediate-done check: job_store.get() before queue registration handles reload/reconnect (ASYNC-06)
 
 ### Roadmap Evolution
 
@@ -127,6 +130,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T07:37:53.084Z
-Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-02-PLAN.md
+Last session: 2026-04-01T07:44:02.269Z
+Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-03-PLAN.md
 Resume file: None

@@ -1,25 +1,28 @@
-"""Chat and thread API routes (CHAT-01, CHAT-02, CHAT-03, CHAT-04).
+"""Chat and thread API routes (CHAT-01, CHAT-02, CHAT-03, CHAT-04, ASYNC-01, ASYNC-04, ASYNC-06).
 
 Endpoints:
-- POST   /api/chat         — send message, get AI reply (JWT protected)
-- POST   /api/threads      — create new thread (returns UUID)
-- GET    /api/threads      — list existing threads
-- DELETE /api/threads/{thread_id} — delete a thread and its checkpoints
+- POST   /api/chat                  — enqueue chat job, returns job_id immediately (JWT protected)
+- GET    /api/chat/{job_id}/stream  — SSE stream for real-time job completion notification
+- POST   /api/threads               — create new thread (returns UUID)
+- GET    /api/threads               — list existing threads
+- DELETE /api/threads/{thread_id}   — delete a thread and its checkpoints
 - GET    /api/threads/{thread_id}/messages — get messages for a thread
 
 NOTE: Thread CRUD routes (list/create/delete/messages) are intentionally NOT
 JWT-protected. They operate on local SQLite data only, and this is a personal
 tool where server-side access control on thread metadata adds no security value.
 """
+import json
 import uuid
 from datetime import datetime, timezone
 
 import aiosqlite
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
-from langchain_core.messages import AIMessage, HumanMessage
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import HumanMessage
 
-from app.api.models import ChatRequest, ChatResponse, ThreadInfo
+from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, ThreadInfo
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -45,58 +48,78 @@ async def get_github_token(request: Request) -> str:
         raise HTTPException(status_code=401, detail="auth_invalid")
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatAsyncResponse)
 async def send_message(
     request: Request,
     body: ChatRequest,
     github_token: str = Depends(get_github_token),
 ):
-    """Send a message and get an AI reply.
+    """Enqueue chat job and return job_id immediately (ASYNC-01).
 
-    Per D-11: model field in request body — switch takes effect on this send.
+    The actual LangGraph execution happens in the arq worker process.
+    Frontend uses SSE or polling to get the result.
+
     Auth is enforced via JWT cookie through get_github_token dependency.
-
-    Per-request token injection: sets github_token and model on the shared LLM
-    instance before each call. This is safe for single-user personal tool usage
-    (sequential requests, no concurrent multi-user contention).
     """
-    graph = request.app.state.graph
-    llm = request.app.state.llm
+    from arq import ArqRedis
+    arq_redis: ArqRedis = request.app.state.arq_redis
+    job_id = str(uuid.uuid4())
 
-    # Inject per-request GitHub token and model into the shared LLM instance
-    # close() forces re-initialization with the new token on the next call
-    if llm.github_token != github_token:
-        llm.github_token = github_token
-        await llm.close()
+    await arq_redis.enqueue_job(
+        "process_chat",
+        job_id=job_id,
+        thread_id=body.thread_id,
+        prompt=body.message,
+        model=body.model,
+        github_token=github_token,
+        reply_to={"type": "web", "job_id": job_id},
+    )
+    return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
 
-    if body.model != llm.model:
-        llm.model = body.model
 
-    config = {"configurable": {"thread_id": body.thread_id}}
+@router.get("/chat/{job_id}/stream")
+async def stream_job(job_id: str, request: Request):
+    """SSE endpoint for real-time job completion notification (ASYNC-04, ASYNC-06).
 
-    try:
-        result = await graph.ainvoke(
-            {"messages": [HumanMessage(content=body.message)]},
-            config=config,
+    1. Check if job already done (reload/reconnect case) — return immediate done event
+    2. Otherwise register SSE queue, yield events until done signal
+    3. Always unregister in finally block (prevent dangling queues)
+    """
+    job_store = request.app.state.job_store
+
+    # Check if already done (ASYNC-06: immediate done for completed jobs)
+    saved = await job_store.get(job_id)
+    if saved and saved.get("status") == "done":
+        async def immediate():
+            yield f"data: {json.dumps({'status': 'done'})}\n\n"
+        return StreamingResponse(
+            immediate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
-    except Exception as e:
-        error_msg = str(e).lower()
-        # Detect auth-related errors from Copilot SDK — return error response
-        # (no auth_expired flag; JWT middleware handles auth state)
-        if any(kw in error_msg for kw in ("auth", "token", "unauthorized", "401")):
-            return ChatResponse(
-                reply="",
-                thread_id=body.thread_id,
-                error="auth_expired",
-            )
-        return ChatResponse(
-            reply="",
-            thread_id=body.thread_id,
-            error=f"Something went wrong: {e}",
-        )
 
-    reply_content = result["messages"][-1].content
-    return ChatResponse(reply=reply_content, thread_id=body.thread_id)
+    # Still in progress — register queue and wait
+    queue = job_store.register_sse(job_id)
+
+    async def generator():
+        try:
+            while True:
+                event = await queue.get()
+                yield f"data: {json.dumps(event)}\n\n"
+                if event.get("status") == "done":
+                    break
+        finally:
+            job_store.unregister_sse(job_id)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.post("/threads")

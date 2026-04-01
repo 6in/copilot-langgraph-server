@@ -48,3 +48,15 @@ class AuthStatusResponse(BaseModel):
 class AuthLogoutResponse(BaseModel):
     success: bool
     message: str
+
+
+class ChatAsyncResponse(BaseModel):
+    """Response from POST /api/chat — returns job_id for async tracking."""
+    job_id: str
+    thread_id: str
+
+
+class JobStatusResponse(BaseModel):
+    """Response from GET /api/job/{job_id} — polling endpoint."""
+    status: str  # "pending" | "done"
+    result: str | None = None

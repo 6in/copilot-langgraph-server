@@ -44,7 +44,27 @@ def mock_auth_manager(tmp_path):
 
 
 @pytest.fixture
-async def api_client(mock_graph, mock_auth_manager):
+def mock_job_store():
+    """Mock JobStore for API tests."""
+    store = AsyncMock()
+    store.get = AsyncMock(return_value=None)  # default: pending
+    store.save_result = AsyncMock()
+    store.notify = AsyncMock()
+    store.register_sse = MagicMock()
+    store.unregister_sse = MagicMock()
+    return store
+
+
+@pytest.fixture
+def mock_arq_redis():
+    """Mock ArqRedis for enqueue tests."""
+    arq = AsyncMock()
+    arq.enqueue_job = AsyncMock()
+    return arq
+
+
+@pytest.fixture
+async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_redis):
     """Async HTTP client for testing FastAPI routes with mocked dependencies.
 
     Lifespan does NOT fire with ASGITransport — inject mocks directly into app.state.
@@ -63,6 +83,8 @@ async def api_client(mock_graph, mock_auth_manager):
     app.state.db_path = ":memory:"
     app.state.device_flows = {}
     app.state.checkpointer = MagicMock()
+    app.state.job_store = mock_job_store
+    app.state.arq_redis = mock_arq_redis
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
