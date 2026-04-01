@@ -15,6 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
 - [x] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
 - [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
+- [ ] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback
 
 ## Phase Details
 
@@ -70,23 +71,35 @@ Plans:
 - [x] 03-03-PLAN.md — Frontend: HTML/CSS/JS chat UI with markdown rendering
 - [x] 03-04-PLAN.md — Visual verification checkpoint (human verify)
 
+### Phase 4: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
+
+**Goal:** Migrate synchronous POST /api/chat to async architecture: Gateway enqueues job and returns job_id immediately, Worker process executes LangGraph via arq, SSE delivers real-time completion signal, polling API provides recovery fallback
+**Requirements**: ASYNC-01, ASYNC-02, ASYNC-03, ASYNC-04, ASYNC-05, ASYNC-06, ASYNC-07
+**Depends on:** Phase 3
+**Success Criteria** (what must be TRUE):
+  1. POST /api/chat returns job_id immediately without blocking on LangGraph execution
+  2. GET /api/job/{job_id} returns pending before completion, done with result after completion
+  3. SSE endpoint delivers real-time done signal when worker completes
+  4. SSE endpoint returns immediate done for already-completed jobs (page reload scenario)
+  5. Frontend sends message, shows typing indicator, receives AI reply via SSE or polling
+  6. Worker process runs LangGraph in separate process, saves result to Redis before signalling done
+  7. Polling fallback activates when SSE connection drops
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Dependencies, docker-compose, JobStore, Notifier, Wave 0 test stubs
+- [ ] 04-02-PLAN.md — arq Worker (process_chat, WorkerSettings, startup/shutdown)
+- [ ] 04-03-PLAN.md — Gateway refactor (POST enqueue, SSE stream, polling endpoint, lifespan)
+- [ ] 04-04-PLAN.md — Frontend JS async flow (SSE + polling) + visual verification
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 3/4 | In Progress|  |
-
-### Phase 4: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 3
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 4 to break down)
+| 4. Async Job Queue + SSE | 0/4 | Planned | |
