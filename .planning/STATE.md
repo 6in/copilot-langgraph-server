@@ -117,6 +117,7 @@ Recent decisions affecting current work:
 - Phase 4 added: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
 - Phase 5 added: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
 - Phase 6 added: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）
+- Phase 7 added: React製チャットUI — chat-ui-kit-react + Vite + Bun で frontend/ ディレクトリに独立モジュールとして実装し、既存 Vanilla JS版と並存
 
 ### Pending Todos
 

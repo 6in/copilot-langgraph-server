@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1–6 (shipped 2026-04-02) — [Archive](milestones/v1.0-ROADMAP.md)
-- 📋 **v2.0** — Phases 7+ (planned)
+- 📋 **v2.0** — Phases 7+ (in progress)
 
 ## Phases
 
@@ -31,3 +31,16 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
 | 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
+| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 0/0 | Not planned | — |
+
+## v2.0 Phases
+
+### Phase 7: React製チャットUI — chat-ui-kit-react + Vite + Bun で frontend/ ディレクトリに独立モジュールとして実装し、既存 Vanilla JS版と並存
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 7 to break down)
