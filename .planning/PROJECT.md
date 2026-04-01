@@ -17,6 +17,8 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - [x] Device Flow 認証 — GitHub OAuth でトークンを取得し、暗号化してローカルに保存・再利用する — Validated in Phase 1: Auth + Provider Foundation
 - [x] 会話スレッド維持 — 複数ターンの会話履歴を LangGraph の State として管理する — Validated in Phase 2: Graph Layer
 - [x] LangGraph グラフ設計 — 将来のツール呼び出し・マルチエージェント拡張を見越した素直な構造 — Validated in Phase 2: Graph Layer
+- [x] PostgreSQL チェックポインター — AsyncPostgresSaver で会話履歴を永続化、Docker Compose で postgres サービスを提供 — Validated in Phase 6: SQLite → PostgreSQL Checkpointer Migration
+- [x] スレッド削除 — `adelete_thread()` でスレッドと全チェックポイントを削除 — Validated in Phase 6: SQLite → PostgreSQL Checkpointer Migration
 
 ### Active
 
