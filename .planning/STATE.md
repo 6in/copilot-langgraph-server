@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None
+- 認証部分をマルチユーザ対応にする（JWT導入）— auth
 
 ### Quick Tasks Completed
 
