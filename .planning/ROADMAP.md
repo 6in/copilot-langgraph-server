@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Web + Chat UI | 4/4 | Complete   | 2026-04-01 |
 | 4. Async Job Queue + SSE | 4/4 | Complete   | 2026-04-01 |
 | 5. GitHub User Info + Header UI | 2/2 | Complete   | 2026-04-01 |
-| 6. SQLite to PostgreSQL Checkpointer | 0/2 | Planning   | — |
+| 6. SQLite to PostgreSQL Checkpointer | 1/2 | In Progress|  |
 
 ### Phase 5: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
 
@@ -138,8 +138,8 @@ Plans:
   5. DELETE /api/threads/{id} uses checkpointer.adelete_thread instead of raw SQL
   6. No aiosqlite or AsyncSqliteSaver references remain in the codebase
   7. Full test suite passes
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 06-01-PLAN.md — Dependencies, Docker Compose postgres, main.py + worker.py migration, test patches
+- [x] 06-01-PLAN.md — Dependencies, Docker Compose postgres, main.py + worker.py migration, test patches
 - [ ] 06-02-PLAN.md — chat.py thread routes (psycopg + adelete_thread), full suite verification
