@@ -291,6 +291,7 @@ async function sendMessage() {
   showTyping();
 
   try {
+    // 1. POST /api/chat → get job_id (returns immediately)
     const resp = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -302,7 +303,6 @@ async function sendMessage() {
     });
 
     if (resp.status === 401) {
-      // JWT auth failure: cookie missing, expired, or revoked
       hideTyping();
       const errData = await resp.json().catch(() => ({}));
       const detail = errData.detail || '';
@@ -312,46 +312,108 @@ async function sendMessage() {
       } else {
         appendMessage('error', 'Authentication required \u2014 click to log in in the header.');
       }
+      userInput.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('disabled');
+      userInput.focus();
       return;
     }
 
     if (!resp.ok) {
       hideTyping();
       appendMessage('error', `Server error: ${resp.status} ${resp.statusText}`);
+      userInput.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('disabled');
+      userInput.focus();
       return;
     }
 
-    const data = await resp.json();
+    const { job_id, thread_id } = await resp.json();
 
-    hideTyping();
-
-    if (data.error === 'auth_expired') {
-      // Fallback: SDK-level auth error surfaced via ChatResponse.error
-      await checkAuthStatus();
-      appendMessage('error', 'Session expired \u2014 click to re-auth in the header.');
-    } else if (data.error) {
-      appendMessage('error', data.error);
-    } else {
-      // Update active thread if server assigned one
-      if (data.thread_id && !activeThreadId) {
-        activeThreadId = data.thread_id;
-        await loadThreads();
-      }
-
-      // AI reply uses innerHTML with marked.js output scoped under .prose
-      appendMessage('ai', data.reply || '');
+    // Update active thread if server assigned one
+    if (thread_id && !activeThreadId) {
+      activeThreadId = thread_id;
+      await loadThreads();
     }
+
+    // 2. Check if already done (reload/reconnect case)
+    const immediate = await fetch(`/api/job/${job_id}`).then(r => r.json());
+    if (immediate.status === 'done') {
+      hideTyping();
+      appendMessage('ai', immediate.result || '');
+      userInput.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('disabled');
+      userInput.focus();
+      return;
+    }
+
+    // 3. Connect SSE for real-time completion
+    const es = new EventSource(`/api/chat/${job_id}/stream`);
+
+    es.onmessage = async (e) => {
+      const { status } = JSON.parse(e.data);
+
+      if (status === 'done') {
+        es.close();
+        // Fetch result from JobStore
+        const result = await fetch(`/api/job/${job_id}`).then(r => r.json());
+        hideTyping();
+        if (result.status === 'done') {
+          appendMessage('ai', result.result || '');
+        } else {
+          appendMessage('error', 'Failed to retrieve response. Please try again.');
+        }
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('disabled');
+        userInput.focus();
+      }
+      // status "thinking", "running:chatbot" etc. — typing indicator already showing
+    };
+
+    es.onerror = () => {
+      // SSE disconnected — fall back to polling
+      es.close();
+      startPolling(job_id);
+    };
+
+    // If we get here without error, SSE/polling will handle completion
+    // Do NOT re-enable input here — SSE onmessage/startPolling will do it
   } catch (err) {
     hideTyping();
     appendMessage('error', 'Something went wrong. Check your connection and try again.');
     console.error('Send message error:', err);
-  } finally {
-    // Re-enable input and refocus
+    // Re-enable input on error
     userInput.disabled = false;
     sendBtn.disabled = false;
     sendBtn.classList.remove('disabled');
     userInput.focus();
   }
+}
+
+// ---- Polling fallback when SSE disconnects ----
+function startPolling(jobId) {
+  const userInput = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const timer = setInterval(async () => {
+    try {
+      const job = await fetch(`/api/job/${jobId}`).then(r => r.json());
+      if (job.status === 'done') {
+        clearInterval(timer);
+        hideTyping();
+        appendMessage('ai', job.result || '');
+        // Re-enable input
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('disabled');
+        userInput.focus();
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
+  }, 2000);
 }
 
 // ---- Append message to chat ----
