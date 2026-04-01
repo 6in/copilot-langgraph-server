@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-web-chat-ui 03-04-PLAN.md
-last_updated: "2026-03-31T16:55:24.743Z"
-last_activity: 2026-03-31
+stopped_at: Completed quick task 260401-fwh (enable SDK tools via approve_all)
+last_updated: "2026-04-01T02:29:48Z"
+last_activity: 2026-04-01
 progress:
   total_phases: 3
   completed_phases: 3
@@ -101,6 +101,7 @@ Recent decisions affecting current work:
 |---|-------------|------|--------|-----------|
 | 260331-uy2 | Fix Copilot SDK send_and_wait API: pass prompt string directly instead of dict | 2026-03-31 | 2ce10e7 | [260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p](.planning/quick/260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p/) |
 | 260401-f4x | Update .gitignore: add data/, .claude/, IDE/tool caches, SQLite, env files | 2026-04-01 | 6ed3d26 | [260401-f4x-gitignore](.planning/quick/260401-f4x-gitignore/) |
+| 260401-fwh | Enable SDK tools: PermissionHandler.approve_all + remove SystemMessage workaround | 2026-04-01 | 32fa1a3 | [260401-fwh-option-a](.planning/quick/260401-fwh-option-a/) |
 
 ### Blockers/Concerns
 
