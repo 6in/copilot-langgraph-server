@@ -80,3 +80,13 @@ Phases execute in numeric order: 1 → 2 → 3
 | 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
 | 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
 | 3. Web + Chat UI | 3/4 | In Progress|  |
+
+### Phase 4: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 4 to break down)

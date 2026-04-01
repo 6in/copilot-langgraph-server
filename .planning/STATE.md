@@ -96,6 +96,10 @@ Recent decisions affecting current work:
 - [Quick 260401-lkq]: Per-request github_token injection via llm.close() on token change — safe for sequential personal tool use
 - [Quick 260401-lkq]: Thread CRUD routes intentionally unprotected: local SQLite, personal tool, no auth value
 
+### Roadmap Evolution
+
+- Phase 4 added: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
+
 ### Pending Todos
 
 - PoC の非同期イベント処理パターンをベースに移行 — general
