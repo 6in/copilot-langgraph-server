@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from redis.asyncio import Redis
 
-from app.api.routes import auth, chat, jobs
+from app.api.routes import auth, chat, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -67,6 +67,7 @@ app = FastAPI(title="Copilot Chat", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(jobs.router)
+app.include_router(me.router)
 
 # Static files LAST — serves index.html for any non-API path
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

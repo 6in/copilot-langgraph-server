@@ -60,3 +60,9 @@ class JobStatusResponse(BaseModel):
     """Response from GET /api/job/{job_id} — polling endpoint."""
     status: str  # "pending" | "done"
     result: str | None = None
+
+
+class UserInfoResponse(BaseModel):
+    login: str
+    name: str | None = None
+    avatar_url: str
