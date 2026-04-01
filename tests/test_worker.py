@@ -33,7 +33,7 @@ async def test_process_chat_saves_result():
 
     with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
          patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncSqliteSaver.from_conn_string", return_value=mock_checkpointer):
+         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
 
         result = await process_chat(
             ctx,
@@ -67,7 +67,7 @@ async def test_process_chat_error_handling():
 
     with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
          patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncSqliteSaver.from_conn_string", return_value=mock_checkpointer):
+         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
 
         await process_chat(
             ctx,
@@ -105,7 +105,7 @@ async def test_process_chat_closes_llm():
 
     with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
          patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncSqliteSaver.from_conn_string", return_value=mock_checkpointer):
+         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
 
         await process_chat(
             ctx,
@@ -126,13 +126,21 @@ async def test_startup_creates_redis_and_jobstore():
     ctx: dict = {}
     mock_redis = AsyncMock()
 
-    with patch("app.jobs.worker.Redis") as mock_redis_class:
+    # Mock the PostgreSQL checkpointer opened during startup for setup()
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("app.jobs.worker.Redis") as mock_redis_class, \
+         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
         mock_redis_class.from_url = MagicMock(return_value=mock_redis)
         await startup(ctx)
 
     assert "redis_client" in ctx
     assert "job_store" in ctx
     mock_redis_class.from_url.assert_called_once()
+    # Verify checkpointer.setup() was called during startup
+    mock_checkpointer.setup.assert_called_once()
 
 
 async def test_shutdown_closes_redis():

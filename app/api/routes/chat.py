@@ -9,18 +9,19 @@ Endpoints:
 - GET    /api/threads/{thread_id}/messages — get messages for a thread
 
 NOTE: Thread CRUD routes (list/create/delete/messages) are intentionally NOT
-JWT-protected. They operate on local SQLite data only, and this is a personal
+JWT-protected. They operate on local PostgreSQL data only, and this is a personal
 tool where server-side access control on thread metadata adds no security value.
 """
 import json
 import uuid
 from datetime import datetime, timezone
 
-import aiosqlite
 import jwt
+import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
+from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, ThreadInfo
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token
@@ -138,27 +139,28 @@ async def create_thread():
 async def list_threads(request: Request):
     """List existing threads sorted by latest activity (SESS-02 front-loaded).
 
-    Direct SQL against AsyncSqliteSaver's checkpoints table.
+    Direct SQL against AsyncPostgresSaver's checkpoints table.
     LangGraph's alist() requires a thread_id filter — no 'list all' API.
     """
-    db_path = request.app.state.db_path
+    db_uri = request.app.state.db_uri
     threads: list[ThreadInfo] = []
 
     try:
-        async with aiosqlite.connect(db_path) as db:
-            async with db.execute(
-                """SELECT thread_id, MAX(checkpoint_id) as latest
-                   FROM checkpoints
-                   WHERE checkpoint_ns = ''
-                   GROUP BY thread_id
-                   ORDER BY latest DESC
-                   LIMIT 50""",
-            ) as cur:
+        async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """SELECT thread_id, MAX(checkpoint_id) as latest
+                       FROM checkpoints
+                       WHERE checkpoint_ns = ''
+                       GROUP BY thread_id
+                       ORDER BY latest DESC
+                       LIMIT 50"""
+                )
                 rows = await cur.fetchall()
 
         for row in rows:
-            thread_id, checkpoint_id = row[0], row[1]
-            # checkpoint_id is a ULID-like string — extract timestamp for label
+            thread_id = row["thread_id"]
+            checkpoint_id = row["latest"]
             label = f"Chat {thread_id[:8]}"
             threads.append(ThreadInfo(
                 thread_id=thread_id,
@@ -166,7 +168,7 @@ async def list_threads(request: Request):
                 label=label,
             ))
     except Exception:
-        # DB may not exist yet (no messages sent) — return empty list
+        # DB may not be reachable yet (no messages sent) — return empty list
         pass
 
     return threads
@@ -174,27 +176,17 @@ async def list_threads(request: Request):
 
 @router.delete("/threads/{thread_id}", status_code=204)
 async def delete_thread(thread_id: str, request: Request):
-    """Delete a thread and all its checkpoints from SQLite.
+    """Delete a thread and all its checkpoints from PostgreSQL.
 
-    Removes rows from both `checkpoints` and `checkpoint_blobs` tables
-    (AsyncSqliteSaver schema) for the given thread_id.
+    Uses AsyncPostgresSaver.adelete_thread() which atomically removes
+    all related rows from checkpoints, checkpoint_blobs, and checkpoint_writes.
     """
-    db_path = request.app.state.db_path
+    checkpointer = request.app.state.checkpointer
 
     try:
-        async with aiosqlite.connect(db_path) as db:
-            await db.execute(
-                "DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,)
-            )
-            await db.execute(
-                "DELETE FROM checkpoint_blobs WHERE thread_id = ?", (thread_id,)
-            )
-            await db.execute(
-                "DELETE FROM checkpoint_writes WHERE thread_id = ?", (thread_id,)
-            )
-            await db.commit()
+        await checkpointer.adelete_thread(thread_id)
     except Exception:
-        # DB may not exist or tables may differ — silently succeed
+        # Silently succeed if thread doesn't exist
         pass
 
 

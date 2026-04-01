@@ -9,7 +9,7 @@ import os
 
 from arq.connections import RedisSettings
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
 from app.graph.builder import build_graph
@@ -18,14 +18,21 @@ from app.jobs.notifier import build_notifier
 from app.providers.copilot import ChatCopilot
 
 
-DB_PATH = os.getenv("CHAT_DB_PATH", "./data/chat.db")
+DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 
 async def startup(ctx: dict) -> None:
-    """arq on_startup: init Redis client and JobStore."""
+    """arq on_startup: init Redis client, JobStore, and run checkpointer setup.
+
+    Calls checkpointer.setup() to prevent race condition: if api lifespan
+    hasn't completed setup() before the first job arrives, this ensures tables exist.
+    setup() is idempotent — safe to call multiple times.
+    """
     ctx["redis_client"] = Redis.from_url(REDIS_URL)
     ctx["job_store"] = JobStore(ctx["redis_client"])
+    async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+        await checkpointer.setup()
 
 
 async def shutdown(ctx: dict) -> None:
@@ -57,7 +64,7 @@ async def process_chat(
     llm = ChatCopilot(github_token=github_token, model=model)
 
     try:
-        async with AsyncSqliteSaver.from_conn_string(DB_PATH) as checkpointer:
+        async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
             graph = build_graph(llm, checkpointer)
             config = {"configurable": {"thread_id": thread_id}}
 
