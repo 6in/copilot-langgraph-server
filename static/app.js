@@ -379,8 +379,21 @@ async function loadThreads() {
         item.classList.add('active');
       }
 
-      item.textContent = thread.label || thread.thread_id;
-      item.title = thread.label || thread.thread_id;
+      const label = document.createElement('span');
+      label.className = 'thread-label';
+      label.textContent = thread.label || thread.thread_id;
+      label.title = thread.label || thread.thread_id;
+      item.appendChild(label);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'thread-delete-btn';
+      deleteBtn.textContent = '\u00d7';
+      deleteBtn.title = 'Delete thread';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteThread(thread.thread_id);
+      });
+      item.appendChild(deleteBtn);
 
       item.addEventListener('click', () => {
         switchThread(thread.thread_id);
@@ -391,6 +404,29 @@ async function loadThreads() {
   } catch (err) {
     console.error('Failed to load threads:', err);
   }
+}
+
+// ---- Delete a thread ----
+async function deleteThread(threadId) {
+  try {
+    await fetch('/api/threads/' + threadId, { method: 'DELETE' });
+  } catch (err) {
+    console.error('Failed to delete thread:', err);
+  }
+
+  // If the deleted thread was active, reset to a blank chat
+  if (activeThreadId === threadId) {
+    activeThreadId = null;
+    const messageList = document.getElementById('message-list');
+    messageList.innerHTML = '';
+    const emptyState = document.createElement('div');
+    emptyState.id = 'empty-state';
+    emptyState.className = 'empty-state';
+    emptyState.innerHTML = '<h2>New conversation</h2><p>Ask Copilot anything to get started.</p>';
+    messageList.appendChild(emptyState);
+  }
+
+  await loadThreads();
 }
 
 // ---- Switch to a thread ----
