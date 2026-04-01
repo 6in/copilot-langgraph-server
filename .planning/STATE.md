@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [AI ツール自己申告によるハルシネーションを防止する](.planning/todos/pending/2026-04-01-ai-tool-hallucination-copilot-sdk-undeclared-tools.md) — Copilot SDK がツール一覧を自己申告するが LangGraph 側に配線なし → 存在しないツールを実行したと嘘をつく
+- [ログアウト後の再認証で "Waiting For authentication..." が止まる](.planning/todos/pending/2026-04-01-waiting-for-authentication.md) — ログアウト後にサーバー再起動なしで再認証を試みると Device Flow 完了後も polling が止まらない
 
 ### Quick Tasks Completed
 
