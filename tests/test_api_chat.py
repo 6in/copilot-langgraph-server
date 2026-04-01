@@ -1,7 +1,7 @@
 """Tests for /api/chat and /api/threads endpoints (CHAT-01..04, ASYNC-01).
 
 /api/chat is JWT-protected: tests that exercise it must supply a valid session cookie.
-Thread CRUD routes are intentionally unprotected (personal tool, local SQLite only).
+Thread CRUD routes are intentionally unprotected (personal tool, local PostgreSQL data only).
 
 Phase 4 change: POST /api/chat now returns {job_id, thread_id} instead of {reply, thread_id}.
 """
@@ -86,3 +86,11 @@ async def test_list_threads_empty(api_client):
     resp = await api_client.get("/api/threads")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+async def test_delete_thread_calls_adelete(api_client):
+    """DELETE /api/threads/{id} calls checkpointer.adelete_thread (CKPT-04)."""
+    from app.api.main import app
+    resp = await api_client.delete("/api/threads/test-thread-123")
+    assert resp.status_code == 204
+    app.state.checkpointer.adelete_thread.assert_called_once_with("test-thread-123")

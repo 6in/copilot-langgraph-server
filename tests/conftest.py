@@ -82,7 +82,7 @@ async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_red
     app.state.llm = mock_llm
     app.state.db_uri = "postgresql://test:test@localhost:5432/test"
     app.state.device_flows = {}
-    app.state.checkpointer = MagicMock()
+    app.state.checkpointer = AsyncMock()
     app.state.job_store = mock_job_store
     app.state.arq_redis = mock_arq_redis
 
