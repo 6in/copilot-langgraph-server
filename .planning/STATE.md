@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- [AI ツール自己申告によるハルシネーションを防止する](.planning/todos/pending/2026-04-01-ai-tool-hallucination-copilot-sdk-undeclared-tools.md) — Copilot SDK がツール一覧を自己申告するが LangGraph 側に配線なし → 存在しないツールを実行したと嘘をつく
 
 ### Quick Tasks Completed
 
