@@ -3,7 +3,7 @@
 Lifespan manages:
 - CopilotAuthManager instance
 - ChatCopilot LLM provider
-- AsyncSqliteSaver checkpointer (async context manager)
+- AsyncPostgresSaver checkpointer (PostgreSQL, async context manager)
 - Compiled LangGraph graph
 - Redis client, arq pool, JobStore (Phase 4)
 
@@ -11,13 +11,12 @@ All shared via app.state for route access.
 """
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from arq import create_pool
 from arq.connections import RedisSettings
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
 from app.api.routes import auth, chat, jobs, me
@@ -26,14 +25,12 @@ from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
 from app.providers.copilot import ChatCopilot
 
-DB_PATH = "./data/chat.db"
+DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize and tear down shared resources."""
-    Path("./data").mkdir(exist_ok=True)
-
     auth_manager = CopilotAuthManager()
     llm = ChatCopilot(auth_manager=auth_manager)
 
@@ -42,12 +39,13 @@ async def lifespan(app: FastAPI):
     arq_redis = await create_pool(RedisSettings.from_dsn(redis_url))
     job_store = JobStore(redis_client)
 
-    async with AsyncSqliteSaver.from_conn_string(DB_PATH) as checkpointer:
+    async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+        await checkpointer.setup()
         app.state.graph = build_graph(llm, checkpointer)
         app.state.checkpointer = checkpointer
         app.state.auth_manager = auth_manager
         app.state.llm = llm
-        app.state.db_path = DB_PATH
+        app.state.db_uri = DB_URI
         # Temporary storage for in-flight Device Flow sessions (keyed by flow_id)
         app.state.device_flows = {}
         # Phase 4: Redis + arq + JobStore

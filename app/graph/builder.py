@@ -23,7 +23,7 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
     llm:
         Any BaseChatModel -- in production this is ChatCopilot.
     checkpointer:
-        MemorySaver (tests) or AsyncSqliteSaver (production).
+        MemorySaver (tests) or AsyncPostgresSaver (production).
         The caller owns the checkpointer lifecycle.
 
     Returns
