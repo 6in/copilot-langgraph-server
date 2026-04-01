@@ -11,7 +11,6 @@ See: langgraph.prebuilt.ToolNode, langgraph.prebuilt.tools_condition
 from __future__ import annotations
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
@@ -45,13 +44,8 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
         builder.add_edge("tools", "chatbot")
     """
 
-    _system_msg = SystemMessage(
-        content="You have no tools available. Respond to all requests using text only."
-    )
-
     async def chatbot_node(state: MessagesState) -> dict:
-        messages = [_system_msg] + list(state["messages"])
-        response = await llm.ainvoke(messages)
+        response = await llm.ainvoke(state["messages"])
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)
