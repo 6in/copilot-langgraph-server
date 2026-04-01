@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Backend: UserInfoResponse model + GET /api/me route + tests
+- [x] 05-01-PLAN.md — Backend: UserInfoResponse model + GET /api/me route + tests
 - [ ] 05-02-PLAN.md — Frontend: header avatar + login display + visual verification
 
 ### Phase 6: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）

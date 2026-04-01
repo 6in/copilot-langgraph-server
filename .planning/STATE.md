@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 04-sse-redis-worker-jobstore-notifier 04-04-PLAN.md
-last_updated: "2026-04-01T08:38:49.508Z"
+stopped_at: Completed 05-github-api-me-ui 05-01-PLAN.md
+last_updated: "2026-04-01T10:13:48.984Z"
 last_activity: 2026-04-01
 progress:
-  total_phases: 4
+  total_phases: 6
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 15
+  completed_plans: 14
   percent: 67
 ---
 
@@ -64,6 +64,7 @@ Progress: [██████░░░░] 67%
 | Phase 04-sse-redis-worker-jobstore-notifier P02 | 2min | 1 tasks | 7 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P03 | 8min | 2 tasks | 8 files |
 | Phase 04-sse-redis-worker-jobstore-notifier P04 | 1min | 1 tasks | 1 files |
+| Phase 05-github-api-me-ui P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -107,14 +108,13 @@ Recent decisions affecting current work:
 - [Phase 04-sse-redis-worker-jobstore-notifier]: POST /api/chat enqueues via arq.enqueue_job, returns ChatAsyncResponse(job_id, thread_id) immediately — gateway no longer blocks on LangGraph execution
 - [Phase 04-sse-redis-worker-jobstore-notifier]: SSE immediate-done check: job_store.get() before queue registration handles reload/reconnect (ASYNC-06)
 - [Phase 04-sse-redis-worker-jobstore-notifier]: sendMessage() async flow: POST gets job_id, EventSource for done signal, result from GET /api/job/{id}, polling fallback on SSE disconnect
+- [Phase 05-github-api-me-ui]: GET /api/me uses JSONResponse for 401/502 errors (not HTTPException) — consistent with plan spec
 
 ### Roadmap Evolution
 
 - Phase 4 added: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
 
 ### Pending Todos
-
-
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
 - React製チャットUIの分離 — chat-ui-kit-react + Vite + Bun — ui
@@ -135,6 +135,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T07:51:18.272Z
-Stopped at: Completed 04-sse-redis-worker-jobstore-notifier 04-04-PLAN.md
+Last session: 2026-04-01T10:13:48.981Z
+Stopped at: Completed 05-github-api-me-ui 05-01-PLAN.md
 Resume file: None
