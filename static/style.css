@@ -89,6 +89,22 @@ body {
   opacity: 0.85;
 }
 
+/* ---- User info in header (Phase 5) ---- */
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.user-login {
+  font-size: 13px;
+  font-weight: 500;
+  color: #c8c8d8;
+  vertical-align: middle;
+}
+
 /* ---- Main Layout ---- */
 .main-layout {
   display: flex;

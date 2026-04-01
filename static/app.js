@@ -110,6 +110,7 @@ async function checkAuthStatus() {
       el.onclick = null;
       el.style.cursor = 'default';
       if (logoutBtnEl) logoutBtnEl.style.display = '';
+      loadUserInfo(); // fetch avatar + login from /api/me (non-blocking)
     } else if (data.expired) {
       isAuthenticated = false;
       // D-04: "Session expired — click to re-auth"
@@ -129,6 +130,39 @@ async function checkAuthStatus() {
     }
   } catch (err) {
     console.error('Failed to check auth status:', err);
+  }
+}
+
+// ---- Load GitHub user info for header ----
+async function loadUserInfo() {
+  try {
+    const resp = await fetch('/api/me');
+    if (!resp.ok) return; // silently fall back to "Authenticated" text
+    const data = await resp.json();
+
+    const authStatus = document.getElementById('auth-status');
+    // Clear existing content
+    authStatus.innerHTML = '';
+
+    // Avatar image — GitHub CDN HTTPS URL, safe for img src
+    const img = document.createElement('img');
+    img.className = 'user-avatar';
+    img.src = data.avatar_url;
+    img.alt = '';
+    img.width = 28;
+    img.height = 28;
+
+    // Login span — textContent for XSS safety (project convention)
+    const loginSpan = document.createElement('span');
+    loginSpan.className = 'user-login';
+    loginSpan.textContent = data.login;
+
+    authStatus.appendChild(img);
+    authStatus.appendChild(loginSpan);
+    authStatus.className = 'auth-status authenticated';
+  } catch (err) {
+    console.error('Failed to load user info:', err);
+    // Falls back to existing "Authenticated" text (already set by checkAuthStatus)
   }
 }
 
