@@ -134,6 +134,7 @@ Recent decisions affecting current work:
 | 260401-fwh | Enable SDK tools: PermissionHandler.approve_all + remove SystemMessage workaround | 2026-04-01 | 32fa1a3 | [260401-fwh-option-a](.planning/quick/260401-fwh-option-a/) |
 | 260401-h36 | Fix re-auth after logout without server restart: reset ChatCopilot client + update UX | 2026-04-01 | 1b4bf70 | [260401-h36-fix-re-auth-after-logout-without-server-](.planning/quick/260401-h36-fix-re-auth-after-logout-without-server-/) |
 | 260401-lkq | Migrate to per-user JWT auth: Device Flow issues JWT cookie, blocklist logout, JWT-protected chat route | 2026-04-01 | 13c5b86 | [260401-lkq-jwt](.planning/quick/260401-lkq-jwt/) |
+| 260401-stv | Enable pgvector in postgres container: switch to pgvector/pgvector:pg17 image + initdb script | 2026-04-01 | 818f9d3 | [260401-stv-rag-pgvector](.planning/quick/260401-stv-rag-pgvector/) |
 
 ### Blockers/Concerns
 
