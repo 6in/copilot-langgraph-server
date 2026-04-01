@@ -13,6 +13,7 @@ dependencies = [
     "fastapi>=0.135.2",
     "uvicorn[standard]>=0.42.0",
     "python-multipart>=0.0.22",
+    "PyJWT>=2.9.0",
 ]
 
 [dependency-groups]
