@@ -40,3 +40,8 @@ class AuthPollResponse(BaseModel):
 class AuthStatusResponse(BaseModel):
     authenticated: bool
     expired: bool
+
+
+class AuthLogoutResponse(BaseModel):
+    success: bool
+    message: str

@@ -220,6 +220,20 @@ class CopilotAuthManager:
         raise RuntimeError(f"Device Flow failed: {error}")
 
     # ------------------------------------------------------------------
+    # Logout
+    # ------------------------------------------------------------------
+
+    def logout(self) -> bool:
+        """Delete the encrypted token file from disk.
+
+        Returns True if the file was deleted, False if it did not exist.
+        """
+        if self.token_path.exists():
+            self.token_path.unlink()
+            return True
+        return False
+
+    # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
 

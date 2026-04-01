@@ -7,7 +7,7 @@ Endpoints:
 """
 from fastapi import APIRouter, Request
 
-from app.api.models import AuthPollResponse, AuthStartResponse, AuthStatusResponse
+from app.api.models import AuthLogoutResponse, AuthPollResponse, AuthStartResponse, AuthStatusResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -60,6 +60,30 @@ async def poll_auth(request: Request):
         return AuthPollResponse(done=True)
 
     return AuthPollResponse(done=False)
+
+
+@router.post("/logout", response_model=AuthLogoutResponse)
+async def logout(request: Request):
+    """Log out by deleting the stored token and resetting in-memory auth state.
+
+    After logout the user must restart the server to re-authenticate via
+    Device Flow (CLI-based flow, not available in-browser without restart).
+    """
+    auth_manager = request.app.state.auth_manager
+    deleted = auth_manager.logout()
+
+    # Reset all in-memory auth state
+    request.app.state.auth_expired = False
+    request.app.state.device_flows.clear()
+
+    return AuthLogoutResponse(
+        success=True,
+        message=(
+            "Logged out successfully. Restart the server to re-authenticate."
+            if deleted
+            else "No active session found. Restart the server to re-authenticate."
+        ),
+    )
 
 
 @router.get("/status", response_model=AuthStatusResponse)

@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modelSelect = document.getElementById('model-select');
   const copyCodeBtn = document.getElementById('copy-code-btn');
   const authStatus = document.getElementById('auth-status');
+  const logoutBtn = document.getElementById('logout-btn');
 
   // Send on button click
   sendBtn.addEventListener('click', sendMessage);
@@ -61,6 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Model selection
   modelSelect.addEventListener('change', () => {
     selectedModel = modelSelect.value;
+  });
+
+  // Logout button
+  logoutBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to log out? You will need to restart the server to re-authenticate.')) {
+      performLogout();
+    }
   });
 
   // Copy device code
@@ -92,6 +100,8 @@ async function checkAuthStatus() {
     const data = await resp.json();
     const el = document.getElementById('auth-status');
 
+    const logoutBtnEl = document.getElementById('logout-btn');
+
     if (data.authenticated) {
       isAuthenticated = true;
       // Green dot + "Authenticated" (UI-SPEC: Header)
@@ -99,6 +109,7 @@ async function checkAuthStatus() {
       el.className = 'auth-status authenticated';
       el.onclick = null;
       el.style.cursor = 'default';
+      if (logoutBtnEl) logoutBtnEl.style.display = '';
     } else if (data.expired) {
       isAuthenticated = false;
       // D-04: "Session expired — click to re-auth"
@@ -106,6 +117,7 @@ async function checkAuthStatus() {
       el.className = 'auth-status expired';
       el.style.cursor = 'pointer';
       el.onclick = () => startAuthFlow();
+      if (logoutBtnEl) logoutBtnEl.style.display = 'none';
     } else {
       isAuthenticated = false;
       // Unauthenticated: show Login button
@@ -113,6 +125,7 @@ async function checkAuthStatus() {
       el.className = 'auth-status login-btn';
       el.style.cursor = 'pointer';
       el.onclick = () => startAuthFlow();
+      if (logoutBtnEl) logoutBtnEl.style.display = 'none';
     }
   } catch (err) {
     console.error('Failed to check auth status:', err);
@@ -181,6 +194,42 @@ async function pollAuth() {
     }
   } catch (err) {
     console.error('Failed to poll auth:', err);
+  }
+}
+
+// ---- Logout ----
+async function performLogout() {
+  try {
+    const resp = await fetch('/api/auth/logout', { method: 'POST' });
+    if (!resp.ok) {
+      console.error('Logout request failed:', resp.status);
+      return;
+    }
+
+    // Stop any in-flight auth polling
+    if (authPollInterval) {
+      clearInterval(authPollInterval);
+      authPollInterval = null;
+    }
+
+    isAuthenticated = false;
+
+    // Show logout message overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'logout-message';
+    overlay.innerHTML = `
+      <div class="logout-message-content">
+        <h2>Logged out</h2>
+        <p>Your session has been cleared.<br>
+           Restart the server to re-authenticate with GitHub Copilot.</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Update header auth status and hide logout button
+    await checkAuthStatus();
+  } catch (err) {
+    console.error('Logout failed:', err);
   }
 }
 
