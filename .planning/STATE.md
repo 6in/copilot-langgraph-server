@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed quick task 260401-h36 (fix re-auth after logout without server restart)
-last_updated: "2026-04-01T03:00:00Z"
+stopped_at: Completed quick task 260401-lkq (JWT multi-user auth)
+last_updated: "2026-04-01T04:00:00Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 3
@@ -90,10 +90,14 @@ Recent decisions affecting current work:
 - [Phase 03-web-chat-ui]: XSS boundary enforced in appendMessage(): user textContent, AI innerHTML+prose
 - [Phase 03-web-chat-ui]: Input lockout in sendMessage(): disabled in try, re-enabled in finally — guarantees unlock on error
 - [Phase 03-web-chat-ui]: Auto-approved checkpoint: user pre-approved visual verification, automated tests (36 pass) confirm functional correctness
+- [Quick 260401-lkq]: JWT HS256 with secret from env var or ~/.copilot_sdk/.jwt_secret — zero-config for local use
+- [Quick 260401-lkq]: device_flows keyed by uuid4().hex flow_id: multi-user capable, replaces single "current" key
+- [Quick 260401-lkq]: In-memory JTI blocklist: clears on restart, no Redis dependency — acceptable for personal tool
+- [Quick 260401-lkq]: Per-request github_token injection via llm.close() on token change — safe for sequential personal tool use
+- [Quick 260401-lkq]: Thread CRUD routes intentionally unprotected: local SQLite, personal tool, no auth value
 
 ### Pending Todos
 
-- 認証部分をマルチユーザ対応にする（JWT導入）— auth
 - PoC の非同期イベント処理パターンをベースに移行 — general
 
 ### Quick Tasks Completed
@@ -104,6 +108,7 @@ Recent decisions affecting current work:
 | 260401-f4x | Update .gitignore: add data/, .claude/, IDE/tool caches, SQLite, env files | 2026-04-01 | 6ed3d26 | [260401-f4x-gitignore](.planning/quick/260401-f4x-gitignore/) |
 | 260401-fwh | Enable SDK tools: PermissionHandler.approve_all + remove SystemMessage workaround | 2026-04-01 | 32fa1a3 | [260401-fwh-option-a](.planning/quick/260401-fwh-option-a/) |
 | 260401-h36 | Fix re-auth after logout without server restart: reset ChatCopilot client + update UX | 2026-04-01 | 1b4bf70 | [260401-h36-fix-re-auth-after-logout-without-server-](.planning/quick/260401-h36-fix-re-auth-after-logout-without-server-/) |
+| 260401-lkq | Migrate to per-user JWT auth: Device Flow issues JWT cookie, blocklist logout, JWT-protected chat route | 2026-04-01 | 13c5b86 | [260401-lkq-jwt](.planning/quick/260401-lkq-jwt/) |
 
 ### Blockers/Concerns
 
