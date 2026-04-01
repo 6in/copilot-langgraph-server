@@ -4,12 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 05-github-api-me-ui 05-02-PLAN.md
-last_updated: "2026-04-01T10:22:01.718Z"
-last_activity: 2026-04-01
+last_updated: "2026-04-01T11:05:48.226Z"
+last_activity: 2026-04-01 -- Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 15
+  total_plans: 17
   completed_plans: 15
   percent: 67
 ---
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること
-**Current focus:** Phase 05 — github-api-me-ui
+**Current focus:** Phase 06 — sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-01
+Phase: 06 (sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 06
+Last activity: 2026-04-01 -- Phase 06 execution started
 
 Progress: [██████░░░░] 67%
 
