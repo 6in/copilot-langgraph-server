@@ -30,6 +30,7 @@ class AuthStartResponse(BaseModel):
     user_code: str
     verification_uri: str
     device_code: str
+    flow_id: str  # Unique identifier for this Device Flow session
 
 
 class AuthPollResponse(BaseModel):
@@ -40,6 +41,7 @@ class AuthPollResponse(BaseModel):
 class AuthStatusResponse(BaseModel):
     authenticated: bool
     expired: bool
+    username: str | None = None  # Reserved for future multi-user display
 
 
 class AuthLogoutResponse(BaseModel):

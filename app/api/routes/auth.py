@@ -1,110 +1,143 @@
 """Auth API routes — Device Flow start/poll/status (AUTH-03).
 
 Endpoints:
-- POST /api/auth/start — begin Device Flow, return user_code + verification_uri
-- GET  /api/auth/poll  — single poll attempt, return done/pending
-- GET  /api/auth/status — current auth state (authenticated/expired)
+- POST /api/auth/start  — begin Device Flow, return user_code + verification_uri + flow_id
+- GET  /api/auth/poll   — single poll attempt using flow_id, set JWT cookie on success
+- GET  /api/auth/status — JWT cookie auth state (authenticated/expired)
+- POST /api/auth/logout — revoke JWT via blocklist, delete session cookie
 """
-from fastapi import APIRouter, Request
+from uuid import uuid4
+
+import jwt
+from fastapi import APIRouter, Query, Request
+from fastapi.responses import JSONResponse
 
 from app.api.models import AuthLogoutResponse, AuthPollResponse, AuthStartResponse, AuthStatusResponse
+from app.auth.jwt_utils import add_to_blocklist, create_jwt, decode_jwt
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/start", response_model=AuthStartResponse)
 async def start_auth(request: Request):
-    """Start GitHub Device Flow. Returns user_code and verification_uri.
+    """Start GitHub Device Flow. Returns user_code, verification_uri, and flow_id.
 
     Per D-01: Frontend displays the URL as a clickable link (no window.open).
     Per D-02: Frontend displays user_code with a Copy button.
-    Per D-03: Frontend polls /api/auth/poll every 5 seconds.
+    Per D-03: Frontend polls /api/auth/poll?flow_id=... every 5 seconds.
+
+    flow_id is a unique key for this Device Flow session — supports multiple
+    concurrent auth flows (multi-user capable).
     """
     auth_manager = request.app.state.auth_manager
     flow_data = await auth_manager.start_device_flow()
 
-    # Store device_code for subsequent poll calls
-    request.app.state.device_flows["current"] = flow_data["device_code"]
+    # Generate a unique key for this flow session
+    flow_id = uuid4().hex
+
+    # Store device_code keyed by flow_id (replaces single "current" key)
+    request.app.state.device_flows[flow_id] = flow_data["device_code"]
 
     return AuthStartResponse(
         user_code=flow_data["user_code"],
         verification_uri=flow_data["verification_uri"],
         device_code=flow_data["device_code"],
+        flow_id=flow_id,
     )
 
 
-@router.get("/poll", response_model=AuthPollResponse)
-async def poll_auth(request: Request):
+@router.get("/poll")
+async def poll_auth(request: Request, flow_id: str = Query(...)):
     """Single poll attempt for Device Flow completion.
 
-    Called by frontend every 5 seconds (D-03). Returns {done: true} when
-    token is obtained, {done: false} while pending.
+    Called by frontend every 5 seconds (D-03) with the flow_id from /api/auth/start.
+    On success: creates JWT, sets httpOnly session cookie, cleans up flow state.
+    Returns {done: true} when authenticated, {done: false} while pending.
     """
     auth_manager = request.app.state.auth_manager
-    device_code = request.app.state.device_flows.get("current")
+    device_code = request.app.state.device_flows.get(flow_id)
 
     if not device_code:
-        return AuthPollResponse(done=False, error="No active auth flow")
+        return JSONResponse(
+            content=AuthPollResponse(done=False, error="No active auth flow for this flow_id").model_dump()
+        )
 
     try:
         token = await auth_manager.check_device_flow(device_code)
     except RuntimeError as e:
         # Terminal error (expired_token, access_denied)
-        request.app.state.device_flows.pop("current", None)
-        return AuthPollResponse(done=False, error=str(e))
+        request.app.state.device_flows.pop(flow_id, None)
+        return JSONResponse(
+            content=AuthPollResponse(done=False, error=str(e)).model_dump()
+        )
 
     if token is not None:
-        # Auth succeeded — clean up flow state, reset expired flag
-        request.app.state.device_flows.pop("current", None)
-        request.app.state.auth_expired = False
-        return AuthPollResponse(done=True)
+        # Auth succeeded — create JWT, set httpOnly cookie, clean up flow state
+        jwt_token = create_jwt(token)
+        request.app.state.device_flows.pop(flow_id, None)
 
-    return AuthPollResponse(done=False)
+        response = JSONResponse(content=AuthPollResponse(done=True).model_dump())
+        response.set_cookie(
+            key="session",
+            value=jwt_token,
+            httponly=True,
+            samesite="lax",
+            max_age=86400,  # 24 hours
+            path="/",
+        )
+        return response
+
+    return JSONResponse(content=AuthPollResponse(done=False).model_dump())
 
 
-@router.post("/logout", response_model=AuthLogoutResponse)
+@router.post("/logout")
 async def logout(request: Request):
-    """Log out by deleting the stored token and resetting in-memory auth state.
+    """Log out by revoking the JWT session cookie via in-memory blocklist.
 
-    After logout the user can re-authenticate via Device Flow in-browser without
-    restarting the server. llm.close() resets ChatCopilot._client so the next
-    chat request will re-initialize with the new token.
+    Reads JWT from session cookie, extracts JTI, adds to blocklist.
+    Deletes the session cookie via Set-Cookie response header.
+
+    Does NOT call auth_manager.logout() — token.enc is for CLI use only,
+    not for web sessions. Web auth is fully JWT-cookie based.
+    Does NOT call llm.close() — LLM token injection is per-request in Task 3.
     """
-    auth_manager = request.app.state.auth_manager
-    deleted = auth_manager.logout()
+    session_cookie = request.cookies.get("session")
 
-    # Reset all in-memory auth state
-    request.app.state.auth_expired = False
-    request.app.state.device_flows.clear()
+    if session_cookie:
+        try:
+            payload = decode_jwt(session_cookie)
+            jti = payload.get("jti", "")
+            if jti:
+                add_to_blocklist(jti)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            # Token already invalid — blocklist not needed, proceed with cookie deletion
+            pass
 
-    # Reset ChatCopilot client so _ensure_client() re-initializes on next chat
-    await request.app.state.llm.close()
-
-    return AuthLogoutResponse(
-        success=True,
-        message=(
-            "Logged out successfully."
-            if deleted
-            else "No active session found."
-        ),
+    response = JSONResponse(
+        content=AuthLogoutResponse(success=True, message="Logged out successfully.").model_dump()
     )
+    response.delete_cookie(key="session", path="/")
+    return response
 
 
 @router.get("/status", response_model=AuthStatusResponse)
 async def auth_status(request: Request):
-    """Return current authentication state.
+    """Return current authentication state based on JWT cookie.
 
     Per D-04: Frontend checks this to show "Session expired -- click to re-auth"
     in the header when expired=true.
-    """
-    auth_manager = request.app.state.auth_manager
-    token = auth_manager.load_token()
 
-    if token is None:
+    Auth state is derived entirely from the JWT cookie — no global app.state.auth_expired.
+    """
+    session_cookie = request.cookies.get("session")
+
+    if not session_cookie:
         return AuthStatusResponse(authenticated=False, expired=False)
 
-    # If chat route detected auth expiry, surface it
-    if request.app.state.auth_expired:
+    try:
+        decode_jwt(session_cookie)
+        return AuthStatusResponse(authenticated=True, expired=False)
+    except jwt.ExpiredSignatureError:
         return AuthStatusResponse(authenticated=False, expired=True)
-
-    return AuthStatusResponse(authenticated=True, expired=False)
+    except jwt.InvalidTokenError:
+        return AuthStatusResponse(authenticated=False, expired=False)

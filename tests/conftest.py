@@ -50,7 +50,6 @@ async def api_client(mock_graph, mock_auth_manager):
     app.state.llm = MagicMock()
     app.state.llm.model = "gpt-4.1"
     app.state.db_path = ":memory:"
-    app.state.auth_expired = False
     app.state.device_flows = {}
     app.state.checkpointer = MagicMock()
 

@@ -37,8 +37,7 @@ async def lifespan(app: FastAPI):
         app.state.auth_manager = auth_manager
         app.state.llm = llm
         app.state.db_path = DB_PATH
-        app.state.auth_expired = False
-        # Temporary storage for in-flight Device Flow sessions
+        # Temporary storage for in-flight Device Flow sessions (keyed by flow_id)
         app.state.device_flows = {}
         yield
 
