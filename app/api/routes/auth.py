@@ -66,8 +66,9 @@ async def poll_auth(request: Request):
 async def logout(request: Request):
     """Log out by deleting the stored token and resetting in-memory auth state.
 
-    After logout the user must restart the server to re-authenticate via
-    Device Flow (CLI-based flow, not available in-browser without restart).
+    After logout the user can re-authenticate via Device Flow in-browser without
+    restarting the server. llm.close() resets ChatCopilot._client so the next
+    chat request will re-initialize with the new token.
     """
     auth_manager = request.app.state.auth_manager
     deleted = auth_manager.logout()
@@ -76,12 +77,15 @@ async def logout(request: Request):
     request.app.state.auth_expired = False
     request.app.state.device_flows.clear()
 
+    # Reset ChatCopilot client so _ensure_client() re-initializes on next chat
+    await request.app.state.llm.close()
+
     return AuthLogoutResponse(
         success=True,
         message=(
-            "Logged out successfully. Restart the server to re-authenticate."
+            "Logged out successfully."
             if deleted
-            else "No active session found. Restart the server to re-authenticate."
+            else "No active session found."
         ),
     )
 

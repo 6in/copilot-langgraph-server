@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Logout button
   logoutBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to log out? You will need to restart the server to re-authenticate.')) {
+    if (confirm('Are you sure you want to log out?')) {
       performLogout();
     }
   });
@@ -221,7 +221,8 @@ async function performLogout() {
       <div class="logout-message-content">
         <h2>Logged out</h2>
         <p>Your session has been cleared.<br>
-           Restart the server to re-authenticate with GitHub Copilot.</p>
+           Click "Login with GitHub" in the header to re-authenticate.</p>
+        <button class="logout-dismiss-btn" onclick="this.closest('.logout-message').remove()">OK</button>
       </div>
     `;
     document.body.appendChild(overlay);
