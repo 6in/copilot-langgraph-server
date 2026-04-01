@@ -33,22 +33,16 @@ async def test_sse_already_done(mock_job_store, mock_arq_redis):
 
 
 async def test_sse_done_signal(mock_job_store, mock_arq_redis):
-    """SSE endpoint yields done event when queue receives done signal (ASYNC-04)."""
+    """SSE endpoint yields done event when Redis polling detects completion (ASYNC-04)."""
     from app.api.main import app
 
-    # Job not done yet
-    mock_job_store.get = AsyncMock(return_value=None)
-
-    # Create a real asyncio.Queue that will receive the done signal
-    queue: asyncio.Queue = asyncio.Queue()
-    mock_job_store.register_sse = MagicMock(return_value=queue)
-    mock_job_store.unregister_sse = MagicMock()
+    # First poll returns pending, second returns done
+    mock_job_store.get = AsyncMock(
+        side_effect=[None, {"status": "done", "result": "hello"}]
+    )
 
     app.state.job_store = mock_job_store
     app.state.arq_redis = mock_arq_redis
-
-    # Put the done event into the queue before making the request
-    await queue.put({"status": "done"})
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -58,13 +52,9 @@ async def test_sse_done_signal(mock_job_store, mock_arq_redis):
     assert "text/event-stream" in resp.headers["content-type"]
     text = resp.text
     assert "data:" in text
-    for line in text.splitlines():
-        if line.startswith("data:"):
-            event_data = json.loads(line[len("data:"):].strip())
-            assert event_data["status"] == "done"
-            break
-    else:
-        pytest.fail("No data line found in SSE response")
-
-    # Verify unregister was called in finally block
-    mock_job_store.unregister_sse.assert_called_once_with("j1")
+    events = [
+        json.loads(line[len("data:"):].strip())
+        for line in text.splitlines()
+        if line.startswith("data:")
+    ]
+    assert any(e["status"] == "done" for e in events)

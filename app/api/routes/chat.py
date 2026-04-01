@@ -98,18 +98,18 @@ async def stream_job(job_id: str, request: Request):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # Still in progress — register queue and wait
-    queue = job_store.register_sse(job_id)
-
+    # Still in progress — poll Redis until done (cross-process safe)
     async def generator():
-        try:
-            while True:
-                event = await queue.get()
-                yield f"data: {json.dumps(event)}\n\n"
-                if event.get("status") == "done":
-                    break
-        finally:
-            job_store.unregister_sse(job_id)
+        import asyncio
+        while True:
+            if await request.is_disconnected():
+                break
+            result = await job_store.get(job_id)
+            if result and result.get("status") == "done":
+                yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                break
+            yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
+            await asyncio.sleep(1)
 
     return StreamingResponse(
         generator(),
