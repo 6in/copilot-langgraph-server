@@ -94,6 +94,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 認証部分をマルチユーザ対応にする（JWT導入）— auth
+- PoC の非同期イベント処理パターンをベースに移行 — general
 
 ### Quick Tasks Completed
 
