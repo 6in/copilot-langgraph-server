@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed quick task 260401-fwh (enable SDK tools via approve_all)
-last_updated: "2026-04-01T02:29:48Z"
+stopped_at: Completed quick task 260401-h36 (fix re-auth after logout without server restart)
+last_updated: "2026-04-01T03:00:00Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 3
@@ -93,7 +93,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [ログアウト後の再認証で "Waiting For authentication..." が止まる](.planning/todos/pending/2026-04-01-waiting-for-authentication.md) — ログアウト後にサーバー再起動なしで再認証を試みると Device Flow 完了後も polling が止まらない
+None
 
 ### Quick Tasks Completed
 
@@ -102,6 +102,7 @@ Recent decisions affecting current work:
 | 260331-uy2 | Fix Copilot SDK send_and_wait API: pass prompt string directly instead of dict | 2026-03-31 | 2ce10e7 | [260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p](.planning/quick/260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p/) |
 | 260401-f4x | Update .gitignore: add data/, .claude/, IDE/tool caches, SQLite, env files | 2026-04-01 | 6ed3d26 | [260401-f4x-gitignore](.planning/quick/260401-f4x-gitignore/) |
 | 260401-fwh | Enable SDK tools: PermissionHandler.approve_all + remove SystemMessage workaround | 2026-04-01 | 32fa1a3 | [260401-fwh-option-a](.planning/quick/260401-fwh-option-a/) |
+| 260401-h36 | Fix re-auth after logout without server restart: reset ChatCopilot client + update UX | 2026-04-01 | 1b4bf70 | [260401-h36-fix-re-auth-after-logout-without-server-](.planning/quick/260401-h36-fix-re-auth-after-logout-without-server-/) |
 
 ### Blockers/Concerns
 
