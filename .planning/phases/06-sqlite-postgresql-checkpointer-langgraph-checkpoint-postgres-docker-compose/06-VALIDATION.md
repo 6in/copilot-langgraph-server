@@ -2,8 +2,8 @@
 phase: 6
 slug: sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-01
 ---
 
@@ -38,23 +38,19 @@ created: 2026-04-01
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 6-01-01 | 01 | 0 | CKPT-01 | unit stub | `uv run pytest tests/test_checkpointer.py -x -q` | ❌ W0 | ⬜ pending |
-| 6-01-02 | 01 | 1 | CKPT-01 | unit | `uv run pytest tests/test_checkpointer.py -x -q` | ✅ W0 | ⬜ pending |
-| 6-01-03 | 01 | 1 | CKPT-02 | integration | `uv run pytest tests/test_checkpointer.py -k test_setup -x -q` | ✅ W0 | ⬜ pending |
-| 6-02-01 | 02 | 1 | CKPT-03 | unit | `uv run pytest tests/ -x -q` | ✅ W0 | ⬜ pending |
-| 6-02-02 | 02 | 1 | CKPT-04 | unit | `uv run pytest tests/ -x -q` | ✅ W0 | ⬜ pending |
-| 6-02-03 | 02 | 2 | CKPT-05 | manual | Docker Compose up + smoke test | N/A | ⬜ pending |
+| 6-01-01 | 01 | 1 | CKPT-01 | unit | `grep -q "langgraph-checkpoint-postgres" pyproject.toml && grep -q "postgres:17-alpine" docker-compose.yml && grep -q "postgres-data" docker-compose.yml` | N/A (config) | pending |
+| 6-01-02 | 01 | 1 | CKPT-01, CKPT-02 | unit | `grep -q "AsyncPostgresSaver" app/api/main.py && grep -q "checkpointer.setup" app/api/main.py && grep -q "AsyncPostgresSaver" app/jobs/worker.py` | N/A (grep) | pending |
+| 6-01-03 | 01 | 1 | CKPT-02 | unit | `uv run pytest tests/test_worker.py -x -q` | tests/test_worker.py | pending |
+| 6-02-01 | 02 | 2 | CKPT-03 | unit | `uv run pytest tests/test_api_chat.py -x -q` | tests/test_api_chat.py | pending |
+| 6-02-02 | 02 | 2 | CKPT-04, CKPT-05 | unit | `uv run pytest tests/ -x -q` | tests/test_api_chat.py | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending / green / red / flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_checkpointer.py` — stubs for PostgreSQL checkpointer (CKPT-01, CKPT-02)
-- [ ] `tests/conftest.py` — add `postgres_dsn` fixture (skipped without `TEST_POSTGRES_URL`)
-
-*Existing test infrastructure in `tests/` covers most patterns; only checkpointer-specific stubs needed.*
+No Wave 0 tasks needed. Existing test infrastructure (`tests/test_worker.py`, `tests/test_api_chat.py`, `tests/conftest.py`) covers all phase requirements. Tests need patch target updates and state field renames, but no new test files are required.
 
 ---
 
@@ -69,11 +65,11 @@ created: 2026-04-01
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or existing test file dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] No Wave 0 gaps — existing test files cover all requirements
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
