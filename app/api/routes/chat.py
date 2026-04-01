@@ -1,10 +1,11 @@
 """Chat and thread API routes (CHAT-01, CHAT-02, CHAT-03, CHAT-04).
 
 Endpoints:
-- POST /api/chat         — send message, get AI reply
-- POST /api/threads      — create new thread (returns UUID)
-- GET  /api/threads      — list existing threads
-- GET  /api/threads/{thread_id}/messages — get messages for a thread
+- POST   /api/chat         — send message, get AI reply
+- POST   /api/threads      — create new thread (returns UUID)
+- GET    /api/threads      — list existing threads
+- DELETE /api/threads/{thread_id} — delete a thread and its checkpoints
+- GET    /api/threads/{thread_id}/messages — get messages for a thread
 """
 import uuid
 from datetime import datetime, timezone
@@ -107,6 +108,32 @@ async def list_threads(request: Request):
         pass
 
     return threads
+
+
+@router.delete("/threads/{thread_id}", status_code=204)
+async def delete_thread(thread_id: str, request: Request):
+    """Delete a thread and all its checkpoints from SQLite.
+
+    Removes rows from both `checkpoints` and `checkpoint_blobs` tables
+    (AsyncSqliteSaver schema) for the given thread_id.
+    """
+    db_path = request.app.state.db_path
+
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            await db.execute(
+                "DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,)
+            )
+            await db.execute(
+                "DELETE FROM checkpoint_blobs WHERE thread_id = ?", (thread_id,)
+            )
+            await db.execute(
+                "DELETE FROM checkpoint_writes WHERE thread_id = ?", (thread_id,)
+            )
+            await db.commit()
+    except Exception:
+        # DB may not exist or tables may differ — silently succeed
+        pass
 
 
 @router.get("/threads/{thread_id}/messages")
