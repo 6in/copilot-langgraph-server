@@ -1,35 +1,74 @@
 """Chat and thread API routes (CHAT-01, CHAT-02, CHAT-03, CHAT-04).
 
 Endpoints:
-- POST   /api/chat         — send message, get AI reply
+- POST   /api/chat         — send message, get AI reply (JWT protected)
 - POST   /api/threads      — create new thread (returns UUID)
 - GET    /api/threads      — list existing threads
 - DELETE /api/threads/{thread_id} — delete a thread and its checkpoints
 - GET    /api/threads/{thread_id}/messages — get messages for a thread
+
+NOTE: Thread CRUD routes (list/create/delete/messages) are intentionally NOT
+JWT-protected. They operate on local SQLite data only, and this is a personal
+tool where server-side access control on thread metadata adds no security value.
 """
 import uuid
 from datetime import datetime, timezone
 
 import aiosqlite
-from fastapi import APIRouter, Request
+import jwt
+from fastapi import APIRouter, Depends, HTTPException, Request
 from langchain_core.messages import AIMessage, HumanMessage
 
 from app.api.models import ChatRequest, ChatResponse, ThreadInfo
+from app.auth.jwt_utils import decode_jwt, decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
+async def get_github_token(request: Request) -> str:
+    """FastAPI dependency: extract and decrypt GitHub token from JWT session cookie.
+
+    Raises HTTPException 401 with detail:
+    - "auth_required" if no session cookie is present
+    - "auth_expired"  if JWT has expired
+    - "auth_invalid"  if JWT is malformed or revoked
+    """
+    session_cookie = request.cookies.get("session")
+    if not session_cookie:
+        raise HTTPException(status_code=401, detail="auth_required")
+    try:
+        payload = decode_jwt(session_cookie)
+        return decrypt_github_token(payload["github_token"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="auth_expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="auth_invalid")
+
+
 @router.post("/chat", response_model=ChatResponse)
-async def send_message(request: Request, body: ChatRequest):
+async def send_message(
+    request: Request,
+    body: ChatRequest,
+    github_token: str = Depends(get_github_token),
+):
     """Send a message and get an AI reply.
 
     Per D-11: model field in request body — switch takes effect on this send.
-    Per Pitfall 4: catch auth errors from SDK, set auth_expired flag.
+    Auth is enforced via JWT cookie through get_github_token dependency.
+
+    Per-request token injection: sets github_token and model on the shared LLM
+    instance before each call. This is safe for single-user personal tool usage
+    (sequential requests, no concurrent multi-user contention).
     """
     graph = request.app.state.graph
-
-    # Override model if frontend sends a different one (D-11)
     llm = request.app.state.llm
+
+    # Inject per-request GitHub token and model into the shared LLM instance
+    # close() forces re-initialization with the new token on the next call
+    if llm.github_token != github_token:
+        llm.github_token = github_token
+        await llm.close()
+
     if body.model != llm.model:
         llm.model = body.model
 
@@ -42,9 +81,9 @@ async def send_message(request: Request, body: ChatRequest):
         )
     except Exception as e:
         error_msg = str(e).lower()
-        # Detect auth-related errors from Copilot SDK
+        # Detect auth-related errors from Copilot SDK — return error response
+        # (no auth_expired flag; JWT middleware handles auth state)
         if any(kw in error_msg for kw in ("auth", "token", "unauthorized", "401")):
-            request.app.state.auth_expired = True
             return ChatResponse(
                 reply="",
                 thread_id=body.thread_id,

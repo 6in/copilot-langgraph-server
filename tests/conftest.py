@@ -6,6 +6,13 @@ from app.auth.manager import CopilotAuthManager
 
 
 @pytest.fixture
+def jwt_cookie():
+    """A valid JWT session cookie value for use in chat endpoint tests."""
+    from app.auth.jwt_utils import create_jwt
+    return create_jwt("ghu_test_token_for_chat")
+
+
+@pytest.fixture
 def auth_manager(tmp_path: Path) -> CopilotAuthManager:
     """CopilotAuthManager using tmp_path for token storage."""
     return CopilotAuthManager(token_path=str(tmp_path / "token.enc"))
@@ -45,10 +52,14 @@ async def api_client(mock_graph, mock_auth_manager):
     from app.api.main import app
 
     # Inject mocked state directly (lifespan doesn't fire in test)
+    mock_llm = MagicMock()
+    mock_llm.model = "gpt-4.1"
+    mock_llm.github_token = None
+    mock_llm.close = AsyncMock()
+
     app.state.graph = mock_graph
     app.state.auth_manager = mock_auth_manager
-    app.state.llm = MagicMock()
-    app.state.llm.model = "gpt-4.1"
+    app.state.llm = mock_llm
     app.state.db_path = ":memory:"
     app.state.device_flows = {}
     app.state.checkpointer = MagicMock()
