@@ -135,6 +135,7 @@ Recent decisions affecting current work:
 | 260401-h36 | Fix re-auth after logout without server restart: reset ChatCopilot client + update UX | 2026-04-01 | 1b4bf70 | [260401-h36-fix-re-auth-after-logout-without-server-](.planning/quick/260401-h36-fix-re-auth-after-logout-without-server-/) |
 | 260401-lkq | Migrate to per-user JWT auth: Device Flow issues JWT cookie, blocklist logout, JWT-protected chat route | 2026-04-01 | 13c5b86 | [260401-lkq-jwt](.planning/quick/260401-lkq-jwt/) |
 | 260401-stv | Enable pgvector in postgres container: switch to pgvector/pgvector:pg17 image + initdb script | 2026-04-01 | 818f9d3 | [260401-stv-rag-pgvector](.planning/quick/260401-stv-rag-pgvector/) |
+| 260401-t47 | Add loadThreads() at all 3 job completion points so sidebar refreshes after new thread creation | 2026-04-01 | 6a3ab24 | [260401-t47-add-loadthreads-after-job-completion-to-](.planning/quick/260401-t47-add-loadthreads-after-job-completion-to-/) |
 
 ### Blockers/Concerns
 
@@ -142,6 +143,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T11:16:13.491Z
-Stopped at: Completed 06-sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose 06-02-PLAN.md
+Last session: 2026-04-01T11:20:11.000Z
+Stopped at: Completed quick 260401-t47-PLAN.md
 Resume file: None
