@@ -146,3 +146,12 @@ None - no external service configuration required for development. For productio
 ---
 *Phase: 06-sqlite-postgresql-checkpointer*
 *Completed: 2026-04-01*
+
+## Self-Check: PASSED
+
+- SUMMARY.md: FOUND at `.planning/phases/06-sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose/06-01-SUMMARY.md`
+- Commit `83d187f`: FOUND (feat: deps + docker-compose)
+- Commit `2fbb6db`: FOUND (feat: main.py + worker.py)
+- Commit `32b0812`: FOUND (test: conftest + test_worker)
+- Commit `7d28330`: FOUND (fix: chat.py deviation)
+- Commit `abaf2ca`: FOUND (docs: metadata)

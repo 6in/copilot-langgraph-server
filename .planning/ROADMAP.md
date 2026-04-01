@@ -1,145 +1,33 @@
 # Roadmap: Copilot LangGraph Chat
 
-## Overview
+## Milestones
 
-Three phases follow the strict dependency order the architecture demands: the Copilot SDK (highest risk, Technical Preview) is isolated and validated first, the LangGraph graph layer is built on top of a proven provider, and the FastAPI web layer plus vanilla JS frontend deliver the browser chat experience last. Each phase produces something independently runnable before the next layer is added.
+- ✅ **v1.0 MVP** — Phases 1–6 (shipped 2026-04-02) — [Archive](milestones/v1.0-ROADMAP.md)
+- 📋 **v2.0** — Phases 7+ (planned)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 MVP (Phases 1–6) — SHIPPED 2026-04-02</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] **Phase 1: Auth + Provider Foundation** — Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
+- [x] **Phase 2: Graph Layer** — LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
+- [x] **Phase 3: Web + Chat UI** — FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
+- [x] **Phase 4: Async Job Queue + SSE** — Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
+- [x] **Phase 5: GitHub User Info + Header UI** — GET /api/me fetches GitHub profile, header displays avatar + login name (completed 2026-04-01)
+- [x] **Phase 6: SQLite to PostgreSQL Checkpointer Migration** — AsyncPostgresSaver replaces AsyncSqliteSaver, postgres Docker service added, all tests pass (completed 2026-04-02)
 
-- [x] **Phase 1: Auth + Provider Foundation** - Copilot SDK isolated, Device Flow auth working, ChatCopilot gets a response end-to-end from a Python script (completed 2026-03-31)
-- [x] **Phase 2: Graph Layer** - LangGraph StateGraph wired to ChatCopilot, multi-turn conversation history accumulates correctly, thread_id session isolation works (completed 2026-03-31)
-- [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
-- [x] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
-- [x] **Phase 5: GitHub User Info + Header UI** - GET /api/me fetches GitHub profile, header displays avatar + login name (completed 2026-04-01)
-- [x] **Phase 6: SQLite to PostgreSQL Checkpointer Migration** - AsyncPostgresSaver replaces AsyncSqliteSaver, postgres Docker service added, all tests pass (completed 2026-04-02)
+See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
-## Phase Details
-
-### Phase 1: Auth + Provider Foundation
-**Goal**: Developer can invoke ChatCopilot from a Python script and receive a Copilot response, with auth token persisted across restarts
-**Depends on**: Nothing (first phase)
-**Requirements**: AUTH-01, AUTH-02, PROV-01, PROV-02, PROV-03
-**Success Criteria** (what must be TRUE):
-  1. Running the auth script triggers Device Flow, opens a browser URL, and saves an encrypted token to ~/.copilot_sdk/token.enc
-  2. Re-running the auth script reuses the saved token without re-prompting
-  3. A Python script that creates ChatCopilot and calls ainvoke([HumanMessage("hello")]) receives a non-empty AIMessage response
-  4. Changing the model parameter (e.g., gpt-4.1 vs claude-sonnet-4-5) produces a response without error
-  5. CopilotClient start/stop lifecycle completes without subprocess leaks or warnings
-**Plans:** 3/3 plans complete
-
-Plans:
-- [x] 01-01-PLAN.md — Project setup + CopilotAuthManager (Device Flow + Fernet encryption)
-- [x] 01-02-PLAN.md — ChatCopilot BaseChatModel provider (SDK 0.2.0 wrapper)
-- [x] 01-03-PLAN.md — End-to-end validation script + live Copilot verification
-
-### Phase 2: Graph Layer
-**Goal**: Multi-turn conversation flows through a LangGraph StateGraph backed by ChatCopilot, with correct history accumulation and thread isolation
-**Depends on**: Phase 1
-**Requirements**: GRPH-01, GRPH-02, GRPH-03
-**Success Criteria** (what must be TRUE):
-  1. A second message in a conversation receives a reply that references context from the first message
-  2. Two separate thread_ids maintain completely independent conversation histories
-  3. Calling build_graph() once at startup and invoking it multiple times per thread does not recompile or recreate the graph
-  4. The StateGraph structure has a clear extension point where tool-calling nodes could be added without rewiring the core graph
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 02-01-PLAN.md — TDD: build_graph() with MessagesState, multi-turn history, thread isolation, extension point
-- [x] 02-02-PLAN.md — Integration validation script + live Copilot verification
-
-### Phase 3: Web + Chat UI
-**Goal**: User can open a browser, authenticate via Device Flow, and hold a multi-turn chat conversation with Copilot
-**Depends on**: Phase 2
-**Requirements**: AUTH-03, CHAT-01, CHAT-02, CHAT-03, CHAT-04
-**Success Criteria** (what must be TRUE):
-  1. Opening the app in a browser and clicking "Login" triggers Device Flow and the page shows authenticated status after completion
-  2. Sending a message shows a loading indicator, then displays the assistant reply in a message bubble
-  3. Sending a follow-up message receives a reply that references the prior conversation context
-  4. Assistant replies containing Markdown headers, bold text, or fenced code blocks render formatted — not as raw markup
-  5. Clicking "New Chat" clears the message list and the next message starts a fresh conversation with no prior context
-  6. When the Copilot token is expired, the UI shows a Re-authenticate button instead of a generic error
-**Plans:** 4/4 plans complete
-**UI hint**: yes
-
-Plans:
-- [x] 03-01-PLAN.md — Dependencies, API models, auth manager refactor, test infrastructure
-- [x] 03-02-PLAN.md — FastAPI app with lifespan + all API routes (auth, chat, threads)
-- [x] 03-03-PLAN.md — Frontend: HTML/CSS/JS chat UI with markdown rendering
-- [x] 03-04-PLAN.md — Visual verification checkpoint (human verify)
-
-### Phase 4: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
-
-**Goal:** Migrate synchronous POST /api/chat to async architecture: Gateway enqueues job and returns job_id immediately, Worker process executes LangGraph via arq, SSE delivers real-time completion signal, polling API provides recovery fallback
-**Requirements**: ASYNC-01, ASYNC-02, ASYNC-03, ASYNC-04, ASYNC-05, ASYNC-06, ASYNC-07
-**Depends on:** Phase 3
-**Success Criteria** (what must be TRUE):
-  1. POST /api/chat returns job_id immediately without blocking on LangGraph execution
-  2. GET /api/job/{job_id} returns pending before completion, done with result after completion
-  3. SSE endpoint delivers real-time done signal when worker completes
-  4. SSE endpoint returns immediate done for already-completed jobs (page reload scenario)
-  5. Frontend sends message, shows typing indicator, receives AI reply via SSE or polling
-  6. Worker process runs LangGraph in separate process, saves result to Redis before signalling done
-  7. Polling fallback activates when SSE connection drops
-**Plans:** 4/4 plans complete
-
-Plans:
-- [x] 04-01-PLAN.md — Dependencies, docker-compose, JobStore, Notifier, Wave 0 test stubs
-- [x] 04-02-PLAN.md — arq Worker (process_chat, WorkerSettings, startup/shutdown)
-- [x] 04-03-PLAN.md — Gateway refactor (POST enqueue, SSE stream, polling endpoint, lifespan)
-- [x] 04-04-PLAN.md — Frontend JS async flow (SSE + polling) + visual verification
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Auth + Provider Foundation | 3/3 | Complete   | 2026-03-31 |
-| 2. Graph Layer | 2/2 | Complete   | 2026-03-31 |
-| 3. Web + Chat UI | 4/4 | Complete   | 2026-04-01 |
-| 4. Async Job Queue + SSE | 4/4 | Complete   | 2026-04-01 |
-| 5. GitHub User Info + Header UI | 2/2 | Complete   | 2026-04-01 |
-| 6. SQLite to PostgreSQL Checkpointer | 1/2 | In Progress|  |
-
-### Phase 5: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
-
-**Goal:** Authenticated user's GitHub profile (avatar, login) is fetched via GET /api/me and displayed in the header, replacing generic "Authenticated" text
-**Requirements**: ME-01, ME-02, ME-03, ME-04, ME-05
-**Depends on:** Phase 4
-**Success Criteria** (what must be TRUE):
-  1. GET /api/me with valid JWT returns 200 with {login, name, avatar_url}
-  2. GET /api/me without session cookie returns 401
-  3. GET /api/me with expired JWT returns 401
-  4. GET /api/me returns 502 when GitHub API fails
-  5. Header displays GitHub avatar (circle) and login name when authenticated
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 05-01-PLAN.md — Backend: UserInfoResponse model + GET /api/me route + tests
-- [x] 05-02-PLAN.md — Frontend: header avatar + login display + visual verification
-
-### Phase 6: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）
-
-**Goal:** Migrate LangGraph conversation checkpointer from AsyncSqliteSaver to AsyncPostgresSaver, add PostgreSQL Docker service with healthcheck, ensure api and worker both use the new checkpointer, and all existing tests pass
-**Requirements**: CKPT-01, CKPT-02, CKPT-03, CKPT-04, CKPT-05
-**Depends on:** Phase 5
-**Success Criteria** (what must be TRUE):
-  1. FastAPI lifespan uses AsyncPostgresSaver with DATABASE_URL and calls setup() at startup
-  2. arq worker uses AsyncPostgresSaver with DATABASE_URL for each job
-  3. docker-compose.yml includes postgres:17-alpine with pg_isready healthcheck
-  4. GET /api/threads lists threads via psycopg query against PostgreSQL
-  5. DELETE /api/threads/{id} uses checkpointer.adelete_thread instead of raw SQL
-  6. No aiosqlite or AsyncSqliteSaver references remain in the codebase
-  7. Full test suite passes
-**Plans:** 1/2 plans executed
-
-Plans:
-- [x] 06-01-PLAN.md — Dependencies, Docker Compose postgres, main.py + worker.py migration, test patches
-- [ ] 06-02-PLAN.md — chat.py thread routes (psycopg + adelete_thread), full suite verification
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Auth + Provider Foundation | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 2. Graph Layer | v1.0 | 2/2 | Complete | 2026-03-31 |
+| 3. Web + Chat UI | v1.0 | 4/4 | Complete | 2026-04-01 |
+| 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
+| 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
+| 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |

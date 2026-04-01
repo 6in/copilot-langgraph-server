@@ -1,36 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Completed quick 260401-t47-PLAN.md
-last_updated: "2026-04-01T14:00:43.949Z"
-last_activity: 2026-04-01
+milestone: v2.0
+milestone_name: TBD
+status: milestone_complete
+stopped_at: Completed v1.0 milestone
+last_updated: "2026-04-02T15:37:56.000Z"
+last_activity: 2026-04-02
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 17
-  completed_plans: 17
-  percent: 67
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること
-**Current focus:** Phase 06 — sqlite-postgresql-checkpointer-langgraph-checkpoint-postgres-docker-compose
+**Current focus:** Planning next milestone (v2.0) — run `/gsd:new-milestone`
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Executing Phase 06
-Last activity: 2026-04-01
+Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
+Ready to plan next milestone.
 
-Progress: [██████░░░░] 67%
+Progress: [██████████] 100% (v1.0 complete)
 
 ## Performance Metrics
 
