@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Send on button click
   sendBtn.addEventListener('click', sendMessage);
 
-  // Send on Enter (without Shift)
+  // Send on Ctrl+Enter or Cmd+Enter; plain Enter inserts a newline
   userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       sendMessage();
     }
