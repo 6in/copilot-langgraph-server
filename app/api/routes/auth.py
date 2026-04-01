@@ -63,7 +63,7 @@ async def poll_auth(request: Request, flow_id: str = Query(...)):
         )
 
     try:
-        token = await auth_manager.check_device_flow(device_code)
+        token, retry_after = await auth_manager.check_device_flow(device_code)
     except RuntimeError as e:
         # Terminal error (expired_token, access_denied)
         request.app.state.device_flows.pop(flow_id, None)
@@ -86,6 +86,9 @@ async def poll_auth(request: Request, flow_id: str = Query(...)):
             path="/",
         )
         return response
+
+    if retry_after is not None:
+        return JSONResponse(content=AuthPollResponse(done=False, retry_after=retry_after).model_dump())
 
     return JSONResponse(content=AuthPollResponse(done=False).model_dump())
 

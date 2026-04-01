@@ -191,10 +191,12 @@ class CopilotAuthManager:
             "interval": int(params.get("interval", ["5"])[0]),
         }
 
-    async def check_device_flow(self, device_code: str) -> str | None:
+    async def check_device_flow(self, device_code: str) -> tuple[str | None, int | None]:
         """Make a single poll attempt for Device Flow completion.
 
-        Returns the access_token string if auth completed, None if still pending.
+        Returns (token, None) if auth completed.
+        Returns (None, None) if still pending (authorization_pending).
+        Returns (None, retry_after) if GitHub requests slower polling (slow_down).
         Raises RuntimeError on terminal errors (e.g., expired_token, access_denied).
         """
         async with httpx.AsyncClient() as client:
@@ -212,11 +214,14 @@ class CopilotAuthManager:
         if "access_token" in result:
             token = result["access_token"][0]
             self.save_token(token)
-            return token
+            return token, None
 
         error = result.get("error", ["unknown"])[0]
-        if error in ("authorization_pending", "slow_down"):
-            return None
+        if error == "authorization_pending":
+            return None, None
+        if error == "slow_down":
+            interval = int(result.get("interval", ["10"])[0])
+            return None, interval
         raise RuntimeError(f"Device Flow failed: {error}")
 
     # ------------------------------------------------------------------

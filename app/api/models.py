@@ -36,6 +36,7 @@ class AuthStartResponse(BaseModel):
 class AuthPollResponse(BaseModel):
     done: bool
     error: str | None = None
+    retry_after: int | None = None  # seconds to wait before next poll (slow_down)
 
 
 class AuthStatusResponse(BaseModel):

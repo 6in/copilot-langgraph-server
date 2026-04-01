@@ -186,13 +186,18 @@ async function pollAuth(flowId) {
 
       // Update UI state from the newly set JWT cookie (no reload needed)
       await checkAuthStatus();
+    } else if (data.retry_after) {
+      // GitHub slow_down: reset interval to requested value
+      clearInterval(authPollInterval);
+      authPollInterval = setInterval(() => pollAuth(flowId), data.retry_after * 1000);
     } else if (data.error && !data.done) {
-      // Show error in auth panel but keep polling (unless it's a terminal error)
+      // Terminal error — stop polling, show error
+      clearInterval(authPollInterval);
+      authPollInterval = null;
       const authPollingStatus = document.getElementById('auth-polling-status');
       authPollingStatus.innerHTML =
-        '<span class="spinner"></span>' +
-        '<span>Waiting for authentication...</span>' +
-        '<div class="auth-error-msg">' + data.error + '</div>';
+        '<span>Authentication failed: ' + data.error + '</span>' +
+        '<br><button onclick="document.getElementById(\'auth-panel\').style.display=\'none\'">Close</button>';
     }
   } catch (err) {
     console.error('Failed to poll auth:', err);
