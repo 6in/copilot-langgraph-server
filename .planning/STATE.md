@@ -114,7 +114,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- PoC の非同期イベント処理パターンをベースに移行 — general
+
 - GitHubログイン情報からユーザー情報取得＆ヘッダーにユーザー名表示 — ui
 - 会話保存をSQLiteからPostgreSQLへ移行しLangGraphチェックポインターを活用する — database
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
