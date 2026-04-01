@@ -100,6 +100,7 @@ Recent decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260331-uy2 | Fix Copilot SDK send_and_wait API: pass prompt string directly instead of dict | 2026-03-31 | 2ce10e7 | [260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p](.planning/quick/260331-uy2-fix-copilot-sdk-send-and-wait-api-pass-p/) |
+| 260401-f4x | Update .gitignore: add data/, .claude/, IDE/tool caches, SQLite, env files | 2026-04-01 | 6ed3d26 | [260401-f4x-gitignore](.planning/quick/260401-f4x-gitignore/) |
 
 ### Blockers/Concerns
 
