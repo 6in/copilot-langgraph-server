@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Web + Chat UI** - FastAPI serves the API, vanilla JS chat UI runs in the browser with full send/receive/history/auth flows (completed 2026-04-01)
 - [x] **Phase 4: Async Job Queue + SSE** - Redis worker decouples AI execution from HTTP, SSE delivers real-time completion, polling provides fallback (completed 2026-04-01)
 - [x] **Phase 5: GitHub User Info + Header UI** - GET /api/me fetches GitHub profile, header displays avatar + login name (completed 2026-04-01)
+- [ ] **Phase 6: SQLite to PostgreSQL Checkpointer Migration** - AsyncPostgresSaver replaces AsyncSqliteSaver, postgres Docker service added, all tests pass
 
 ## Phase Details
 
@@ -96,7 +97,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -105,6 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. Web + Chat UI | 4/4 | Complete   | 2026-04-01 |
 | 4. Async Job Queue + SSE | 4/4 | Complete   | 2026-04-01 |
 | 5. GitHub User Info + Header UI | 2/2 | Complete   | 2026-04-01 |
+| 6. SQLite to PostgreSQL Checkpointer | 0/2 | Planning   | — |
 
 ### Phase 5: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
 
@@ -125,10 +127,19 @@ Plans:
 
 ### Phase 6: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Migrate LangGraph conversation checkpointer from AsyncSqliteSaver to AsyncPostgresSaver, add PostgreSQL Docker service with healthcheck, ensure api and worker both use the new checkpointer, and all existing tests pass
+**Requirements**: CKPT-01, CKPT-02, CKPT-03, CKPT-04, CKPT-05
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. FastAPI lifespan uses AsyncPostgresSaver with DATABASE_URL and calls setup() at startup
+  2. arq worker uses AsyncPostgresSaver with DATABASE_URL for each job
+  3. docker-compose.yml includes postgres:17-alpine with pg_isready healthcheck
+  4. GET /api/threads lists threads via psycopg query against PostgreSQL
+  5. DELETE /api/threads/{id} uses checkpointer.adelete_thread instead of raw SQL
+  6. No aiosqlite or AsyncSqliteSaver references remain in the codebase
+  7. Full test suite passes
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — Dependencies, Docker Compose postgres, main.py + worker.py migration, test patches
+- [ ] 06-02-PLAN.md — chat.py thread routes (psycopg + adelete_thread), full suite verification
