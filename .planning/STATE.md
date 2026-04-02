@@ -134,7 +134,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
-- Fix chat not responding to single-line messages — ui
+
 
 ### Quick Tasks Completed
 
