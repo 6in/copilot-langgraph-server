@@ -10,6 +10,8 @@ import type { UserInfoResponse } from '../types';
 interface HeaderProps {
   selectedModel: string;
   onModelChange: (model: string) => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
 // Model list from static/index.html — keep in sync if models change.
@@ -38,7 +40,7 @@ const MODEL_OPTIONS = [
   ]},
 ];
 
-export function Header({ selectedModel, onModelChange }: HeaderProps) {
+export function Header({ selectedModel, onModelChange, theme, onToggleTheme }: HeaderProps) {
   const { authState, performLogout } = useAuth();
   const [user, setUser] = useState<UserInfoResponse | null>(null);
 
@@ -58,16 +60,21 @@ export function Header({ selectedModel, onModelChange }: HeaderProps) {
     }
   };
 
+  const isDark = theme === 'dark';
+  const headerBg = isDark ? '#1e1e2e' : '#24292e';
+  const headerBorder = isDark ? '#3a3a52' : '#1b1f23';
+
   return (
     <header style={{
       display: 'flex',
       alignItems: 'center',
       padding: '0 1rem',
       height: '48px',
-      background: '#24292e',
+      background: headerBg,
       color: '#fff',
       gap: '1rem',
       flexShrink: 0,
+      borderBottom: `1px solid ${headerBorder}`,
     }}>
       <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Copilot Chat</span>
 
@@ -123,6 +130,25 @@ export function Header({ selectedModel, onModelChange }: HeaderProps) {
             Logout
           </button>
         )}
+
+        <button
+          onClick={onToggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label="Toggle light/dark mode"
+          style={{
+            background: 'transparent',
+            border: '1px solid #555',
+            borderRadius: '6px',
+            color: '#ccc',
+            cursor: 'pointer',
+            fontSize: '16px',
+            lineHeight: 1,
+            padding: '4px 8px',
+            flexShrink: 0,
+          }}
+        >
+          {isDark ? '☀️' : '🌙'}
+        </button>
       </div>
     </header>
   );

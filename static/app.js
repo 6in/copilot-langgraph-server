@@ -6,6 +6,25 @@
 //   - AI replies use innerHTML with md.parse() scoped under .prose
 // ============================================================
 
+// ---- Theme ----
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  const theme = saved || preferred;
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+}
+
 // ---- Global state ----
 let activeThreadId = null;
 let selectedModel = 'claude-sonnet-4.5';
@@ -38,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyCodeBtn = document.getElementById('copy-code-btn');
   const authStatus = document.getElementById('auth-status');
   const logoutBtn = document.getElementById('logout-btn');
+  const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+  // Theme
+  initTheme();
+  if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
 
   // Send on button click
   sendBtn.addEventListener('click', sendMessage);

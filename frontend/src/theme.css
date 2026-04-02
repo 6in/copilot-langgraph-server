@@ -1,0 +1,70 @@
+/* ============================================================
+   Copilot Chat React — Theme CSS
+   Applies light/dark theme via [data-theme] on <html>.
+   Light is the default (chatscope default theme).
+   Dark overrides chatscope + app components.
+   ============================================================ */
+
+/* ---- Light theme variables (default) ---- */
+:root,
+[data-theme="light"] {
+  --app-header-bg:   #24292e;
+  --app-header-text: #ffffff;
+  --app-header-muted:#cccccc;
+  --app-header-border:#1b1f23;
+  --app-btn-bg:      transparent;
+  --app-btn-border:  #555555;
+  --app-btn-color:   #cccccc;
+  --app-accent:      #0366d6;
+  --app-toggle-icon: "🌙";
+}
+
+/* ---- Dark theme variables ---- */
+[data-theme="dark"] {
+  --app-header-bg:   #1e1e2e;
+  --app-header-text: #e8e8f0;
+  --app-header-muted:#9090a8;
+  --app-header-border:#3a3a52;
+  --app-btn-bg:      transparent;
+  --app-btn-border:  #3a3a52;
+  --app-btn-color:   #9090a8;
+  --app-accent:      #7c6ff7;
+  --app-toggle-icon: "☀️";
+}
+
+/* ---- Dark mode: chatscope overrides ---- */
+[data-theme="dark"] body {
+  background: #1e1e2e;
+  color: #e8e8f0;
+}
+
+[data-theme="dark"] .cs-main-container,
+[data-theme="dark"] .cs-chat-container,
+[data-theme="dark"] .cs-message-list {
+  background: #1e1e2e !important;
+  border-color: #3a3a52 !important;
+}
+
+[data-theme="dark"] .cs-sidebar--left {
+  background: #2a2a3e !important;
+  border-color: #3a3a52 !important;
+}
+
+[data-theme="dark"] .cs-message--incoming .cs-message__content {
+  background: #252535 !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .cs-message--outgoing .cs-message__content {
+  background: #313145 !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .cs-typing-indicator {
+  background: #1e1e2e !important;
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .cs-typing-indicator__dot {
+  background: #9090a8 !important;
+}

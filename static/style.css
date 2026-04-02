@@ -1,8 +1,46 @@
 /* ============================================================
    Copilot Chat — Main Stylesheet
-   Dark theme: developer tool, single-user personal app
-   Color palette: UI-SPEC Design System
+   Supports light/dark theme via CSS custom properties.
+   data-theme="dark"  (default)
+   data-theme="light"
    ============================================================ */
+
+/* ---- Theme variables: dark (default) ---- */
+:root,
+[data-theme="dark"] {
+  --bg-main:       #1e1e2e;
+  --bg-panel:      #2a2a3e;
+  --bg-message-ai: #252535;
+  --bg-elevated:   #313145;
+  --bg-code:       #1a1a2e;
+  --bg-error:      #2a1a1a;
+  --bg-error-hover:#3a2020;
+  --border:        #3a3a52;
+  --text-primary:  #e8e8f0;
+  --text-secondary:#9090a8;
+  --text-muted:    #c8c8d8;
+  --accent:        #7c6ff7;
+  --error:         #e05252;
+  --scrollbar-thumb: #3a3a52;
+}
+
+/* ---- Theme variables: light ---- */
+[data-theme="light"] {
+  --bg-main:       #f6f8fa;
+  --bg-panel:      #ffffff;
+  --bg-message-ai: #f0f2f5;
+  --bg-elevated:   #e8eaed;
+  --bg-code:       #f0f2f5;
+  --bg-error:      #fff0f0;
+  --bg-error-hover:#ffeaea;
+  --border:        #d0d7de;
+  --text-primary:  #1f2328;
+  --text-secondary:#6e7781;
+  --text-muted:    #656d76;
+  --accent:        #6e5dd4;
+  --error:         #d1242f;
+  --scrollbar-thumb: #d0d7de;
+}
 
 /* ---- Reset & Base ---- */
 *, *::before, *::after {
@@ -21,18 +59,18 @@ body {
   font-size: 15px;
   font-weight: 400;
   line-height: 1.5;
-  color: #e8e8f0;
-  background: #1e1e2e;
+  color: var(--text-primary);
+  background: var(--bg-main);
 }
 
-/* ---- Scrollbar styling (dark theme) ---- */
+/* ---- Scrollbar styling ---- */
 ::-webkit-scrollbar {
   width: 6px;
   background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3a3a52;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
@@ -43,19 +81,19 @@ body {
   left: 0;
   right: 0;
   height: 48px;
-  background: #2a2a3e;
+  background: var(--bg-panel);
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 100;
-  border-bottom: 1px solid #3a3a52;
+  border-bottom: 1px solid var(--border);
 }
 
 .app-name {
   font-size: 18px;
   font-weight: 600;
-  color: #e8e8f0;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
@@ -63,15 +101,15 @@ body {
   font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
-  color: #9090a8;
+  color: var(--text-secondary);
 }
 
 .auth-status.authenticated {
-  color: #9090a8;
+  color: var(--text-secondary);
 }
 
 .auth-status.expired {
-  color: #e05252;
+  color: var(--error);
   cursor: pointer;
 }
 
@@ -80,7 +118,7 @@ body {
 }
 
 .auth-status.login-btn {
-  color: #7c6ff7;
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -89,7 +127,7 @@ body {
   opacity: 0.85;
 }
 
-/* ---- User info in header (Phase 5) ---- */
+/* ---- User info in header ---- */
 .user-avatar {
   width: 28px;
   height: 28px;
@@ -101,8 +139,28 @@ body {
 .user-login {
   font-size: 13px;
   font-weight: 500;
-  color: #c8c8d8;
+  color: var(--text-muted);
   vertical-align: middle;
+}
+
+/* ---- Theme Toggle Button ---- */
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ---- Main Layout ---- */
@@ -118,11 +176,11 @@ body {
   top: 48px;
   width: 240px;
   height: calc(100vh - 48px);
-  background: #2a2a3e;
+  background: var(--bg-panel);
   display: flex;
   flex-direction: column;
   padding: 16px 0 16px 0;
-  border-right: 1px solid #3a3a52;
+  border-right: 1px solid var(--border);
   z-index: 50;
 }
 
@@ -132,7 +190,7 @@ body {
   width: calc(100% - 32px);
   margin: 0 16px 16px 16px;
   height: 36px;
-  background: #7c6ff7;
+  background: var(--accent);
   color: #fff;
   font-family: inherit;
   font-size: 14px;
@@ -159,7 +217,7 @@ body {
   padding: 0 8px 0 16px;
   font-size: 15px;
   font-weight: 400;
-  color: #e8e8f0;
+  color: var(--text-primary);
   cursor: pointer;
   border-left: 3px solid transparent;
   transition: background 0.1s;
@@ -169,12 +227,12 @@ body {
 }
 
 .thread-item:hover {
-  background: #313145;
+  background: var(--bg-elevated);
 }
 
 .thread-item.active {
-  border-left: 3px solid #7c6ff7;
-  background: #313145;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-elevated);
 }
 
 .thread-label {
@@ -190,7 +248,7 @@ body {
   height: 20px;
   background: transparent;
   border: none;
-  color: #9090a8;
+  color: var(--text-secondary);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -208,32 +266,32 @@ body {
 }
 
 .thread-delete-btn:hover {
-  color: #e05252;
-  background: #3a2020;
+  color: var(--error);
+  background: var(--bg-error-hover);
 }
 
 /* ---- Model Selector ---- */
 .model-selector {
   padding: 12px 16px 0 16px;
-  border-top: 1px solid #3a3a52;
+  border-top: 1px solid var(--border);
 }
 
 .model-label {
   display: block;
   font-size: 13px;
   font-weight: 400;
-  color: #9090a8;
+  color: var(--text-secondary);
   line-height: 1.4;
   margin-bottom: 6px;
 }
 
 #model-select {
   width: 100%;
-  background: #1e1e2e;
-  color: #e8e8f0;
+  background: var(--bg-main);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 14px;
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 8px;
   cursor: pointer;
@@ -241,7 +299,7 @@ body {
 }
 
 #model-select:focus {
-  border-color: #7c6ff7;
+  border-color: var(--accent);
 }
 
 /* ---- Chat Area ---- */
@@ -258,7 +316,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: #1e1e2e;
+  background: var(--bg-main);
 }
 
 /* Clear floats after each message block */
@@ -284,19 +342,19 @@ body {
   height: 100%;
   min-height: 200px;
   text-align: center;
-  color: #9090a8;
+  color: var(--text-secondary);
 }
 
 .empty-state h2 {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #e8e8f0;
+  color: var(--text-primary);
 }
 
 .empty-state p {
   font-size: 15px;
-  color: #9090a8;
+  color: var(--text-secondary);
 }
 
 /* ---- Message Bubbles ---- */
@@ -309,10 +367,10 @@ body {
 .message.user .bubble {
   float: right;
   max-width: 72%;
-  background: #313145;
+  background: var(--bg-elevated);
   border-radius: 16px 16px 4px 16px;
   padding: 8px 16px;
-  color: #e8e8f0;
+  color: var(--text-primary);
   word-wrap: break-word;
   white-space: pre-wrap;
 }
@@ -321,10 +379,10 @@ body {
 .message.ai .bubble {
   float: left;
   max-width: 72%;
-  background: #252535;
+  background: var(--bg-message-ai);
   border-radius: 16px 16px 16px 4px;
   padding: 8px 16px;
-  color: #e8e8f0;
+  color: var(--text-primary);
   word-wrap: break-word;
 }
 
@@ -332,18 +390,18 @@ body {
 .message.error .bubble {
   float: left;
   max-width: 72%;
-  background: #2a1a1a;
-  border: 1px solid #e05252;
+  background: var(--bg-error);
+  border: 1px solid var(--error);
   border-radius: 16px 16px 16px 4px;
   padding: 8px 16px;
-  color: #e05252;
+  color: var(--error);
   word-wrap: break-word;
 }
 
-/* ---- Typing Indicator (D-12) ---- */
+/* ---- Typing Indicator ---- */
 .message.typing .bubble {
   float: left;
-  background: #252535;
+  background: var(--bg-message-ai);
   border-radius: 16px 16px 16px 4px;
   padding: 12px 16px;
   display: inline-flex;
@@ -355,7 +413,7 @@ body {
   display: inline-block;
   width: 6px;
   height: 6px;
-  background: #9090a8;
+  background: var(--text-secondary);
   border-radius: 50%;
   animation: dotPulse 1.2s infinite;
 }
@@ -379,22 +437,22 @@ body {
 
 /* ---- Input Bar ---- */
 .input-bar {
-  background: #2a2a3e;
+  background: var(--bg-panel);
   padding: 16px;
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  border-top: 1px solid #3a3a52;
+  border-top: 1px solid var(--border);
 }
 
 #user-input {
   flex: 1;
-  background: #1e1e2e;
-  color: #e8e8f0;
+  background: var(--bg-main);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 15px;
   line-height: 1.5;
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
   min-height: 44px;
@@ -405,11 +463,11 @@ body {
 }
 
 #user-input::placeholder {
-  color: #9090a8;
+  color: var(--text-secondary);
 }
 
 #user-input:focus {
-  border-color: #7c6ff7;
+  border-color: var(--accent);
 }
 
 #user-input:disabled {
@@ -421,7 +479,7 @@ body {
 .send-btn {
   width: 36px;
   height: 36px;
-  background: #7c6ff7;
+  background: var(--accent);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -485,7 +543,7 @@ body {
 }
 
 .prose code {
-  background: #313145;
+  background: var(--bg-elevated);
   border-radius: 4px;
   padding: 1px 4px;
   font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
@@ -494,7 +552,7 @@ body {
 }
 
 .prose pre {
-  background: #1a1a2e;
+  background: var(--bg-code);
   border-radius: 8px;
   padding: 12px;
   overflow-x: auto;
@@ -510,7 +568,7 @@ body {
 }
 
 .prose a {
-  color: #7c6ff7;
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -519,9 +577,9 @@ body {
 }
 
 .prose blockquote {
-  border-left: 3px solid #3a3a52;
+  border-left: 3px solid var(--border);
   padding-left: 12px;
-  color: #9090a8;
+  color: var(--text-secondary);
   margin: 0 0 8px;
 }
 
@@ -533,13 +591,13 @@ body {
 
 .prose th,
 .prose td {
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   padding: 6px 10px;
   text-align: left;
 }
 
 .prose th {
-  background: #313145;
+  background: var(--bg-elevated);
   font-weight: 600;
 }
 
@@ -558,8 +616,8 @@ body {
 }
 
 .auth-panel-content {
-  background: #2a2a3e;
-  border: 1px solid #3a3a52;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 32px;
   max-width: 480px;
@@ -570,19 +628,19 @@ body {
 .auth-panel-content h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #e8e8f0;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .auth-panel-content p {
   font-size: 15px;
-  color: #9090a8;
+  color: var(--text-secondary);
   margin-bottom: 16px;
 }
 
 .auth-url {
   display: block;
-  color: #7c6ff7;
+  color: var(--accent);
   text-decoration: underline;
   font-size: 15px;
   margin-bottom: 20px;
@@ -606,16 +664,16 @@ body {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 0.2em;
-  color: #e8e8f0;
+  color: var(--text-primary);
 }
 
 .copy-btn {
-  background: #313145;
-  color: #e8e8f0;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 13px;
   font-weight: 400;
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 14px;
   cursor: pointer;
@@ -623,7 +681,7 @@ body {
 }
 
 .copy-btn:hover {
-  background: #3a3a52;
+  background: var(--border);
 }
 
 .auth-polling-status {
@@ -631,7 +689,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #9090a8;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -640,8 +698,8 @@ body {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid #3a3a52;
-  border-top-color: #7c6ff7;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -655,7 +713,7 @@ body {
 
 /* ---- Auth error message in panel ---- */
 .auth-error-msg {
-  color: #e05252;
+  color: var(--error);
   font-size: 13px;
   margin-top: 8px;
 }
@@ -663,11 +721,11 @@ body {
 /* ---- Logout button (header) ---- */
 .logout-btn {
   background: transparent;
-  color: #9090a8;
+  color: var(--text-secondary);
   font-family: inherit;
   font-size: 13px;
   font-weight: 400;
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
@@ -677,8 +735,8 @@ body {
 }
 
 .logout-btn:hover {
-  color: #e05252;
-  border-color: #e05252;
+  color: var(--error);
+  border-color: var(--error);
 }
 
 /* ---- Logout message overlay ---- */
@@ -696,8 +754,8 @@ body {
 }
 
 .logout-message-content {
-  background: #2a2a3e;
-  border: 1px solid #3a3a52;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 32px;
   max-width: 420px;
@@ -708,12 +766,12 @@ body {
 .logout-message-content h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #e8e8f0;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .logout-message-content p {
   font-size: 15px;
-  color: #9090a8;
+  color: var(--text-secondary);
   line-height: 1.6;
 }

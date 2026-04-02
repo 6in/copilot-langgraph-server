@@ -8,11 +8,13 @@ import { AuthContext, useAuthProvider } from './hooks/useAuth';
 import { AuthPanel } from './components/AuthPanel';
 import { Header } from './components/Header';
 import { ChatApp } from './components/ChatApp';
+import { useTheme } from './hooks/useTheme';
 
 export function App() {
   const authValue = useAuthProvider();
   // Default model per D-07
   const [selectedModel, setSelectedModel] = useState('gpt-4.1');
+  const { theme, toggleTheme } = useTheme();
 
   const isAuthenticated = authValue.authState === 'authenticated';
 
@@ -20,7 +22,12 @@ export function App() {
     <AuthContext.Provider value={authValue}>
       {isAuthenticated ? (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Header selectedModel={selectedModel} onModelChange={setSelectedModel} />
+          <Header
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
           <ChatApp selectedModel={selectedModel} />
         </div>
       ) : (
