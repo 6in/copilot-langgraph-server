@@ -4,7 +4,7 @@
 // Uses chatscope Sidebar component for layout compatibility.
 // Features: collapse toggle, title filter, inline title editing, drag-to-resize (handle in ChatApp).
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
 import type { ThreadInfo } from '../types';
 
@@ -34,6 +34,7 @@ export function ThreadSidebar({
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
+  const cancelledRef = useRef<boolean>(false);
 
   const filtered = filter.trim()
     ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
@@ -41,11 +42,16 @@ export function ThreadSidebar({
 
   const startEdit = (thread: ThreadInfo, e: React.MouseEvent) => {
     e.stopPropagation();
+    cancelledRef.current = false;
     setEditingId(thread.thread_id);
     setEditLabel(thread.label);
   };
 
   const commitEdit = async (threadId: string) => {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      return;
+    }
     const trimmed = editLabel.trim();
     if (trimmed) {
       await onRenameThread(threadId, trimmed);
@@ -54,6 +60,7 @@ export function ThreadSidebar({
   };
 
   const cancelEdit = () => {
+    cancelledRef.current = true;
     setEditingId(null);
   };
 
@@ -209,19 +216,31 @@ export function ThreadSidebar({
                   }}
                 />
               ) : (
-                <span
-                  style={{
-                    fontSize: '0.82rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
-                  }}
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
                   onDoubleClick={(e) => startEdit(thread, e)}
                   title="Double-click to rename"
                 >
-                  {thread.label}
-                </span>
+                  <span
+                    style={{
+                      fontSize: '0.82rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {thread.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      color: '#999',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {new Date(thread.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
               )}
 
               {editingId !== thread.thread_id && (
