@@ -73,6 +73,16 @@ export const deleteThread = async (threadId: string): Promise<void> => {
   }
 };
 
+export const renameThread = (threadId: string, label: string) =>
+  apiFetch<{ thread_id: string; label: string }>(
+    `/api/threads/${encodeURIComponent(threadId)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    }
+  );
+
 export const getThreadMessages = (threadId: string) =>
   apiFetch<ThreadMessagesResponse>(
     `/api/threads/${encodeURIComponent(threadId)}/messages`

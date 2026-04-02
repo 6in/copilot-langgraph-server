@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 
 from arq import create_pool
 from arq.connections import RedisSettings
+import psycopg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -42,6 +43,16 @@ async def lifespan(app: FastAPI):
 
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         await checkpointer.setup()
+        # Custom table for user-defined thread labels (editable via PATCH /api/threads/{id})
+        async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
+            await conn.execute(
+                """CREATE TABLE IF NOT EXISTS thread_labels (
+                       thread_id TEXT PRIMARY KEY,
+                       label     TEXT NOT NULL,
+                       updated_at TIMESTAMPTZ DEFAULT now()
+                   )"""
+            )
+            await conn.commit()
         app.state.graph = build_graph(llm, checkpointer)
         app.state.checkpointer = checkpointer
         app.state.auth_manager = auth_manager
