@@ -134,9 +134,6 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
-- React製チャットUIの分離 — chat-ui-kit-react + Vite + Bun — ui
-- React版チャット入力フィールドをtextareaに変更 — ui
-- React版ページ全体に余分な高さが付きスクロールバーが出る — ui
 
 ### Quick Tasks Completed
 
@@ -158,6 +155,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-02T00:00:00.000Z
-Stopped at: Completed quick 260402-g6u-PLAN.md
+Last activity: 2026-04-02 - Completed quick task 260402-g6u: チャット履歴サイドバーに作成日付を表示し、タイトルインライン編集の保存機能（Enter確定・Escキャンセル・blur保存）を実装する
+Last session: 2026-04-02T02:39:24.000Z
+Stopped at: Completed quick 260402-g6u-enter-esc-blur
 Resume file: None
