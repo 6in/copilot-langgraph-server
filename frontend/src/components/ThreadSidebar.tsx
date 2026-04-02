@@ -1,8 +1,9 @@
 // frontend/src/components/ThreadSidebar.tsx
-// Left sidebar: thread list + New Chat button.
+// Left sidebar: thread list + New Chat button + title filter.
 // Per D-06: sidebar on left with thread list and New Chat button.
 // Uses chatscope Sidebar component for layout compatibility.
 
+import { useState } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
 import type { ThreadInfo } from '../types';
 
@@ -21,6 +22,12 @@ export function ThreadSidebar({
   onNewChat,
   onDeleteThread,
 }: ThreadSidebarProps) {
+  const [filter, setFilter] = useState('');
+
+  const filtered = filter.trim()
+    ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
+    : threads;
+
   return (
     <Sidebar position="left" style={{ width: '240px', flexShrink: 0 }}>
       <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
@@ -40,13 +47,59 @@ export function ThreadSidebar({
           + New Chat
         </button>
 
+        {/* Title filter input */}
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter conversations..."
+            style={{
+              width: '100%',
+              padding: '0.35rem 1.6rem 0.35rem 0.5rem',
+              fontSize: '0.8rem',
+              border: '1px solid #d1dbe3',
+              borderRadius: '4px',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              title="Clear filter"
+              style={{
+                position: 'absolute',
+                right: '4px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#999',
+                fontSize: '0.8rem',
+                padding: '0 2px',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {filter && (
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
+            {filtered.length} / {threads.length} matches
+          </p>
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {threads.length === 0 && (
+          {filtered.length === 0 && (
             <p style={{ color: '#888', fontSize: '0.8rem', padding: '0.5rem 0' }}>
-              No conversations yet
+              {threads.length === 0 ? 'No conversations yet' : 'No matches'}
             </p>
           )}
-          {threads.map((thread) => (
+          {filtered.map((thread) => (
             <div
               key={thread.thread_id}
               style={{
