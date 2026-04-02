@@ -43,7 +43,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
 **Depends on:** Phase 6
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executing (07-04 at checkpoint — human verification pending)
 
 Plans:
 - [x] 07-01-PLAN.md — Vite scaffold + npm install + FastAPI CORSMiddleware + /react StaticFiles mount
