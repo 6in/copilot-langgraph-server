@@ -16,7 +16,7 @@ interface UseChatOptions {
 
 interface UseChatReturn {
   isThinking: boolean;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, threadId?: string) => Promise<void>;
 }
 
 export function useChat({
@@ -27,13 +27,13 @@ export function useChat({
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (text: string, threadId?: string) => {
     if (!text.trim() || isThinking) return;
 
-    // Use active thread or create a new one implicitly
-    // The backend creates a thread when first message arrives at /api/chat
-    // but we still need a thread_id. If none is active, caller must create one first.
-    if (!activeThreadId) return;
+    // Prefer explicitly passed threadId (avoids stale closure when caller just
+    // created a new thread and the state update hasn't re-rendered yet).
+    const resolvedThreadId = threadId ?? activeThreadId;
+    if (!resolvedThreadId) return;
 
     // Optimistically add user message
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
@@ -43,7 +43,7 @@ export function useChat({
       // 1. POST /api/chat → { job_id, thread_id }
       const { job_id } = await postChat({
         message: text,
-        thread_id: activeThreadId,
+        thread_id: resolvedThreadId,
         model: selectedModel,
       });
 

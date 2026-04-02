@@ -62,7 +62,10 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     if (!threadId) {
       threadId = await createNewThread();
     }
-    await sendMessage(text);
+    // Pass threadId explicitly: sendMessage's closure may still capture the
+    // stale activeThreadId=null value if createNewThread() just set it and
+    // the component hasn't re-rendered yet.
+    await sendMessage(text, threadId);
     await refreshThreads();
   };
 
