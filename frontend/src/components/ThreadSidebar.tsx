@@ -59,7 +59,7 @@ export function ThreadSidebar({
 
   if (collapsed) {
     return (
-      <Sidebar position="left" style={{ width: `${width}px`, flexShrink: 0, minWidth: `${width}px` }}>
+      <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
           <button
             onClick={onToggleCollapse}
@@ -81,7 +81,7 @@ export function ThreadSidebar({
   }
 
   return (
-    <Sidebar position="left" style={{ width: `${width}px`, flexShrink: 0, minWidth: `${width}px` }}>
+    <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
       <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
 
         {/* Header row: New Chat + collapse button */}
