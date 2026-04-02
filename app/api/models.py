@@ -66,3 +66,7 @@ class UserInfoResponse(BaseModel):
     login: str
     name: str | None = None
     avatar_url: str
+
+
+class RenameThreadRequest(BaseModel):
+    label: str

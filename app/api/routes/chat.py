@@ -23,7 +23,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
 from psycopg.rows import dict_row
 
-from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, ThreadInfo
+from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -149,10 +149,11 @@ async def list_threads(request: Request):
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    """SELECT thread_id, MAX(checkpoint_id) as latest
-                       FROM checkpoints
-                       WHERE checkpoint_ns = ''
-                       GROUP BY thread_id
+                    """SELECT c.thread_id, MAX(c.checkpoint_id) as latest, tl.label
+                       FROM checkpoints c
+                       LEFT JOIN thread_labels tl ON c.thread_id = tl.thread_id
+                       WHERE c.checkpoint_ns = ''
+                       GROUP BY c.thread_id, tl.label
                        ORDER BY latest DESC
                        LIMIT 50"""
                 )
@@ -161,7 +162,7 @@ async def list_threads(request: Request):
         for row in rows:
             thread_id = row["thread_id"]
             checkpoint_id = row["latest"]
-            label = f"Chat {thread_id[:8]}"
+            label = row["label"] or f"Chat {thread_id[:8]}"
             threads.append(ThreadInfo(
                 thread_id=thread_id,
                 updated_at=str(checkpoint_id),
@@ -188,6 +189,31 @@ async def delete_thread(thread_id: str, request: Request):
     except Exception:
         # Silently succeed if thread doesn't exist
         pass
+
+
+@router.patch("/threads/{thread_id}")
+async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Request):
+    """Update the display label for a thread.
+
+    Uses INSERT ... ON CONFLICT DO UPDATE (upsert) so both new and existing
+    threads can have their label set without a separate check.
+    """
+    label = body.label.strip()
+    if not label:
+        raise HTTPException(status_code=422, detail="label must not be empty")
+
+    db_uri = request.app.state.db_uri
+    async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+        await conn.execute(
+            """INSERT INTO thread_labels (thread_id, label)
+               VALUES (%s, %s)
+               ON CONFLICT (thread_id)
+               DO UPDATE SET label = EXCLUDED.label, updated_at = now()""",
+            (thread_id, label),
+        )
+        await conn.commit()
+
+    return {"thread_id": thread_id, "label": label}
 
 
 @router.get("/threads/{thread_id}/messages")

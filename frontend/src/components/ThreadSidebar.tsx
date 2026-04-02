@@ -2,7 +2,9 @@
 // Left sidebar: thread list + New Chat button.
 // Per D-06: sidebar on left with thread list and New Chat button.
 // Uses chatscope Sidebar component for layout compatibility.
+// Features: collapse toggle, title filter, inline title editing, drag-to-resize (handle in ChatApp).
 
+import { useState } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
 import type { ThreadInfo } from '../types';
 
@@ -12,6 +14,10 @@ interface ThreadSidebarProps {
   onSelectThread: (threadId: string) => void;
   onNewChat: () => void;
   onDeleteThread: (threadId: string) => void;
+  onRenameThread: (threadId: string, label: string) => Promise<void>;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  width: number;
 }
 
 export function ThreadSidebar({
@@ -20,33 +26,153 @@ export function ThreadSidebar({
   onSelectThread,
   onNewChat,
   onDeleteThread,
+  onRenameThread,
+  collapsed,
+  onToggleCollapse,
+  width,
 }: ThreadSidebarProps) {
+  const [filter, setFilter] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+
+  const filtered = filter.trim()
+    ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
+    : threads;
+
+  const startEdit = (thread: ThreadInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(thread.thread_id);
+    setEditLabel(thread.label);
+  };
+
+  const commitEdit = async (threadId: string) => {
+    const trimmed = editLabel.trim();
+    if (trimmed) {
+      await onRenameThread(threadId, trimmed);
+    }
+    setEditingId(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  if (collapsed) {
+    return (
+      <Sidebar position="left" style={{ width: `${width}px`, flexShrink: 0, minWidth: `${width}px` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
+          <button
+            onClick={onToggleCollapse}
+            title="Expand sidebar"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+              color: '#555',
+              padding: '4px',
+            }}
+          >
+            ▶
+          </button>
+        </div>
+      </Sidebar>
+    );
+  }
+
   return (
-    <Sidebar position="left" style={{ width: '240px', flexShrink: 0 }}>
+    <Sidebar position="left" style={{ width: `${width}px`, flexShrink: 0, minWidth: `${width}px` }}>
       <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
-        <button
-          onClick={onNewChat}
-          style={{
-            padding: '0.5rem',
-            cursor: 'pointer',
-            borderRadius: '6px',
-            border: '1px solid #ddd',
-            background: '#0366d6',
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: '0.9rem',
-          }}
-        >
-          + New Chat
-        </button>
+
+        {/* Header row: New Chat + collapse button */}
+        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+          <button
+            onClick={onNewChat}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              cursor: 'pointer',
+              borderRadius: '6px',
+              border: '1px solid #ddd',
+              background: '#0366d6',
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+            }}
+          >
+            + New Chat
+          </button>
+          <button
+            onClick={onToggleCollapse}
+            title="Collapse sidebar"
+            style={{
+              background: 'none',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              color: '#555',
+              padding: '4px 6px',
+              flexShrink: 0,
+            }}
+          >
+            ◀
+          </button>
+        </div>
+
+        {/* Title filter input */}
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter conversations..."
+            style={{
+              width: '100%',
+              padding: '0.35rem 1.6rem 0.35rem 0.5rem',
+              fontSize: '0.8rem',
+              border: '1px solid #d1dbe3',
+              borderRadius: '4px',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              title="Clear filter"
+              style={{
+                position: 'absolute',
+                right: '4px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#999',
+                fontSize: '0.8rem',
+                padding: '0 2px',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {filter && (
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
+            {filtered.length} / {threads.length} matches
+          </p>
+        )}
 
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {threads.length === 0 && (
+          {filtered.length === 0 && (
             <p style={{ color: '#888', fontSize: '0.8rem', padding: '0.5rem 0' }}>
-              No conversations yet
+              {threads.length === 0 ? 'No conversations yet' : 'No matches'}
             </p>
           )}
-          {threads.map((thread) => (
+          {filtered.map((thread) => (
             <div
               key={thread.thread_id}
               style={{
@@ -59,38 +185,68 @@ export function ThreadSidebar({
                 background: activeThreadId === thread.thread_id ? '#e8f0fe' : 'transparent',
                 fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
               }}
-              onClick={() => onSelectThread(thread.thread_id)}
+              onClick={() => editingId !== thread.thread_id && onSelectThread(thread.thread_id)}
             >
-              <span style={{
-                fontSize: '0.82rem',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-              }}>
-                {thread.label}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (window.confirm('Delete this conversation?')) {
-                    onDeleteThread(thread.thread_id);
-                  }
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#999',
-                  padding: '0 4px',
-                  fontSize: '0.9rem',
-                  flexShrink: 0,
-                }}
-                title="Delete thread"
-                aria-label="Delete thread"
-              >
-                ✕
-              </button>
+              {editingId === thread.thread_id ? (
+                <input
+                  autoFocus
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  onBlur={() => commitEdit(thread.thread_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); commitEdit(thread.thread_id); }
+                    if (e.key === 'Escape') cancelEdit();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    flex: 1,
+                    fontSize: '0.82rem',
+                    border: '1px solid #0366d6',
+                    borderRadius: '3px',
+                    padding: '1px 4px',
+                    outline: 'none',
+                    minWidth: 0,
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    fontSize: '0.82rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                  }}
+                  onDoubleClick={(e) => startEdit(thread, e)}
+                  title="Double-click to rename"
+                >
+                  {thread.label}
+                </span>
+              )}
+
+              {editingId !== thread.thread_id && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Delete this conversation?')) {
+                      onDeleteThread(thread.thread_id);
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#999',
+                    padding: '0 4px',
+                    fontSize: '0.9rem',
+                    flexShrink: 0,
+                  }}
+                  title="Delete thread"
+                  aria-label="Delete thread"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>
