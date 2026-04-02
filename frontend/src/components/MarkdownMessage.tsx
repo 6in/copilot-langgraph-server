@@ -3,7 +3,7 @@
 // Block code is rendered via Monaco Editor (read-only, auto-height, theme-aware, copy button).
 // Inline code uses a styled <code> tag.
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react';
 import type { editor } from 'monaco-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -20,7 +20,7 @@ interface CodeBlockProps {
   monacoTheme: 'vs' | 'vs-dark';
 }
 
-function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
+const CodeBlock = memo(function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -131,21 +131,17 @@ function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
       />
     </div>
   );
-}
+});
 
-export function MarkdownMessage({ content }: MarkdownMessageProps) {
+export const MarkdownMessage = memo(function MarkdownMessage({ content }: MarkdownMessageProps) {
   const theme = useCurrentTheme();
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
 
-  return (
-    <div style={{ maxWidth: '100%' }}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          pre({ children }) {
-            return <div>{children}</div>;
-          },
-          code({ className, children, ...props }) {
+  const components = useMemo(() => ({
+    pre({ children }: { children?: React.ReactNode }) {
+      return <div>{children}</div>;
+    },
+    code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
             const match = /language-(\w+)/.exec(className || '');
             const isBlock = !!match || (typeof children === 'string' && children.includes('\n'));
 
@@ -176,11 +172,14 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
                 {children}
               </code>
             );
-          },
-        }}
-      >
+        },
+      }), [theme, monacoTheme]);
+
+  return (
+    <div style={{ maxWidth: '100%' }}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>
     </div>
   );
-}
+});
