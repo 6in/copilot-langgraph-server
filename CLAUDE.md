@@ -40,8 +40,13 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、個人�
 ### Frontend
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| Vanilla JS + HTML/CSS | — | Chat UI | Single-user personal tool: no build toolchain, no npm, no bundler. Plain `fetch` POST for sending messages, DOM manipulation for rendering. This project has explicitly ruled out streaming, so SSE/WebSocket is not needed for v1 — simple request/response via `fetch` is sufficient. Served as static files from FastAPI (`StaticFiles`). | HIGH |
-| Jinja2 | 3.x (FastAPI ships with it) | HTML templating | Optional: FastAPI's `TemplateResponse` lets you serve the chat page as a rendered template. Avoids a separate SPA deployment. Zero additional dependency cost since FastAPI already pulls it in. | MEDIUM |
+| React 19 + ReactDOM | 19.2 | SPA chat UI | Component-based UI with hooks. Serves the primary chat interface at `/app` via Vite dev server or built static assets. | HIGH |
+| TypeScript | 5.9 | Type safety | Full type coverage for components, hooks, and API types. | HIGH |
+| Vite | 8.0 | Dev server + bundler | Fast HMR in development; `bun run build` produces `frontend/dist/` served by FastAPI. Vite proxy (`/api` → `localhost:8000`) in dev. | HIGH |
+| @chatscope/chat-ui-kit-react | 2.1 | Chat UI components | Ready-made chat UI (MessageList, MessageInput, TypingIndicator). Eliminates custom chat layout work. | HIGH |
+| react-markdown + remark-gfm + rehype-highlight | 10.1 / 4.0 / 7.0 | Markdown rendering | Renders AI responses with GFM and syntax highlighting inside chat messages. | HIGH |
+| Bun | latest | Package manager (Docker) | Used as the package manager and runtime in the `frontend` Docker service. | MEDIUM |
+| Jinja2 | 3.x (FastAPI ships with it) | HTML templating | Used for the legacy Vanilla JS UI served at `/`. Zero additional dependency cost since FastAPI already pulls it in. | MEDIUM |
 ### Persistence / Session State
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
@@ -66,8 +71,8 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、個人�
 |----------|-------------|-------------|---------|
 | Web framework | FastAPI | Flask | Flask is WSGI; async requires workarounds. LangGraph is natively async — FastAPI is the path of least resistance. |
 | Web framework | FastAPI | Django | Too heavy for a personal tool with no ORM needs. |
-| Frontend | Vanilla JS | HTMX | HTMX is excellent but unnecessary; project has no streaming in v1 and is single-user. Zero-dependency vanilla JS is simpler to maintain. |
-| Frontend | Vanilla JS | React/Next.js | Build pipeline, npm, SPA complexity — unjustified for a personal tool. |
+| Frontend | React 19 + TypeScript + Vite | HTMX | React is the chosen frontend for the primary UI at `/app`. HTMX was considered but React + chatscope provides richer chat UI components. |
+| Frontend | React 19 + TypeScript + Vite | Next.js | Next.js adds SSR/routing complexity. Vite SPA is sufficient for a single-user personal tool. Vanilla JS legacy UI remains at `/`. |
 | State persistence | SQLite (AsyncSqliteSaver) | MemorySaver | MemorySaver is lost on process restart; not suitable for a persistent chat app. |
 | State persistence | SQLite (AsyncSqliteSaver) | Redis | Redis requires a running server. Explicitly out-of-scope in PROJECT.md. |
 | Packaging | pyproject.toml | requirements.txt | requirements.txt has no metadata, no build system declaration, and no lock file story. pyproject.toml is the PEP 621 standard. |
@@ -104,7 +109,67 @@ Conventions not yet established. Will populate as patterns emerge during develop
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+### Backend (Python / FastAPI)
+
+```
+app/
+  api/
+    main.py           — FastAPI app factory, lifespan, CORS, static mounts
+    models.py         — Pydantic request/response models
+    routes/
+      auth.py         — Device Flow OAuth + JWT login/logout
+      chat.py         — POST /api/chat (enqueue), GET /api/chat/history
+      jobs.py         — GET /api/job/{id}, GET /api/job/{id}/stream (SSE)
+      me.py           — GET /api/me (GitHub user info)
+  auth/
+    jwt_utils.py      — JWT HS256 encode/decode, JTI blocklist
+    manager.py        — CopilotAuthManager (Device Flow + token encryption)
+  graph/
+    builder.py        — LangGraph StateGraph (MessagesState) compilation
+  jobs/
+    job_store.py      — In-memory job result store with asyncio.Queue SSE
+    notifier.py       — SSE notification bridge (worker -> client)
+    worker.py         — arq worker: process_chat task
+  providers/
+    copilot.py        — ChatCopilot (BaseChatModel wrapper for Copilot SDK)
+```
+
+### Frontend (React 19 + TypeScript + Vite)
+
+```
+frontend/
+  src/
+    App.tsx            — Root component, AuthContext.Provider
+    main.tsx           — ReactDOM entry point
+    types.ts           — Shared TypeScript types (Thread, Message, etc.)
+    api/
+      client.ts        — apiFetch wrapper (JWT cookie auth)
+    components/
+      AuthPanel.tsx    — Device Flow login UI
+      ChatApp.tsx      — Main chat layout (sidebar + messages)
+      Header.tsx       — App header with user info
+      MarkdownMessage.tsx — Markdown rendering with syntax highlighting
+      MessageArea.tsx  — Message list + input (chatscope)
+      ThreadSidebar.tsx — Thread list with CRUD
+    hooks/
+      useAuth.ts       — Auth state management
+      useChat.ts       — Chat messaging + SSE job polling
+      useThreads.ts    — Thread CRUD operations
+```
+
+### Infrastructure
+
+- Docker Compose: FastAPI backend + PostgreSQL (langgraph-checkpoint-postgres) + Redis (arq worker queue) + React frontend (Bun/Vite)
+- Legacy Vanilla JS UI served at `/` via FastAPI StaticFiles (`static/` directory)
+- React UI served at `/app` (Vite dev server proxies `/api` to backend in dev; FastAPI serves `frontend/dist/` in production)
+
+### Key Patterns
+
+- Async-first: all routes are `async def`, arq worker for background jobs
+- SSE for job completion notification (not WebSocket)
+- JWT HS256 in httpOnly cookie for auth
+- ChatCopilot wraps Copilot SDK behind BaseChatModel interface
+- LangGraph StateGraph compiled once at startup; checkpointer lifecycle owned by caller
 <!-- GSD:architecture-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->
