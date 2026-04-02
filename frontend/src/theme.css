@@ -1,53 +1,39 @@
 /* ============================================================
    Copilot Chat React — Theme CSS
-   Applies light/dark theme via [data-theme] on <html>.
+   All colors are defined here. Components use classNames, not
+   inline colors, so this file is the single source of truth.
+
    Light is the default (chatscope default theme).
-   Dark overrides chatscope + app components.
+   Dark: [data-theme="dark"] on <html> activates overrides.
+   color-scheme tells the browser which native element style to use.
    ============================================================ */
 
-/* ---- Light theme variables (default) ---- */
+/* ---- color-scheme: prevents browser native controls from
+        following OS theme independently of data-theme ---- */
 :root,
 [data-theme="light"] {
-  --app-header-bg:   #24292e;
-  --app-header-text: #ffffff;
-  --app-header-muted:#cccccc;
-  --app-header-border:#1b1f23;
-  --app-btn-bg:      transparent;
-  --app-btn-border:  #555555;
-  --app-btn-color:   #cccccc;
-  --app-accent:      #0366d6;
-  --app-toggle-icon: "🌙";
+  color-scheme: light;
 }
-
-/* ---- Dark theme variables ---- */
 [data-theme="dark"] {
-  --app-header-bg:   #1e1e2e;
-  --app-header-text: #e8e8f0;
-  --app-header-muted:#9090a8;
-  --app-header-border:#3a3a52;
-  --app-btn-bg:      transparent;
-  --app-btn-border:  #3a3a52;
-  --app-btn-color:   #9090a8;
-  --app-accent:      #7c6ff7;
-  --app-toggle-icon: "☀️";
+  color-scheme: dark;
 }
 
-/* ---- Dark mode: chatscope overrides ---- */
-[data-theme="dark"] body {
-  background: #1e1e2e;
-  color: #e8e8f0;
-}
-
+/* ============================================================
+   DARK MODE — chatscope container overrides
+   (verify class names on @chatscope upgrade)
+   ============================================================ */
 [data-theme="dark"] .cs-main-container,
 [data-theme="dark"] .cs-chat-container,
 [data-theme="dark"] .cs-message-list {
   background: #1e1e2e !important;
   border-color: #3a3a52 !important;
+  color: #e8e8f0 !important;
 }
 
 [data-theme="dark"] .cs-sidebar--left {
   background: #2a2a3e !important;
   border-color: #3a3a52 !important;
+  color: #e8e8f0 !important;
 }
 
 [data-theme="dark"] .cs-message--incoming .cs-message__content {
@@ -67,4 +53,186 @@
 
 [data-theme="dark"] .cs-typing-indicator__dot {
   background: #9090a8 !important;
+}
+
+/* ============================================================
+   DARK MODE — ThreadSidebar app-specific classes
+   ============================================================ */
+
+/* Sidebar content wrapper */
+[data-theme="dark"] .sidebar-content {
+  background: #2a2a3e;
+  color: #e8e8f0;
+}
+
+/* New Chat button */
+[data-theme="dark"] .sidebar-new-chat-btn {
+  background: #7c6ff7 !important;
+  border-color: #7c6ff7 !important;
+  color: #ffffff !important;
+}
+
+/* Collapse/expand toggle buttons */
+[data-theme="dark"] .sidebar-collapse-btn {
+  border-color: #3a3a52 !important;
+  color: #9090a8 !important;
+  background: transparent !important;
+}
+
+/* Filter input */
+[data-theme="dark"] .sidebar-filter-input {
+  background: #1e1e2e !important;
+  color: #e8e8f0 !important;
+  border-color: #3a3a52 !important;
+}
+
+[data-theme="dark"] .sidebar-filter-input::placeholder {
+  color: #9090a8 !important;
+}
+
+/* Filter clear button */
+[data-theme="dark"] .sidebar-filter-clear {
+  color: #9090a8 !important;
+}
+
+/* Filter count text */
+[data-theme="dark"] .sidebar-filter-count {
+  color: #9090a8 !important;
+}
+
+/* Empty state text */
+[data-theme="dark"] .sidebar-empty-text {
+  color: #9090a8 !important;
+}
+
+/* Thread item */
+[data-theme="dark"] .sidebar-thread-item {
+  background: transparent !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .sidebar-thread-item.active {
+  background: #313145 !important;
+}
+
+[data-theme="dark"] .sidebar-thread-item:hover {
+  background: #313145 !important;
+}
+
+/* Thread label */
+[data-theme="dark"] .sidebar-thread-label {
+  color: #e8e8f0 !important;
+}
+
+/* Thread date (was hardcoded #999) */
+[data-theme="dark"] .sidebar-thread-date {
+  color: #9090a8 !important;
+}
+
+/* Thread inline edit input */
+[data-theme="dark"] .sidebar-thread-edit-input {
+  background: #1e1e2e !important;
+  color: #e8e8f0 !important;
+  border-color: #7c6ff7 !important;
+}
+
+/* Thread delete button */
+[data-theme="dark"] .sidebar-thread-delete-btn {
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .sidebar-thread-delete-btn:hover {
+  color: #e05252 !important;
+}
+
+/* ============================================================
+   DARK MODE — MessageArea app-specific classes
+   ============================================================ */
+
+/* Input bar wrapper (bottom of chat) */
+[data-theme="dark"] .chat-input-bar {
+  background: #2a2a3e !important;
+  border-top-color: #3a3a52 !important;
+}
+
+/* Textarea */
+[data-theme="dark"] .chat-textarea {
+  background: #1e1e2e !important;
+  color: #e8e8f0 !important;
+  border-color: #3a3a52 !important;
+}
+
+[data-theme="dark"] .chat-textarea::placeholder {
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .chat-textarea:focus {
+  border-color: #7c6ff7 !important;
+  outline: none;
+}
+
+/* Send button */
+[data-theme="dark"] .chat-send-btn {
+  background: #7c6ff7 !important;
+  color: #ffffff !important;
+}
+
+/* Copy / Copy-all buttons */
+[data-theme="dark"] .chat-copy-btn {
+  background: transparent !important;
+  border-color: #3a3a52 !important;
+  color: #9090a8 !important;
+}
+
+/* Empty state inside message list */
+[data-theme="dark"] .chat-empty-state {
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .chat-empty-state h3,
+[data-theme="dark"] .chat-empty-state p {
+  color: #9090a8 !important;
+}
+
+/* ============================================================
+   DARK MODE — AuthPanel app-specific classes
+   ============================================================ */
+
+[data-theme="dark"] .auth-panel-root {
+  background: #1e1e2e !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .auth-panel-root h2 {
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .auth-panel-root p {
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .auth-start-btn {
+  background: #2a2a3e !important;
+  border-color: #3a3a52 !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .auth-device-code {
+  background: #2a2a3e !important;
+  border-color: #3a3a52 !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .auth-copy-btn {
+  background: #2a2a3e !important;
+  border-color: #3a3a52 !important;
+  color: #e8e8f0 !important;
+}
+
+[data-theme="dark"] .auth-waiting-text {
+  color: #9090a8 !important;
+}
+
+[data-theme="dark"] .auth-link {
+  color: #7c6ff7 !important;
 }

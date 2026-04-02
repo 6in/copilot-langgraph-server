@@ -8,6 +8,7 @@
 /* ---- Theme variables: dark (default) ---- */
 :root,
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-main:       #1e1e2e;
   --bg-panel:      #2a2a3e;
   --bg-message-ai: #252535;
@@ -26,6 +27,7 @@
 
 /* ---- Theme variables: light ---- */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-main:       #f6f8fa;
   --bg-panel:      #ffffff;
   --bg-message-ai: #f0f2f5;

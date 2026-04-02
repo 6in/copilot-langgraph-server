@@ -37,6 +37,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="Copy message"
+      className="chat-copy-btn"
       style={{
         background: 'none',
         border: '1px solid #d1dbe3',
@@ -72,6 +73,7 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
     <button
       onClick={handleCopyAll}
       title="Copy entire conversation as Markdown table"
+      className="chat-copy-btn"
       style={{
         background: 'none',
         border: '1px solid #d1dbe3',
@@ -132,12 +134,13 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
             alignItems: 'center',
             justifyContent: 'center',
             height: '100%',
-            color: '#888',
             flexDirection: 'column',
             gap: '0.5rem',
           }}>
-            <h3 style={{ margin: 0 }}>New conversation</h3>
-            <p style={{ margin: 0 }}>Ask Copilot anything to get started.</p>
+            <div className="chat-empty-state" style={{ textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 0.5rem' }}>New conversation</h3>
+              <p style={{ margin: 0 }}>Ask Copilot anything to get started.</p>
+            </div>
           </MessageList.Content>
         )}
 
@@ -181,7 +184,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
       </MessageList>
 
       {/* Custom textarea input — replaces chatscope MessageInput for multi-line support */}
-      <div style={{
+      <div className="chat-input-bar" style={{
         borderTop: '1px solid #d1dbe3',
         background: '#fff',
         flexShrink: 0,
@@ -206,6 +209,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
             placeholder="Ask Copilot anything... (Ctrl+Enter to send)"
             disabled={isThinking}
             rows={1}
+            className="chat-textarea"
             style={{
               flex: 1,
               resize: 'none',
@@ -223,6 +227,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
           <button
             onClick={handleSend}
             disabled={!inputValue.trim() || isThinking}
+            className="chat-send-btn"
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '6px',

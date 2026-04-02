@@ -18,7 +18,7 @@ export function AuthPanel() {
   };
 
   return (
-    <div style={{
+    <div className="auth-panel-root" style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -37,6 +37,7 @@ export function AuthPanel() {
       {!flowData ? (
         <button
           onClick={startFlow}
+          className="auth-start-btn"
           style={{
             padding: '0.75rem 1.5rem',
             fontSize: '1rem',
@@ -57,13 +58,14 @@ export function AuthPanel() {
             href={flowData.verification_uri}
             target="_blank"
             rel="noopener noreferrer"
+            className="auth-link"
             style={{ fontSize: '1.1rem', color: '#0366d6' }}
           >
             {flowData.verification_uri}
           </a>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
-            <span style={{
+            <span className="auth-device-code" style={{
               fontSize: '2rem',
               fontWeight: 'bold',
               fontFamily: 'monospace',
@@ -77,6 +79,7 @@ export function AuthPanel() {
             </span>
             <button
               onClick={handleCopy}
+              className="auth-copy-btn"
               style={{
                 padding: '0.5rem 1rem',
                 cursor: 'pointer',
@@ -88,7 +91,7 @@ export function AuthPanel() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#57606a' }}>
+          <div className="auth-waiting-text" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#57606a' }}>
             <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
             <span>Waiting for authentication...</span>
           </div>

@@ -67,10 +67,11 @@ export function ThreadSidebar({
   if (collapsed) {
     return (
       <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
+        <div className="sidebar-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
           <button
             onClick={onToggleCollapse}
             title="Expand sidebar"
+            className="sidebar-collapse-btn"
             style={{
               background: 'none',
               border: 'none',
@@ -89,12 +90,13 @@ export function ThreadSidebar({
 
   return (
     <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
-      <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
+      <div className="sidebar-content" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
 
         {/* Header row: New Chat + collapse button */}
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
           <button
             onClick={onNewChat}
+            className="sidebar-new-chat-btn"
             style={{
               flex: 1,
               padding: '0.5rem',
@@ -112,6 +114,7 @@ export function ThreadSidebar({
           <button
             onClick={onToggleCollapse}
             title="Collapse sidebar"
+            className="sidebar-collapse-btn"
             style={{
               background: 'none',
               border: '1px solid #ddd',
@@ -134,6 +137,7 @@ export function ThreadSidebar({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter conversations..."
+            className="sidebar-filter-input"
             style={{
               width: '100%',
               padding: '0.35rem 1.6rem 0.35rem 0.5rem',
@@ -148,6 +152,7 @@ export function ThreadSidebar({
             <button
               onClick={() => setFilter('')}
               title="Clear filter"
+              className="sidebar-filter-clear"
               style={{
                 position: 'absolute',
                 right: '4px',
@@ -168,20 +173,21 @@ export function ThreadSidebar({
         </div>
 
         {filter && (
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
+          <p className="sidebar-filter-count" style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
             {filtered.length} / {threads.length} matches
           </p>
         )}
 
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {filtered.length === 0 && (
-            <p style={{ color: '#888', fontSize: '0.8rem', padding: '0.5rem 0' }}>
+            <p className="sidebar-empty-text" style={{ color: '#888', fontSize: '0.8rem', padding: '0.5rem 0' }}>
               {threads.length === 0 ? 'No conversations yet' : 'No matches'}
             </p>
           )}
           {filtered.map((thread) => (
             <div
               key={thread.thread_id}
+              className={`sidebar-thread-item${activeThreadId === thread.thread_id ? ' active' : ''}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -205,6 +211,7 @@ export function ThreadSidebar({
                     if (e.key === 'Escape') cancelEdit();
                   }}
                   onClick={(e) => e.stopPropagation()}
+                  className="sidebar-thread-edit-input"
                   style={{
                     flex: 1,
                     fontSize: '0.82rem',
@@ -222,6 +229,7 @@ export function ThreadSidebar({
                   title="Double-click to rename"
                 >
                   <span
+                    className="sidebar-thread-label"
                     style={{
                       fontSize: '0.82rem',
                       overflow: 'hidden',
@@ -233,6 +241,7 @@ export function ThreadSidebar({
                   </span>
                   {thread.updated_at && (
                     <span
+                      className="sidebar-thread-date"
                       style={{
                         fontSize: '0.7rem',
                         color: '#999',
@@ -253,6 +262,7 @@ export function ThreadSidebar({
                       onDeleteThread(thread.thread_id);
                     }
                   }}
+                  className="sidebar-thread-delete-btn"
                   style={{
                     background: 'none',
                     border: 'none',
