@@ -10,7 +10,7 @@ interface UseChatOptions {
   activeThreadId: string | null;
   selectedModel: string;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-  onThreadCreated?: (threadId: string) => void;
+  _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
 }
 
@@ -23,7 +23,6 @@ export function useChat({
   activeThreadId,
   selectedModel,
   setMessages,
-  onThreadCreated,
   refreshThreads,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);

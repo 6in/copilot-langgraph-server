@@ -80,6 +80,7 @@ export function useThreads(): UseThreadsReturn {
     isLoadingMessages,
     switchThread,
     createNewThread,
+    removeThread,
     setMessages,
     refreshThreads,
   };
