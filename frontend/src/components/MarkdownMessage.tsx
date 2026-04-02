@@ -3,7 +3,8 @@
 // Block code is rendered via Monaco Editor (read-only, auto-height, theme-aware, copy button).
 // Inline code uses a styled <code> tag.
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { editor } from 'monaco-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Editor from '@monaco-editor/react';
@@ -21,6 +22,8 @@ interface CodeBlockProps {
 
 function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(value).then(() => {
@@ -32,10 +35,45 @@ function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
   // Line count for auto-height: min 3, max 30 lines shown
   const lineCount = value.split('\n').length;
   const visibleLines = Math.min(Math.max(lineCount, 3), 30);
-  const editorHeight = visibleLines * 19 + 16; // 19px per line + padding
+  const editorHeight = visibleLines * 19 + 16;
+
+  // Walk up the DOM to find .cs-message-list and observe its width.
+  // Monaco can't rely on its container width because chatscope's bubble
+  // sizes itself to fit text content — we need the message list's width instead.
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+
+    let listEl: HTMLElement | null = wrapperRef.current;
+    while (listEl && !listEl.classList.contains('cs-message-list')) {
+      listEl = listEl.parentElement;
+    }
+    const target = listEl ?? wrapperRef.current;
+
+    const relayout = () => {
+      const available = target.clientWidth - 80; // subtract bubble padding
+      if (available > 0) {
+        wrapperRef.current!.style.width = available + 'px';
+        editorRef.current?.layout({ width: available, height: editorHeight });
+      }
+    };
+
+    relayout();
+    const observer = new ResizeObserver(relayout);
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [editorHeight]);
 
   return (
-    <div style={{ position: 'relative', margin: '8px 0', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color, #e1e4e8)' }}>
+    <div
+      ref={wrapperRef}
+      style={{
+        position: 'relative',
+        margin: '8px 0',
+        borderRadius: '6px',
+        overflow: 'hidden',
+        border: '1px solid var(--border-color, #e1e4e8)',
+      }}
+    >
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -66,9 +104,11 @@ function CodeBlock({ language, value, monacoTheme }: CodeBlockProps) {
       </div>
       <Editor
         height={editorHeight}
+        width="100%"
         language={language || 'plaintext'}
         value={value}
         theme={monacoTheme}
+        onMount={(ed) => { editorRef.current = ed; }}
         options={{
           readOnly: true,
           minimap: { enabled: false },
@@ -102,6 +142,9 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          pre({ children }) {
+            return <div>{children}</div>;
+          },
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const isBlock = !!match || (typeof children === 'string' && children.includes('\n'));

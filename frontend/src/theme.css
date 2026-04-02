@@ -19,6 +19,23 @@
 }
 
 /* ============================================================
+   Monaco editor — break out of chatscope bubble width constraint
+   ============================================================ */
+
+/* Incoming messages: stretch to full available width so Monaco isn't constrained by text width */
+.cs-message--incoming {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.cs-message--incoming .cs-message__content,
+.cs-message--incoming .cs-message__custom-content {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* ============================================================
    DARK MODE — chatscope container overrides
    (verify class names on @chatscope upgrade)
    ============================================================ */
