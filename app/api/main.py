@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from arq import create_pool
 from arq.connections import RedisSettings
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
@@ -61,11 +62,27 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Copilot Chat", lifespan=lifespan)
 
+# CORS for Vite dev server — must be registered BEFORE include_router calls.
+# Per Pitfall 3 in 07-RESEARCH.md: middleware added after routes may not wrap them.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # API routes FIRST — before static mount (Pitfall 3: mount order matters)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(jobs.router)
 app.include_router(me.router)
+
+# React UI — mount BEFORE the "/" catch-all or it will never be reached.
+# Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).
+# Per Pitfall 5 in 07-RESEARCH.md.
+if os.path.isdir("frontend/dist"):
+    app.mount("/react", StaticFiles(directory="frontend/dist", html=True), name="react")
 
 # Static files LAST — serves index.html for any non-API path
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
