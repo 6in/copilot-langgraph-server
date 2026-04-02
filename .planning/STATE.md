@@ -139,6 +139,7 @@ Recent decisions affecting current work:
 - Implement Gem and Canvas feature — api
 - Extend worker to support pluggable async task types via routing facade — api
 - Integrate LangGraph tool calling with async worker execution — api
+- Investigate Agent-Skills integration mechanism — general
 
 
 ### Quick Tasks Completed
