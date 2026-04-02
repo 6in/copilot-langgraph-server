@@ -23,6 +23,70 @@ interface MessageAreaProps {
   onSend: (text: string) => void;
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title="Copy message"
+      style={{
+        background: 'none',
+        border: '1px solid #d1dbe3',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.75rem',
+        color: '#666',
+        padding: '2px 6px',
+        marginTop: '2px',
+      }}
+    >
+      {copied ? '✓ Copied' : '⎘ Copy'}
+    </button>
+  );
+}
+
+function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAll = async () => {
+    const header = '| Role | Message |\n|------|---------|';
+    const rows = messages.map((m) => {
+      const role = m.role === 'user' ? 'User' : 'Assistant';
+      const content = m.content.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+      return `| ${role} | ${content} |`;
+    });
+    await navigator.clipboard.writeText([header, ...rows].join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <button
+      onClick={handleCopyAll}
+      title="Copy entire conversation as Markdown table"
+      style={{
+        background: 'none',
+        border: '1px solid #d1dbe3',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.75rem',
+        color: '#666',
+        padding: '3px 8px',
+        alignSelf: 'flex-end',
+      }}
+    >
+      {copied ? '✓ Copied' : '⎘ Copy all'}
+    </button>
+  );
+}
+
 export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -87,7 +151,11 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
                   type: 'text',
                   message: msg.content,
                 }}
-              />
+              >
+                <Message.Footer style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <CopyButton text={msg.content} />
+                </Message.Footer>
+              </Message>
             );
           }
           // AI message — use type="custom" with MarkdownMessage inside CustomContent
@@ -103,6 +171,9 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
               <Message.CustomContent>
                 <MarkdownMessage content={msg.content} />
               </Message.CustomContent>
+              <Message.Footer>
+                <CopyButton text={msg.content} />
+              </Message.Footer>
             </Message>
           );
         })}
@@ -110,57 +181,65 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
 
       {/* Custom textarea input — replaces chatscope MessageInput for multi-line support */}
       <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: '0.5rem',
-        padding: '0.6rem 0.75rem',
         borderTop: '1px solid #d1dbe3',
         background: '#fff',
         flexShrink: 0,
       }}>
-        <textarea
-          ref={textareaRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder="Ask Copilot anything... (Ctrl+Enter to send)"
-          disabled={isThinking}
-          rows={1}
-          style={{
-            flex: 1,
-            resize: 'none',
-            border: '1px solid #d1dbe3',
-            borderRadius: '6px',
-            padding: '0.5rem 0.75rem',
-            fontSize: '0.95rem',
-            fontFamily: 'inherit',
-            lineHeight: '1.5',
-            outline: 'none',
-            overflowY: 'auto',
-            maxHeight: '160px',
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!inputValue.trim() || isThinking}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
-            border: 'none',
-            background: '#0366d6',
-            color: '#fff',
-            fontWeight: 'bold',
-            cursor: inputValue.trim() && !isThinking ? 'pointer' : 'not-allowed',
-            opacity: inputValue.trim() && !isThinking ? 1 : 0.5,
-            fontSize: '0.9rem',
-            flexShrink: 0,
-            alignSelf: 'flex-end',
-            height: '36px',
-          }}
-        >
-          Send
-        </button>
+        {messages.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 8px 0' }}>
+            <CopyAllButton messages={messages} />
+          </div>
+        )}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: '0.5rem',
+          padding: '0.6rem 0.75rem',
+        }}>
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder="Ask Copilot anything... (Ctrl+Enter to send)"
+            disabled={isThinking}
+            rows={1}
+            style={{
+              flex: 1,
+              resize: 'none',
+              border: '1px solid #d1dbe3',
+              borderRadius: '6px',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.95rem',
+              fontFamily: 'inherit',
+              lineHeight: '1.5',
+              outline: 'none',
+              overflowY: 'auto',
+              maxHeight: '160px',
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!inputValue.trim() || isThinking}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              border: 'none',
+              background: '#0366d6',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: inputValue.trim() && !isThinking ? 'pointer' : 'not-allowed',
+              opacity: inputValue.trim() && !isThinking ? 1 : 0.5,
+              fontSize: '0.9rem',
+              flexShrink: 0,
+              alignSelf: 'flex-end',
+              height: '36px',
+            }}
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
