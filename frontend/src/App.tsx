@@ -9,6 +9,7 @@ import { AuthPanel } from './components/AuthPanel';
 import { Header } from './components/Header';
 import { ChatApp } from './components/ChatApp';
 import { useTheme } from './hooks/useTheme';
+import { ThemeContext } from './contexts/ThemeContext';
 
 export function App() {
   const authValue = useAuthProvider();
@@ -20,19 +21,21 @@ export function App() {
 
   return (
     <AuthContext.Provider value={authValue}>
-      {isAuthenticated ? (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Header
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            theme={theme}
-            onToggleTheme={toggleTheme}
-          />
-          <ChatApp selectedModel={selectedModel} />
-        </div>
-      ) : (
-        <AuthPanel />
-      )}
+      <ThemeContext.Provider value={theme}>
+        {isAuthenticated ? (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Header
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+            />
+            <ChatApp selectedModel={selectedModel} />
+          </div>
+        ) : (
+          <AuthPanel />
+        )}
+      </ThemeContext.Provider>
     </AuthContext.Provider>
   );
 }
