@@ -55,6 +55,20 @@ services:
       redis:
         condition: service_started
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules    # anonymous volume preserves container's node_modules
+    environment:
+      - API_TARGET=http://api:8000
+    depends_on:
+      - api
+
 volumes:
   redis-data:
   postgres-data:

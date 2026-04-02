@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
         // NO rewrite — FastAPI routes are already at /api/...
         // Adding rewrite here would strip the prefix and break all routes.
