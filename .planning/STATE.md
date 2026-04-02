@@ -136,7 +136,6 @@ Recent decisions affecting current work:
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
 - Add menu screen and configurable URL prefix — ui
 - Add light and dark mode toggle — ui
-- Create architecture diagrams with Mermaid sequence and process diagrams — docs
 - Implement Gem and Canvas feature — api
 
 
@@ -153,6 +152,7 @@ Recent decisions affecting current work:
 | 260401-t47 | Add loadThreads() at all 3 job completion points so sidebar refreshes after new thread creation | 2026-04-01 | 6a3ab24 | [260401-t47-add-loadthreads-after-job-completion-to-](.planning/quick/260401-t47-add-loadthreads-after-job-completion-to-/) |
 | 260402-d59 | docker compose support for react frontend | 2026-04-02 | fb60e0c | [260402-d59-docker-compose-support-for-react-fronten](.planning/quick/260402-d59-docker-compose-support-for-react-fronten/) |
 | 260402-g6u | Add date display and fix Escape-blur race in ThreadSidebar | 2026-04-02 | dca349f | [260402-g6u-enter-esc-blur](.planning/quick/260402-g6u-enter-esc-blur/) |
+| 260402-ht3 | Create Mermaid architecture diagrams: chat sequence, auth Device Flow sequence, Docker Compose topology | 2026-04-02 | 5e83c34 | [260402-ht3-docs-archi-mermaid-js-2](.planning/quick/260402-ht3-docs-archi-mermaid-js-2/) |
 
 ### Blockers/Concerns
 
@@ -160,7 +160,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-02 - Completed quick task 260402-g6u: チャット履歴サイドバーに作成日付を表示し、タイトルインライン編集の保存機能（Enter確定・Escキャンセル・blur保存）を実装する
-Last session: 2026-04-02T02:39:24.000Z
-Stopped at: Completed quick 260402-g6u-enter-esc-blur
+Last activity: 2026-04-02 - Completed quick task 260402-ht3: Create Mermaid architecture diagrams (chat sequence, auth Device Flow, Docker Compose topology)
+Last session: 2026-04-02T03:52:03.000Z
+Stopped at: Completed quick 260402-ht3-docs-archi-mermaid-js-2
 Resume file: None
