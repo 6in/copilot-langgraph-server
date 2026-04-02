@@ -38,7 +38,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }
@@ -124,7 +124,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onInput={handleInput}
-          placeholder="Ask Copilot anything... (Enter to send, Shift+Enter for newline)"
+          placeholder="Ask Copilot anything... (Ctrl+Enter to send)"
           disabled={isThinking}
           rows={1}
           style={{
