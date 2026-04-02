@@ -22,7 +22,7 @@ class ChatResponse(BaseModel):
 
 class ThreadInfo(BaseModel):
     thread_id: str
-    updated_at: str
+    updated_at: str | None = None
     label: str  # "Chat YYYY-MM-DD HH:mm" format
 
 

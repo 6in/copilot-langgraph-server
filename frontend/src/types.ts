@@ -36,7 +36,7 @@ export interface JobStatusResponse {
 
 export interface ThreadInfo {
   thread_id: string;
-  updated_at: string;
+  updated_at?: string | null;
   label: string;
 }
 

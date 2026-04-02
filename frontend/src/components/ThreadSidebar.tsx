@@ -231,15 +231,17 @@ export function ThreadSidebar({
                   >
                     {thread.label}
                   </span>
-                  <span
-                    style={{
-                      fontSize: '0.7rem',
-                      color: '#999',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {new Date(thread.updated_at).toLocaleDateString()}
-                  </span>
+                  {thread.updated_at && (
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        color: '#999',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {new Date(thread.updated_at).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
               )}
 

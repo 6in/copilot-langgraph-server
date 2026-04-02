@@ -8,7 +8,8 @@
 // MessageList is placed directly inside a cs-chat-container wrapper (no ChatContainer component)
 // so that the textarea can sit below it as a sibling flex item.
 
-import { useRef, useState, KeyboardEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import {
   MessageList,
   Message,

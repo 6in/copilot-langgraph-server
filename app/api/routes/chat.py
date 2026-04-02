@@ -149,11 +149,11 @@ async def list_threads(request: Request):
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    """SELECT c.thread_id, MAX(c.checkpoint_id) as latest, tl.label
+                    """SELECT c.thread_id, MAX(c.checkpoint_id) as latest, tl.label, tl.updated_at
                        FROM checkpoints c
                        LEFT JOIN thread_labels tl ON c.thread_id = tl.thread_id
                        WHERE c.checkpoint_ns = ''
-                       GROUP BY c.thread_id, tl.label
+                       GROUP BY c.thread_id, tl.label, tl.updated_at
                        ORDER BY latest DESC
                        LIMIT 50"""
                 )
@@ -165,7 +165,7 @@ async def list_threads(request: Request):
             label = row["label"] or f"Chat {thread_id[:8]}"
             threads.append(ThreadInfo(
                 thread_id=thread_id,
-                updated_at=str(checkpoint_id),
+                updated_at=row["updated_at"].isoformat() if row["updated_at"] else None,
                 label=label,
             ))
     except Exception:
