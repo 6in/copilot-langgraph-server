@@ -137,6 +137,7 @@ Recent decisions affecting current work:
 - Add menu screen and configurable URL prefix — ui
 - Add light and dark mode toggle — ui
 - Create architecture diagrams with Mermaid sequence and process diagrams — docs
+- Implement Gem and Canvas feature — api
 
 
 ### Quick Tasks Completed
