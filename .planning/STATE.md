@@ -137,6 +137,7 @@ Recent decisions affecting current work:
 - Add menu screen and configurable URL prefix — ui
 - Add light and dark mode toggle — ui
 - Implement Gem and Canvas feature — api
+- Extend worker to support pluggable async task types via routing facade — api
 
 
 ### Quick Tasks Completed
