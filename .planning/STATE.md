@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Ready to execute
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-04-02T00:15:54.826Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-04-02T00:21:31.718Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 100
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 ## Current Position
 
 Phase: 07 (react-chat-ui-chatscope-vite-bun) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
 Ready to plan next milestone.
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 06-sqlite-postgresql-checkpointer P02 | 2min | 2 tasks | 2 files |
 | Phase 07-react-chat-ui-chatscope-vite-bun P01 | 3min | 2 tasks | 22 files |
 | Phase 07-react-chat-ui-chatscope-vite-bun P02 | 3min | 2 tasks | 7 files |
+| Phase 07-react-chat-ui-chatscope-vite-bun P03 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,8 @@ Recent decisions affecting current work:
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: os.path.isdir('frontend/dist') guard on StaticFiles mount — prevents startup crash before first build (Pitfall 5)
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: AuthContext.Provider in App.tsx with useAuthProvider() owning state — avoids extra wrapper component for single-user app
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: deleteThread uses raw fetch not apiFetch: 204 No Content has no body; apiFetch calls resp.json() which would throw on empty body
+- [Phase 07-react-chat-ui-chatscope-vite-bun]: onThreadCreated unused param renamed to _onThreadCreated in useChat interface: TS6133 prevents build, prefix signals intentionally unused
+- [Phase 07-react-chat-ui-chatscope-vite-bun]: TypingIndicator passed as typingIndicator prop on MessageList (not JSX child): chatscope API requires prop placement; child placement silently fails to render
 
 ### Roadmap Evolution
 
@@ -150,6 +153,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-02T00:15:54.824Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-04-02T00:21:31.715Z
+Stopped at: Completed 07-03-PLAN.md
 Resume file: None
