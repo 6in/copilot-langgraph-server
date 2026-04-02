@@ -31,7 +31,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
 | 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
-| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 0/4 | Planned | — |
+| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 2/4 | In Progress|  |
 
 ## v2.0 Phases
 
@@ -43,10 +43,10 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
 **Depends on:** Phase 6
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 - [x] 07-01-PLAN.md — Vite scaffold + npm install + FastAPI CORSMiddleware + /react StaticFiles mount
-- [ ] 07-02-PLAN.md — Core shell: types.ts, api/client.ts, useAuth, AuthPanel, Header, App, main.tsx
+- [x] 07-02-PLAN.md — Core shell: types.ts, api/client.ts, useAuth, AuthPanel, Header, App, main.tsx
 - [ ] 07-03-PLAN.md — Chat features: useThreads, useChat, ThreadSidebar, MarkdownMessage, MessageArea, ChatApp
 - [ ] 07-04-PLAN.md — Visual verification: HUMAN-UAT.md + browser walkthrough of all 10 success criteria
