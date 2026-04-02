@@ -8,7 +8,7 @@
 // MessageList is placed directly inside a cs-chat-container wrapper (no ChatContainer component)
 // so that the textarea can sit below it as a sibling flex item.
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
 import {
   MessageList,
@@ -93,6 +93,11 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
 export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messageListRef = useRef<{ scrollToBottom: (behavior: 'auto' | 'smooth') => void }>(null);
+
+  useEffect(() => {
+    messageListRef.current?.scrollToBottom('auto');
+  }, [messages]);
 
   const handleSend = () => {
     const text = inputValue.trim();
@@ -124,6 +129,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
     <div className="cs-chat-container" style={{ height: 'initial', flex: 1 }}>
       {/* typingIndicator is a PROP, not a JSX child — per 07-RESEARCH.md Pitfall section */}
       <MessageList
+        ref={messageListRef}
         typingIndicator={
           isThinking ? <TypingIndicator content="Copilot is thinking..." /> : undefined
         }
