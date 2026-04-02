@@ -14,6 +14,26 @@ interface MarkdownMessageProps {
   content: string;
 }
 
+// Normalize common markdown language aliases to Monaco language IDs
+const LANG_ALIASES: Record<string, string> = {
+  js: 'javascript',
+  ts: 'typescript',
+  jsx: 'javascript',
+  tsx: 'typescript',
+  py: 'python',
+  rb: 'ruby',
+  sh: 'shell',
+  bash: 'shell',
+  zsh: 'shell',
+  yml: 'yaml',
+  md: 'markdown',
+  Dockerfile: 'dockerfile',
+};
+
+function normalizeLanguage(lang: string): string {
+  return LANG_ALIASES[lang] ?? lang;
+}
+
 interface CodeBlockProps {
   language: string;
   value: string;
@@ -108,7 +128,22 @@ const CodeBlock = memo(function CodeBlock({ language, value, monacoTheme }: Code
         language={language || 'plaintext'}
         value={value}
         theme={monacoTheme}
-        onMount={(ed) => { editorRef.current = ed; }}
+        onMount={(ed) => {
+          editorRef.current = ed;
+          // Trigger initial layout after mount so width is applied immediately
+          if (wrapperRef.current) {
+            let listEl: HTMLElement | null = wrapperRef.current;
+            while (listEl && !listEl.classList.contains('cs-message-list')) {
+              listEl = listEl.parentElement;
+            }
+            const target = listEl ?? wrapperRef.current;
+            const available = target.clientWidth - 80;
+            if (available > 0) {
+              wrapperRef.current.style.width = available + 'px';
+              ed.layout({ width: available, height: editorHeight });
+            }
+          }
+        }}
         options={{
           readOnly: true,
           minimap: { enabled: false },
@@ -146,7 +181,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
             const isBlock = !!match || (typeof children === 'string' && children.includes('\n'));
 
             if (isBlock) {
-              const language = match ? match[1] : '';
+              const language = normalizeLanguage(match ? match[1] : '');
               const value = String(children).replace(/\n$/, '');
               return (
                 <CodeBlock
