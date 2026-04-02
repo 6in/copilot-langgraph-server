@@ -11,6 +11,7 @@ import {
   MessageList,
   Message,
   MessageInput,
+  InputToolbox,
   TypingIndicator,
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
@@ -110,12 +111,6 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
           </MessageList.Content>
         )}
 
-        {messages.length > 0 && (
-          <MessageList.Content style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 8px 0' }}>
-            <CopyAllButton messages={messages} />
-          </MessageList.Content>
-        )}
-
         {messages.map((msg, index) => {
           if (msg.role === 'user') {
             return (
@@ -161,6 +156,12 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
         attachButton={false}
         sendButton={true}
       />
+      {/* InputToolbox renders above MessageInput — used for the copy-all button */}
+      {messages.length > 0 && (
+        <InputToolbox style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 8px' }}>
+          <CopyAllButton messages={messages} />
+        </InputToolbox>
+      )}
     </ChatContainer>
   );
 }
