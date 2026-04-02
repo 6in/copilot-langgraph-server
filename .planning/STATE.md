@@ -135,6 +135,7 @@ Recent decisions affecting current work:
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
 - React製チャットUIの分離 — chat-ui-kit-react + Vite + Bun — ui
+- React版チャット入力フィールドをtextareaに変更 — ui
 
 ### Quick Tasks Completed
 
