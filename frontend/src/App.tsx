@@ -19,7 +19,7 @@ export function App() {
   return (
     <AuthContext.Provider value={authValue}>
       {isAuthenticated ? (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Header selectedModel={selectedModel} onModelChange={setSelectedModel} />
           <ChatApp selectedModel={selectedModel} />
         </div>
