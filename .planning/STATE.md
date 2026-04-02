@@ -150,6 +150,7 @@ Recent decisions affecting current work:
 | 260401-stv | Enable pgvector in postgres container: switch to pgvector/pgvector:pg17 image + initdb script | 2026-04-01 | 818f9d3 | [260401-stv-rag-pgvector](.planning/quick/260401-stv-rag-pgvector/) |
 | 260401-t47 | Add loadThreads() at all 3 job completion points so sidebar refreshes after new thread creation | 2026-04-01 | 6a3ab24 | [260401-t47-add-loadthreads-after-job-completion-to-](.planning/quick/260401-t47-add-loadthreads-after-job-completion-to-/) |
 | 260402-d59 | docker compose support for react frontend | 2026-04-02 | fb60e0c | [260402-d59-docker-compose-support-for-react-fronten](.planning/quick/260402-d59-docker-compose-support-for-react-fronten/) |
+| 260402-g6u | Add date display and fix Escape-blur race in ThreadSidebar | 2026-04-02 | dca349f | [260402-g6u-enter-esc-blur](.planning/quick/260402-g6u-enter-esc-blur/) |
 
 ### Blockers/Concerns
 
@@ -157,6 +158,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-02T00:53:25.513Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-04-02T00:00:00.000Z
+Stopped at: Completed quick 260402-g6u-PLAN.md
 Resume file: None
