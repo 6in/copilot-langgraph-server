@@ -138,6 +138,7 @@ Recent decisions affecting current work:
 - Add light and dark mode toggle — ui
 - Implement Gem and Canvas feature — api
 - Extend worker to support pluggable async task types via routing facade — api
+- Integrate LangGraph tool calling with async worker execution — api
 
 
 ### Quick Tasks Completed
