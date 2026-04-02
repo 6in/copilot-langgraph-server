@@ -46,3 +46,7 @@ htmlcov/
 .DS_Store
 Thumbs.db
 work/
+
+# React frontend build artifacts
+frontend/dist/
+frontend/node_modules/
