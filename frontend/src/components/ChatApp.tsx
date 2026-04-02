@@ -58,8 +58,11 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     // chatscope MainContainer/ChatContainer use height: 100% internally.
     // Without this, the entire chat UI collapses to 0px.
     // Per Pitfall 1 in 07-RESEARCH.md.
-    <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-      <MainContainer>
+    // min-height: 0 prevents flex item from expanding beyond available space
+    // (default min-height: auto allows unbounded growth in flex columns)
+    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* overflow:hidden overrides chatscope's default overflow:auto on cs-main-container */}
+      <MainContainer style={{ overflow: 'hidden' }}>
         <ThreadSidebar
           threads={threads}
           activeThreadId={activeThreadId}
