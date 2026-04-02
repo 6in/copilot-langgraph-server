@@ -134,6 +134,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
+- Add menu screen and configurable URL prefix — ui
 
 
 ### Quick Tasks Completed
