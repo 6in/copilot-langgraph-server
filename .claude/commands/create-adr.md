@@ -1,4 +1,4 @@
-Create an Architecture Decision Record (ADR) in `docs/adr/` by autonomously analyzing the codebase and git history. No interactive Q&A — Claude researches and writes the ADR itself.
+Create an Architecture Decision Record (ADR) in `docs/adr/` by autonomously inferring the topic and writing the retrospective. Zero input required — Claude reads context and writes it all.
 
 ## Steps
 
@@ -10,25 +10,31 @@ ls docs/adr/*.md 2>/dev/null | grep -oP '^\d+' | sort -n | tail -1
 
 Next number = last + 1, zero-padded to 4 digits. Start at `0001` if none exist.
 
-**2. Get the topic**
+**2. Infer the topic**
 
-Use `$ARGUMENTS` as the decision topic/title. If empty, infer from recent git activity:
+If `$ARGUMENTS` is non-empty, use it as the title hint.
+
+Otherwise, infer from context — in priority order:
 
 ```bash
-git log --oneline -10
+git branch --show-current          # branch name often describes the work
+git log --oneline -10              # recent commits
+cat .planning/todos/done/*.md 2>/dev/null | tail -40   # recently completed todos
 ```
+
+Pick the most specific, meaningful topic. Prefer: recently completed todo title > branch name > last commit subject.
 
 **3. Research autonomously**
 
-Gather context without asking the user. Read as needed:
+Read as needed to reconstruct the *why*:
 
-- `git log --oneline -20` — recent work and scope
-- `git show <hash>` or `git diff <base>..HEAD` — what actually changed
-- Relevant source files touched in recent commits
-- Existing docs (e.g. `docs/nginx.md`, `CLAUDE.md`) for design intent
-- Any `.planning/quick/*/` SUMMARY.md or PLAN.md related to the topic
+- `git log --oneline -20` — scope of recent work
+- `git show` or `git diff` on relevant commits — what actually changed
+- Relevant source files touched
+- `docs/` for any design notes written alongside the work
+- `.planning/quick/*/SUMMARY.md` or `PLAN.md` for recent quick tasks
 
-Goal: reconstruct the *why* — what problem existed, what was tried, what was discarded, what was chosen.
+Goal: answer "what problem existed, what was tried, what was chosen, and what would trip someone up later?"
 
 **4. Write the ADR**
 
@@ -42,22 +48,20 @@ Filename: `docs/adr/NNNN-<slugified-title>.md`
 
 ## Context
 
-<What situation or problem prompted this decision. Be specific — what broke, what was missing, what constraint existed.>
+<What situation or problem prompted this decision. Be specific.>
 
 ## Decision
 
-<What was decided. The chosen approach, concisely stated.>
+<The chosen approach, concisely stated.>
 
 ## Alternatives Considered
 
-<Other approaches that were tried or evaluated, and why each was discarded. If nothing was considered, write "None documented".>
+<Other approaches tried or evaluated, and why each was discarded. "None documented" if nothing was tried.>
 
 ## Consequences
 
-<Positive and negative outcomes. Include gotchas, constraints, and anything that would trip up someone reading this later.>
+<Positive and negative outcomes. Include gotchas and anything that would trip up a future reader.>
 ```
-
-Write with a future reader in mind — someone who sees a piece of code and wonders "why is it done this way?"
 
 **5. Commit**
 
