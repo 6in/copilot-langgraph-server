@@ -32,23 +32,23 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 // Auth
 export const checkAuthStatus = () =>
-  apiFetch<AuthStatusResponse>('${API_BASE}/api/auth/status');
+  apiFetch<AuthStatusResponse>(`${API_BASE}/api/auth/status`);
 
 export const startAuthFlow = () =>
-  apiFetch<AuthStartResponse>('${API_BASE}/api/auth/start', { method: 'POST' });
+  apiFetch<AuthStartResponse>(`${API_BASE}/api/auth/start`, { method: 'POST' });
 
 export const pollAuthFlow = (flowId: string) =>
   apiFetch<AuthPollResponse>(`${API_BASE}/api/auth/poll?flow_id=${encodeURIComponent(flowId)}`);
 
 export const logout = () =>
-  apiFetch<AuthLogoutResponse>('${API_BASE}/api/auth/logout', { method: 'POST' });
+  apiFetch<AuthLogoutResponse>(`${API_BASE}/api/auth/logout`, { method: 'POST' });
 
 // User info
-export const getMe = () => apiFetch<UserInfoResponse>('${API_BASE}/api/me');
+export const getMe = () => apiFetch<UserInfoResponse>(`${API_BASE}/api/me`);
 
 // Chat
 export const postChat = (req: ChatRequest) =>
-  apiFetch<ChatAsyncResponse>('${API_BASE}/api/chat', {
+  apiFetch<ChatAsyncResponse>(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
@@ -58,15 +58,15 @@ export const getJob = (jobId: string) =>
   apiFetch<JobStatusResponse>(`${API_BASE}/api/job/${encodeURIComponent(jobId)}`);
 
 // SSE — returns a native EventSource for the caller to manage lifecycle.
-// The URL is a GET (${API_BASE}/api/chat/{job_id}/stream) so native EventSource works.
+// The URL is a GET so native EventSource works.
 export const streamJob = (jobId: string): EventSource =>
   new EventSource(`${API_BASE}/api/chat/${encodeURIComponent(jobId)}/stream`);
 
 // Threads
-export const listThreads = () => apiFetch<ThreadInfo[]>('${API_BASE}/api/threads');
+export const listThreads = () => apiFetch<ThreadInfo[]>(`${API_BASE}/api/threads`);
 
 export const createThread = () =>
-  apiFetch<{ thread_id: string; label: string }>('${API_BASE}/api/threads', { method: 'POST' });
+  apiFetch<{ thread_id: string; label: string }>(`${API_BASE}/api/threads`, { method: 'POST' });
 
 export const deleteThread = async (threadId: string): Promise<void> => {
   const resp = await fetch(`${API_BASE}/api/threads/${encodeURIComponent(threadId)}`, {
