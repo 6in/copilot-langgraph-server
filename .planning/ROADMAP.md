@@ -32,7 +32,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
 | 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
-| 8. Super Agent Sample | v2.0 | 0/3 | Planned | — |
+| 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
 
 ## v2.0 Phases
 
@@ -60,9 +60,9 @@ Plans:
 
 **Depends on:** Phase 7
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 08-01-PLAN.md — Feature branch + scaffold: pyproject.toml, uv sync, state.py, AGENT.md files, menu YAMLs
-- [ ] 08-02-PLAN.md — Core modules: agent.py, graph.py, dispatcher.py + full unit test suite
-- [ ] 08-03-PLAN.md — Entry point main.py + live smoke test (human verification)
+- [x] 08-01-PLAN.md — Feature branch + scaffold: pyproject.toml, uv sync, state.py, AGENT.md files, menu YAMLs
+- [x] 08-02-PLAN.md — Core modules: agent.py, graph.py, dispatcher.py + full unit test suite
+- [x] 08-03-PLAN.md — Entry point main.py + live smoke test (human verification)
