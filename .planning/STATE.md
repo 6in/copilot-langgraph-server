@@ -141,9 +141,8 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
-- Add light and dark mode toggle — ui
+- インストールされているスキルを活用してコードレビューを実施する — general
 - Implement Gem and Canvas feature — api
-- Extend worker to support pluggable async task types via routing facade — api
 - Integrate LangGraph tool calling with async worker execution — api
 - Investigate Agent-Skills integration mechanism — general
 
