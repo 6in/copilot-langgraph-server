@@ -29,6 +29,10 @@ from app.providers.copilot import ChatCopilot
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 
+# root_path tells FastAPI its public URL prefix (for OpenAPI docs /docs, /redoc).
+# nginx strips the prefix before forwarding, so all routes stay at /api/...
+APP_PREFIX = os.getenv("APP_PREFIX", "")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,7 +75,7 @@ async def lifespan(app: FastAPI):
     await arq_redis.aclose()
 
 
-app = FastAPI(title="Copilot Chat", lifespan=lifespan)
+app = FastAPI(title="Copilot Chat", lifespan=lifespan, root_path=APP_PREFIX)
 
 # CORS for Vite dev server — must be registered BEFORE include_router calls.
 # Per Pitfall 3 in 07-RESEARCH.md: middleware added after routes may not wrap them.

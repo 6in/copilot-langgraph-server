@@ -123,6 +123,9 @@ Recent decisions affecting current work:
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: onThreadCreated unused param renamed to _onThreadCreated in useChat interface: TS6133 prevents build, prefix signals intentionally unused
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: TypingIndicator passed as typingIndicator prop on MessageList (not JSX child): chatscope API requires prop placement; child placement silently fails to render
 - [Phase 07-react-chat-ui-chatscope-vite-bun]: All 10 phase success criteria verified by human in real browser — no regressions in Vanilla JS UI at /
+- [Quick 260403-hc7]: Relative ./api/ paths in client.ts: browser resolves against current origin+base, no hardcoded prefix in JS
+- [Quick 260403-hc7]: VITE_APP_BASE controls both Vite base (asset URLs) and the dev proxy key+rewrite
+- [Quick 260403-hc7]: APP_PREFIX sets FastAPI root_path only for OpenAPI docs — routes stay at /api/... unchanged; nginx trailing slash on proxy_pass strips location prefix
 
 ### Roadmap Evolution
 
@@ -157,6 +160,7 @@ Recent decisions affecting current work:
 | 260402-ht3 | Create Mermaid architecture diagrams: chat sequence, auth Device Flow sequence, Docker Compose topology | 2026-04-02 | 5e83c34 | [260402-ht3-docs-archi-mermaid-js-2](.planning/quick/260402-ht3-docs-archi-mermaid-js-2/) |
 | 260402-m3q | Install typescript-react-reviewer skill globally + update CLAUDE.md with React 19 architecture | 2026-04-02 | 5895349 | [260402-m3q-install-typescript-react-reviewer-skill-](.planning/quick/260402-m3q-install-typescript-react-reviewer-skill-/) |
 | 260403-dyf | Add menu screen and configurable URL prefix: MenuScreen component, App.tsx screen routing, Header back button, VITE_BASE_URL in API client | 2026-04-03 | f99d0d2 | [260403-dyf-add-menu-screen-and-configurable-url-pre](.planning/quick/260403-dyf-add-menu-screen-and-configurable-url-pre/) |
+| 260403-hc7 | Refactor URL prefix to nginx-strip approach: relative ./api/ paths, VITE_APP_BASE, FastAPI root_path, nginx docs | 2026-04-03 | e139b75 | [260403-hc7-refactor-url-prefix-nginx-strip-approach](.planning/quick/260403-hc7-refactor-url-prefix-nginx-strip-approach/) |
 
 ### Blockers/Concerns
 
@@ -164,7 +168,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-03 - Completed quick task 260403-dyf: Add menu screen and configurable URL prefix
-Last session: 2026-04-03T01:06:50.000Z
-Stopped at: Completed quick 260403-dyf-add-menu-screen-and-configurable-url-pre
+Last activity: 2026-04-03 - Completed quick task 260403-hc7: Refactor URL prefix to nginx-strip approach
+Last session: 2026-04-03T03:33:00Z
+Stopped at: Completed quick 260403-hc7-refactor-url-prefix-nginx-strip-approach
 Resume file: None
