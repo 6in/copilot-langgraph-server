@@ -1,59 +1,63 @@
-Create an Architecture Decision Record (ADR) in `docs/adr/`.
+Create an Architecture Decision Record (ADR) in `docs/adr/` by autonomously analyzing the codebase and git history. No interactive Q&A — Claude researches and writes the ADR itself.
 
 ## Steps
 
 **1. Determine the next ADR number**
 
 ```bash
-ls docs/adr/*.md 2>/dev/null | grep -oP '\d+' | sort -n | tail -1
+ls docs/adr/*.md 2>/dev/null | grep -oP '^\d+' | sort -n | tail -1
 ```
 
-Next number = last number + 1 (zero-padded to 4 digits, e.g. `0001`). If no files exist, start at `0001`.
+Next number = last + 1, zero-padded to 4 digits. Start at `0001` if none exist.
 
-**2. Get the title**
+**2. Get the topic**
 
-If `$ARGUMENTS` is non-empty, use it as the title.
-Otherwise ask: "What is the decision title? (e.g. 'Use nginx prefix-strip for URL routing')"
+Use `$ARGUMENTS` as the decision topic/title. If empty, infer from recent git activity:
 
-**3. Ask for context interactively**
+```bash
+git log --oneline -10
+```
 
-Use AskUserQuestion for each section. Keep it conversational — one question at a time:
+**3. Research autonomously**
 
-- **Context**: "What problem or situation prompted this decision?"
-- **Decision**: "What was decided? (the chosen approach)"
-- **Alternatives considered**: "What other options were considered? (or skip)"
-- **Consequences**: "What are the key consequences — positive and negative?"
-- **Status**: offer options — Accepted / Proposed / Deprecated
+Gather context without asking the user. Read as needed:
 
-If the user provides enough context in $ARGUMENTS or naturally answers multiple sections at once, skip redundant questions.
+- `git log --oneline -20` — recent work and scope
+- `git show <hash>` or `git diff <base>..HEAD` — what actually changed
+- Relevant source files touched in recent commits
+- Existing docs (e.g. `docs/nginx.md`, `CLAUDE.md`) for design intent
+- Any `.planning/quick/*/` SUMMARY.md or PLAN.md related to the topic
 
-**4. Write the file**
+Goal: reconstruct the *why* — what problem existed, what was tried, what was discarded, what was chosen.
+
+**4. Write the ADR**
 
 Filename: `docs/adr/NNNN-<slugified-title>.md`
 
-Template:
 ```markdown
 # NNNN. <Title>
 
 **Date:** YYYY-MM-DD  
-**Status:** <Status>
+**Status:** Accepted
 
 ## Context
 
-<context>
+<What situation or problem prompted this decision. Be specific — what broke, what was missing, what constraint existed.>
 
 ## Decision
 
-<decision>
+<What was decided. The chosen approach, concisely stated.>
 
 ## Alternatives Considered
 
-<alternatives or "None documented">
+<Other approaches that were tried or evaluated, and why each was discarded. If nothing was considered, write "None documented".>
 
 ## Consequences
 
-<consequences>
+<Positive and negative outcomes. Include gotchas, constraints, and anything that would trip up someone reading this later.>
 ```
+
+Write with a future reader in mind — someone who sees a piece of code and wonders "why is it done this way?"
 
 **5. Commit**
 
