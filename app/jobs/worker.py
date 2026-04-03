@@ -4,6 +4,7 @@ Run with: uv run arq app.jobs.worker.WorkerSettings
 
 Incoming jobs carry a `task_type` field that selects the handler:
   - "langgraph" (default) — LangGraph chat via ChatCopilot
+  - "orchestrator" — OrchestratorGraph multi-agent routing via SubAgentRegistry
   - Future task types are registered in TASK_HANDLERS below.
 
 All handlers implement TaskHandler.handle(ctx, job) -> dict.
@@ -17,6 +18,7 @@ from redis.asyncio import Redis
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.handlers.langgraph_handler import LangGraphHandler
+from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 from app.jobs.job_store import JobStore
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
@@ -25,6 +27,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 # Registry: task_type → handler instance
 TASK_HANDLERS: dict[str, TaskHandler] = {
     "langgraph": LangGraphHandler(),
+    "orchestrator": OrchestratorHandler(),
 }
 
 
