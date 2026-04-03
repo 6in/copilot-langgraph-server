@@ -3,8 +3,10 @@
 
 **Copilot LangGraph Chat**
 
-GitHub Copilot を LangGraph の AI プロバイダーとして使う、個人用の汎用チャット Web アプリ。
+GitHub Copilot を LangGraph の AI プロバイダーとして使う、マルチユーザ向けの汎用チャット Web アプリ。
 `ChatCopilot`（`BaseChatModel` のカスタム実装）を通じて Copilot の推論能力を活用しながら、LangGraph のグラフ構造により将来のエージェント化・ツール呼び出し拡張に対応できる設計を目指す。
+
+> **方針変更:** 当初は個人用ツールとして設計されたが、現在はマルチユーザ対応への改修を進めている。スレッド履歴のユーザー分離など、複数ユーザーが共存できる設計に移行中。
 
 **Core Value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること。
 
