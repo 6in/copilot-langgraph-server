@@ -134,7 +134,6 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
-- Add menu screen and configurable URL prefix — ui
 - Add light and dark mode toggle — ui
 - Implement Gem and Canvas feature — api
 - Extend worker to support pluggable async task types via routing facade — api
@@ -157,6 +156,7 @@ Recent decisions affecting current work:
 | 260402-g6u | Add date display and fix Escape-blur race in ThreadSidebar | 2026-04-02 | dca349f | [260402-g6u-enter-esc-blur](.planning/quick/260402-g6u-enter-esc-blur/) |
 | 260402-ht3 | Create Mermaid architecture diagrams: chat sequence, auth Device Flow sequence, Docker Compose topology | 2026-04-02 | 5e83c34 | [260402-ht3-docs-archi-mermaid-js-2](.planning/quick/260402-ht3-docs-archi-mermaid-js-2/) |
 | 260402-m3q | Install typescript-react-reviewer skill globally + update CLAUDE.md with React 19 architecture | 2026-04-02 | 5895349 | [260402-m3q-install-typescript-react-reviewer-skill-](.planning/quick/260402-m3q-install-typescript-react-reviewer-skill-/) |
+| 260403-dyf | Add menu screen and configurable URL prefix: MenuScreen component, App.tsx screen routing, Header back button, VITE_BASE_URL in API client | 2026-04-03 | f99d0d2 | [260403-dyf-add-menu-screen-and-configurable-url-pre](.planning/quick/260403-dyf-add-menu-screen-and-configurable-url-pre/) |
 
 ### Blockers/Concerns
 
@@ -164,7 +164,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-02 - Completed quick task 260402-m3q: Install typescript-react-reviewer skill + update CLAUDE.md with React 19 architecture
-Last session: 2026-04-02T07:01:00.000Z
-Stopped at: Completed quick 260402-m3q-install-typescript-react-reviewer-skill-
+Last activity: 2026-04-03 - Completed quick task 260403-dyf: Add menu screen and configurable URL prefix
+Last session: 2026-04-03T01:06:50.000Z
+Stopped at: Completed quick 260403-dyf-add-menu-screen-and-configurable-url-pre
 Resume file: None
