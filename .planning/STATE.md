@@ -145,6 +145,7 @@ Recent decisions affecting current work:
 - Implement Gem and Canvas feature — api
 - Integrate LangGraph tool calling with async worker execution — api
 - Investigate Agent-Skills integration mechanism — general
+- チャットのコンテキストにてユーザー情報も入れるようにする — api
 
 
 ### Quick Tasks Completed
