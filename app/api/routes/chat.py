@@ -21,7 +21,7 @@ from langchain_core.messages import HumanMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
-from app.auth.jwt_utils import decode_jwt, decrypt_github_token
+from app.auth.jwt_utils import decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -47,24 +47,12 @@ async def get_jwt_payload(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="auth_invalid")
 
 
-async def get_github_token(request: Request) -> str:
+async def get_github_token(payload: dict = Depends(get_jwt_payload)) -> str:
     """FastAPI dependency: extract and decrypt GitHub token from JWT session cookie.
 
-    Raises HTTPException 401 with detail:
-    - "auth_required" if no session cookie is present
-    - "auth_expired"  if JWT has expired
-    - "auth_invalid"  if JWT is malformed or revoked
+    Depends on get_jwt_payload so JWT decode is cached per-request by FastAPI.
     """
-    session_cookie = request.cookies.get("session")
-    if not session_cookie:
-        raise HTTPException(status_code=401, detail="auth_required")
-    try:
-        payload = decode_jwt(session_cookie)
-        return decrypt_github_token(payload["github_token"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="auth_expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="auth_invalid")
+    return decrypt_github_token(payload["github_token"])
 
 
 @router.post("/chat", response_model=ChatAsyncResponse)
