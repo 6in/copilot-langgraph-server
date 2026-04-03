@@ -1,0 +1,5 @@
+name: super-chat
+label: "スーパーチャット"
+description: "複数エージェントを使った高度なタスク処理"
+graph: orchestrator
+enabled: true
