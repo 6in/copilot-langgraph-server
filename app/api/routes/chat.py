@@ -74,6 +74,7 @@ async def send_message(
         model=body.model,
         github_token=github_token,
         reply_to={"type": "web", "job_id": job_id},
+        task_type=body.task_type,
     )
     return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
 

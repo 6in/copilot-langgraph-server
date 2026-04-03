@@ -60,4 +60,5 @@ export interface ChatRequest {
   message: string;
   thread_id: string;
   model: string;
+  task_type?: string;
 }
