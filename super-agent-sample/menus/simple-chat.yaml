@@ -1,0 +1,5 @@
+name: simple-chat
+label: "チャット"
+description: "シンプルな1対1の会話"
+graph: simple
+enabled: true
