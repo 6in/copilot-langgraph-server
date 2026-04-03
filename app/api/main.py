@@ -51,10 +51,15 @@ async def lifespan(app: FastAPI):
         async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
             await conn.execute(
                 """CREATE TABLE IF NOT EXISTS thread_labels (
-                       thread_id TEXT PRIMARY KEY,
-                       label     TEXT NOT NULL,
+                       thread_id  TEXT PRIMARY KEY,
+                       label      TEXT NOT NULL,
+                       github_login TEXT,
                        updated_at TIMESTAMPTZ DEFAULT now()
                    )"""
+            )
+            # Add github_login to existing databases without the column
+            await conn.execute(
+                "ALTER TABLE thread_labels ADD COLUMN IF NOT EXISTS github_login TEXT"
             )
             await conn.commit()
         app.state.graph = build_graph(llm, checkpointer)
