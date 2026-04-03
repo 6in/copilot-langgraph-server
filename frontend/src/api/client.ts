@@ -2,6 +2,9 @@
 // Typed fetch wrappers for all backend endpoints.
 // All paths are /api/... — the Vite proxy forwards them to localhost:8000 in dev.
 // In production (served from /react), same-origin requests hit FastAPI directly.
+// VITE_BASE_URL: optional path prefix for reverse-proxy deployments (default: '').
+
+const BASE_URL = import.meta.env.VITE_BASE_URL ?? '';
 
 import type {
   AuthStartResponse,
@@ -18,7 +21,7 @@ import type {
 } from '../types';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(path, { credentials: 'include', ...init });
+  const resp = await fetch(`${BASE_URL}${path}`, { credentials: 'include', ...init });
   if (!resp.ok) {
     throw new Error(`API error ${resp.status} on ${path}`);
   }
@@ -55,7 +58,7 @@ export const getJob = (jobId: string) =>
 // SSE — returns a native EventSource for the caller to manage lifecycle.
 // The URL is a GET (/api/chat/{job_id}/stream) so native EventSource works.
 export const streamJob = (jobId: string): EventSource =>
-  new EventSource(`/api/chat/${encodeURIComponent(jobId)}/stream`);
+  new EventSource(`${BASE_URL}/api/chat/${encodeURIComponent(jobId)}/stream`);
 
 // Threads
 export const listThreads = () => apiFetch<ThreadInfo[]>('/api/threads');
@@ -64,7 +67,7 @@ export const createThread = () =>
   apiFetch<{ thread_id: string; label: string }>('/api/threads', { method: 'POST' });
 
 export const deleteThread = async (threadId: string): Promise<void> => {
-  const resp = await fetch(`/api/threads/${encodeURIComponent(threadId)}`, {
+  const resp = await fetch(`${BASE_URL}/api/threads/${encodeURIComponent(threadId)}`, {
     method: 'DELETE',
     credentials: 'include',
   });

@@ -12,6 +12,7 @@ interface HeaderProps {
   onModelChange: (model: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onBackToMenu?: () => void;
 }
 
 // Model list from static/index.html — keep in sync if models change.
@@ -40,7 +41,7 @@ const MODEL_OPTIONS = [
   ]},
 ];
 
-export function Header({ selectedModel, onModelChange, theme, onToggleTheme }: HeaderProps) {
+export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onBackToMenu }: HeaderProps) {
   const { authState, performLogout } = useAuth();
   const [user, setUser] = useState<UserInfoResponse | null>(null);
 
@@ -76,6 +77,23 @@ export function Header({ selectedModel, onModelChange, theme, onToggleTheme }: H
       flexShrink: 0,
       borderBottom: `1px solid ${headerBorder}`,
     }}>
+      {onBackToMenu && (
+        <button
+          onClick={onBackToMenu}
+          style={{
+            padding: '0.25rem 0.75rem',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            border: '1px solid #555',
+            background: 'transparent',
+            color: '#ccc',
+            fontSize: '0.85rem',
+            flexShrink: 0,
+          }}
+        >
+          &lsaquo; Menu
+        </button>
+      )}
       <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Copilot Chat</span>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
