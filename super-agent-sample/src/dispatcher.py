@@ -21,7 +21,7 @@ class MenuDispatcher:
         self.menu_registry = menu_registry
         self.graphs = graphs
 
-    def dispatch(self, user_input: str, mode: str) -> str:
+    async def dispatch(self, user_input: str, mode: str) -> str:
         graph_name = self.menu_registry.get_graph(mode)
         graph = self.graphs[graph_name]
         initial: AgentState = {
@@ -30,5 +30,5 @@ class MenuDispatcher:
             "messages": [],
             "next": "",
         }
-        result = graph.invoke(initial)
+        result = await graph.ainvoke(initial)
         return result["output"]

@@ -1,8 +1,9 @@
 from __future__ import annotations
+import os
 import frontmatter
 from pathlib import Path
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_anthropic import ChatAnthropic
+from copilot import ChatCopilot
 
 from state import AgentState
 
@@ -11,7 +12,7 @@ class SubAgent:
     def __init__(self, name: str, description: str, model: str, system_prompt: str):
         self.name = name
         self.description = description
-        self._llm = ChatAnthropic(model=model)
+        self._llm = ChatCopilot(model=model, github_token=os.environ.get("GITHUB_TOKEN", ""))
         self._system_prompt = system_prompt
 
     @classmethod
@@ -25,12 +26,12 @@ class SubAgent:
             system_prompt=post.content,
         )
 
-    def run(self, state: AgentState) -> AgentState:
+    async def run(self, state: AgentState) -> AgentState:
         messages = [
             SystemMessage(content=self._system_prompt),
             HumanMessage(content=state["input"]),
         ]
-        response = self._llm.invoke(messages)
+        response = await self._llm.ainvoke(messages)
         return {
             "output": response.content,
             "messages": [AIMessage(content=response.content)],

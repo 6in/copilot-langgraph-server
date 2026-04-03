@@ -1,11 +1,12 @@
 # src/main.py
+import asyncio
 import os
 from agent import SubAgentRegistry
 from graph import build_orchestrator_graph, build_simple_graph
 from dispatcher import MenuDispatcher, MenuRegistry
 
 
-def main():
+async def main():
     registry = SubAgentRegistry("./agents")
     graphs = {
         "orchestrator": build_orchestrator_graph(registry),
@@ -26,9 +27,9 @@ def main():
         print(f"mode: {mode}")
         print(f"input: {user_input}")
         print(f"---")
-        output = dispatcher.dispatch(user_input, mode)
+        output = await dispatcher.dispatch(user_input, mode)
         print(f"output: {output[:200]}...")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
