@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
-status: Executing Phase 09
-stopped_at: Phase 9 context gathered
-last_updated: "2026-04-03T16:30:03.235Z"
+status: Ready to execute
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-04-03T16:37:59.035Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 9
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 ## Current Position
 
 Phase: 09 (superchat-orchestratorgraph-app-chat) — EXECUTING
-Plan: 1 of 4
+Plan: 2 of 4
 Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
 Ready to plan next milestone.
 
@@ -71,6 +71,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 07-react-chat-ui-chatscope-vite-bun P03 | 4min | 2 tasks | 7 files |
 | Phase 08 P01 | 2min | 2 tasks | 8 files |
 | Phase 08 P03 | 79min | 2 tasks | 1 files |
+| Phase 09 P02 | 3min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,9 @@ Recent decisions affecting current work:
 - [Phase 08]: python-frontmatter (not frontmatter) in pyproject.toml — different PyPI packages, same import name
 - [Phase 08]: pythonpath = ['src'] in pytest config — avoids requiring PYTHONPATH=src env var for test runs
 - [Phase 08]: main.py written verbatim from spec section 9 — no modifications needed; smoke test verified manually by human across all 4 routing paths
+- [Phase 09]: OrchestratorHandler builds SubAgentRegistry per job for multi-user token isolation — no app.state sharing
+- [Phase 09]: mode='super' overrides task_type to 'orchestrator' — mode takes priority over task_type field, backward compatible
+- [Phase 09]: AGENT_DIR and MENU_DIR added to api and worker Docker services — points to /app/agents and /app/menus via existing volume
 
 ### Roadmap Evolution
 
@@ -183,6 +187,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-03
-Last session: 2026-04-03T15:53:44.567Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-superchat-orchestratorgraph-app-chat/09-CONTEXT.md
+Last session: 2026-04-03T16:37:59.032Z
+Stopped at: Completed 09-02-PLAN.md
+Resume file: None
