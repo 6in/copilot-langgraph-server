@@ -160,8 +160,10 @@ frontend/
 ### Infrastructure
 
 - Docker Compose: FastAPI backend + PostgreSQL (langgraph-checkpoint-postgres) + Redis (arq worker queue) + React frontend (Bun/Vite)
+- **Primary startup method: `docker compose up`** — do not use direct `uvicorn` or `bun run dev` commands for running the full app
 - Legacy Vanilla JS UI served at `/` via FastAPI StaticFiles (`static/` directory)
 - React UI served at `/app` (Vite dev server proxies `/api` to backend in dev; FastAPI serves `frontend/dist/` in production)
+- Reverse-proxy URL prefix (e.g. `/orochi`) configured via `APP_PREFIX` (FastAPI) + `VITE_APP_BASE` (Vite); nginx strips the prefix before forwarding — see `docs/nginx.md`
 
 ### Key Patterns
 
