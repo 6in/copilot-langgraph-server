@@ -126,6 +126,10 @@ Recent decisions affecting current work:
 - [Quick 260403-hc7]: Relative ./api/ paths in client.ts: browser resolves against current origin+base, no hardcoded prefix in JS
 - [Quick 260403-hc7]: VITE_APP_BASE controls both Vite base (asset URLs) and the dev proxy key+rewrite
 - [Quick 260403-hc7]: APP_PREFIX sets FastAPI root_path only for OpenAPI docs — routes stay at /api/... unchanged; nginx trailing slash on proxy_pass strips location prefix
+- [Quick 260403-oo9]: github_login embedded in JWT at auth time: fetched from GET /api/github.com/user after Device Flow, fallback to 'unknown' on error
+- [Quick 260403-oo9]: GET /api/threads uses INNER JOIN thread_labels + WHERE github_login filter: orphan threads excluded post-migration
+- [Quick 260403-oo9]: POST /api/chat upserts github_login with COALESCE(existing, new): first writer wins, prevents ownership hijack
+- [Quick 260403-oo9]: DELETE /api/threads verifies ownership before deleting: returns 404 if thread does not belong to JWT user
 
 ### Roadmap Evolution
 
@@ -137,11 +141,11 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
-- Add light and dark mode toggle — ui
+- インストールされているスキルを活用してコードレビューを実施する — general
 - Implement Gem and Canvas feature — api
-- Extend worker to support pluggable async task types via routing facade — api
 - Integrate LangGraph tool calling with async worker execution — api
 - Investigate Agent-Skills integration mechanism — general
+- チャットのコンテキストにてユーザー情報も入れるようにする — api
 
 
 ### Quick Tasks Completed
@@ -161,6 +165,7 @@ Recent decisions affecting current work:
 | 260402-m3q | Install typescript-react-reviewer skill globally + update CLAUDE.md with React 19 architecture | 2026-04-02 | 5895349 | [260402-m3q-install-typescript-react-reviewer-skill-](.planning/quick/260402-m3q-install-typescript-react-reviewer-skill-/) |
 | 260403-dyf | Add menu screen and configurable URL prefix: MenuScreen component, App.tsx screen routing, Header back button, VITE_BASE_URL in API client | 2026-04-03 | f99d0d2 | [260403-dyf-add-menu-screen-and-configurable-url-pre](.planning/quick/260403-dyf-add-menu-screen-and-configurable-url-pre/) |
 | 260403-hc7 | Refactor URL prefix to nginx-strip approach: relative ./api/ paths, VITE_APP_BASE, FastAPI root_path, nginx docs | 2026-04-03 | e139b75 | [260403-hc7-refactor-url-prefix-nginx-strip-approach](.planning/quick/260403-hc7-refactor-url-prefix-nginx-strip-approach/) |
+| 260403-oo9 | Minimum multi-user thread isolation: github_login in JWT, thread_labels column, JWT-protected thread routes, GET /api/threads owner filter | 2026-04-03 | 9237aaf | [260403-oo9-minimum-multi-user](.planning/quick/260403-oo9-minimum-multi-user/) |
 
 ### Blockers/Concerns
 
@@ -168,7 +173,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-03 - Completed quick task 260403-hc7: Refactor URL prefix to nginx-strip approach
-Last session: 2026-04-03T03:33:00Z
-Stopped at: Completed quick 260403-hc7-refactor-url-prefix-nginx-strip-approach
+Last activity: 2026-04-03 - Completed quick task 260403-oo9: Minimum multi-user thread isolation
+Last session: 2026-04-03T04:00:00Z
+Stopped at: Completed quick 260403-oo9-minimum-multi-user
 Resume file: None
