@@ -7,7 +7,7 @@ PROV-02: Manages CopilotClient lifecycle (start/stop).
 PROV-03: Converts LangChain message list to Copilot prompt string.
 
 Usage:
-    from copilot import ChatCopilot
+    from chat_copilot import ChatCopilot
 
     provider = ChatCopilot(model="gpt-4.1", github_token="ghu_...")
     result = await provider.ainvoke([HumanMessage("Hello")])

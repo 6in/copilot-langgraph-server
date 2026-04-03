@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any
-from copilot import ChatCopilot
+from chat_copilot import ChatCopilot
 from auth_manager import CopilotAuthManager
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END

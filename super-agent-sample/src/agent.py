@@ -2,7 +2,7 @@ from __future__ import annotations
 import frontmatter
 from pathlib import Path
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from copilot import ChatCopilot
+from chat_copilot import ChatCopilot
 from auth_manager import CopilotAuthManager
 
 from state import AgentState
