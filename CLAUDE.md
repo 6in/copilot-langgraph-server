@@ -113,6 +113,16 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、マル�
 
 - 了解なら `/create-adr` を実行してから PR 作成 → マージへ進む
 - 不要なら即マージへ進む
+
+マージ完了後、不要な worktree を削除する:
+
+```bash
+git worktree list
+# main 以外の worktree があれば削除
+git worktree remove <path>          # 変更なしの場合
+git worktree remove --force <path>  # 強制削除が必要な場合
+git worktree prune                  # 参照だけ残っているゴミを掃除
+```
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
