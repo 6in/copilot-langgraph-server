@@ -119,14 +119,16 @@ def decrypt_github_token(encrypted: str) -> str:
 # JWT creation and validation
 # ---------------------------------------------------------------------------
 
-def create_jwt(github_token: str, expires_minutes: int = 1440) -> str:
-    """Create a signed JWT embedding the encrypted GitHub token.
+def create_jwt(github_token: str, expires_minutes: int = 1440, github_login: str = "unknown") -> str:
+    """Create a signed JWT embedding the encrypted GitHub token and the user's login.
 
     Payload fields:
-    - sub: "copilot_user" (fixed — single-user identity anchor)
+    - sub: "copilot_user" (fixed — backward-compat identity anchor)
     - github_token: Fernet-encrypted ghu_... token
+    - github_login: GitHub username (e.g. "octocat") — used for multi-user thread isolation
     - jti: UUID4 hex (unique per token, used for blocklist revocation)
     - exp: expiry timestamp (default: 24 hours from now)
+    - iat: issued-at timestamp
 
     Signed with HS256 using the JWT secret from _get_jwt_secret().
     """
@@ -136,6 +138,7 @@ def create_jwt(github_token: str, expires_minutes: int = 1440) -> str:
     payload = {
         "sub": "copilot_user",
         "github_token": encrypt_github_token(github_token),
+        "github_login": github_login,
         "jti": uuid4().hex,
         "exp": now + datetime.timedelta(minutes=expires_minutes),
         "iat": now,

@@ -8,6 +8,7 @@ Endpoints:
 """
 from uuid import uuid4
 
+import httpx
 import jwt
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
@@ -72,8 +73,22 @@ async def poll_auth(request: Request, flow_id: str = Query(...)):
         )
 
     if token is not None:
-        # Auth succeeded — create JWT, set httpOnly cookie, clean up flow state
-        jwt_token = create_jwt(token)
+        # Auth succeeded — fetch GitHub login to embed in JWT for multi-user isolation
+        github_login = "unknown"
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    "https://api.github.com/user",
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                    timeout=10.0,
+                )
+                if resp.status_code == 200:
+                    github_login = resp.json().get("login", "unknown")
+        except Exception:
+            pass  # Fall back to "unknown" rather than blocking auth
+
+        # Create JWT with github_login embedded, set httpOnly cookie, clean up flow state
+        jwt_token = create_jwt(token, github_login=github_login)
         request.app.state.device_flows.pop(flow_id, None)
 
         response = JSONResponse(content=AuthPollResponse(done=True).model_dump())
