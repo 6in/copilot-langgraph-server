@@ -3,8 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Milestone complete
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-04-02T07:01:00.000Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-04-03T13:37:28.564Z"
+last_activity: "2026-04-03 - Completed quick task 260403-oo9: Minimum multi-user thread isolation"
 progress:
   total_phases: 1
   completed_phases: 1
@@ -68,6 +69,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 07-react-chat-ui-chatscope-vite-bun P01 | 3min | 2 tasks | 22 files |
 | Phase 07-react-chat-ui-chatscope-vite-bun P02 | 3min | 2 tasks | 7 files |
 | Phase 07-react-chat-ui-chatscope-vite-bun P03 | 4min | 2 tasks | 7 files |
+| Phase 08 P01 | 2min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -130,6 +132,9 @@ Recent decisions affecting current work:
 - [Quick 260403-oo9]: GET /api/threads uses INNER JOIN thread_labels + WHERE github_login filter: orphan threads excluded post-migration
 - [Quick 260403-oo9]: POST /api/chat upserts github_login with COALESCE(existing, new): first writer wins, prevents ownership hijack
 - [Quick 260403-oo9]: DELETE /api/threads verifies ownership before deleting: returns 404 if thread does not belong to JWT user
+- [Phase 08]: super-agent-sample/ standalone project on feat/super-agent-sample branch — isolates sample from main FastAPI app
+- [Phase 08]: python-frontmatter (not frontmatter) in pyproject.toml — different PyPI packages, same import name
+- [Phase 08]: pythonpath = ['src'] in pytest config — avoids requiring PYTHONPATH=src env var for test runs
 
 ### Roadmap Evolution
 
@@ -146,7 +151,6 @@ Recent decisions affecting current work:
 - Integrate LangGraph tool calling with async worker execution — api
 - Investigate Agent-Skills integration mechanism — general
 - チャットのコンテキストにてユーザー情報も入れるようにする — api
-
 
 ### Quick Tasks Completed
 
@@ -174,6 +178,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-03 - Completed quick task 260403-oo9: Minimum multi-user thread isolation
-Last session: 2026-04-03T04:00:00Z
-Stopped at: Completed quick 260403-oo9-minimum-multi-user
+Last session: 2026-04-03T13:37:28.561Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
