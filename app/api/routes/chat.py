@@ -21,7 +21,7 @@ from langchain_core.messages import HumanMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
-from app.auth.jwt_utils import decrypt_github_token
+from app.auth.jwt_utils import decode_jwt, decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
