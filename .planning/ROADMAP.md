@@ -69,10 +69,16 @@ Plans:
 
 ### Phase 9: SuperChat メインアプリ統合 — OrchestratorGraph を app/ に組み込み、既存 Chat と共存
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Integrate the OrchestratorGraph + SubAgent + MenuDispatcher prototype from `super-agent-sample/` into the main `app/` as a selectable mode (`simple` vs `super`), with `github_token` threading for multi-user auth, a new `OrchestratorHandler` in the arq worker, and a React UI toggle to switch between modes.
+
+**Requirements:** D-01 (app/orchestrator module), D-02 (remove standalone copies, import from app/), D-03 (keep super-agent-sample/), D-04 (mode field on POST /api/chat), D-06 (same job/SSE/polling), D-07 (AGENT_DIR/MENU_DIR env vars), D-08 (React mode toggle)
+
 **Depends on:** Phase 8
-**Plans:** 0 plans
+
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 9 to break down)
+- [ ] 09-01-PLAN.md — Create app/orchestrator/ module + repo-root agents/menus directories
+- [ ] 09-02-PLAN.md — OrchestratorHandler + API mode routing + Docker env vars
+- [ ] 09-03-PLAN.md — Frontend mode toggle in React UI
+- [ ] 09-04-PLAN.md — Integration smoke test and UAT verification
