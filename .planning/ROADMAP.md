@@ -66,3 +66,13 @@ Plans:
 - [x] 08-01-PLAN.md — Feature branch + scaffold: pyproject.toml, uv sync, state.py, AGENT.md files, menu YAMLs
 - [x] 08-02-PLAN.md — Core modules: agent.py, graph.py, dispatcher.py + full unit test suite
 - [x] 08-03-PLAN.md — Entry point main.py + live smoke test (human verification)
+
+### Phase 9: SuperChat メインアプリ統合 — OrchestratorGraph を app/ に組み込み、既存 Chat と共存
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 9 to break down)
