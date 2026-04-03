@@ -41,6 +41,7 @@ htmlcov/
 
 # Claude Code
 .claude/
+!.claude/commands/
 
 # OS
 .DS_Store
