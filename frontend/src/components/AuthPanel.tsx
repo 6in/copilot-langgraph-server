@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 export function AuthPanel() {
-  const { authState, flowData, startFlow } = useAuth();
+  const { authState, flowData, flowError, startFlow } = useAuth();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -32,6 +32,10 @@ export function AuthPanel() {
 
       {authState === 'expired' && (
         <p style={{ color: '#c0392b' }}>Session expired — please authenticate again.</p>
+      )}
+
+      {flowError && (
+        <p style={{ color: '#c0392b' }}>{flowError}</p>
       )}
 
       {!flowData ? (

@@ -11,6 +11,7 @@ export type AuthState = 'unknown' | 'authenticated' | 'unauthenticated' | 'expir
 interface AuthContextValue {
   authState: AuthState;
   flowData: Pick<AuthStartResponse, 'user_code' | 'verification_uri' | 'flow_id'> | null;
+  flowError: string | null;
   startFlow: () => Promise<void>;
   performLogout: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue>({
   authState: 'unknown',
   flowData: null,
+  flowError: null,
   startFlow: async () => {},
   performLogout: async () => {},
 });
@@ -29,6 +31,7 @@ export function useAuth(): AuthContextValue {
 export function useAuthProvider(): AuthContextValue {
   const [authState, setAuthState] = useState<AuthState>('unknown');
   const [flowData, setFlowData] = useState<AuthContextValue['flowData']>(null);
+  const [flowError, setFlowError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // On mount: check current auth status
@@ -72,13 +75,18 @@ export function useAuthProvider(): AuthContextValue {
 
   const startFlow = async () => {
     if (pollRef.current) clearInterval(pollRef.current);
-    const data = await startAuthFlow();
-    setFlowData({
-      user_code: data.user_code,
-      verification_uri: data.verification_uri,
-      flow_id: data.flow_id,
-    });
-    pollRef.current = setInterval(() => doPoll(data.flow_id), 5000);
+    setFlowError(null);
+    try {
+      const data = await startAuthFlow();
+      setFlowData({
+        user_code: data.user_code,
+        verification_uri: data.verification_uri,
+        flow_id: data.flow_id,
+      });
+      pollRef.current = setInterval(() => doPoll(data.flow_id), 5000);
+    } catch (err) {
+      setFlowError(err instanceof Error ? err.message : 'Failed to start authentication');
+    }
   };
 
   const performLogout = async () => {
@@ -87,5 +95,5 @@ export function useAuthProvider(): AuthContextValue {
     setFlowData(null);
   };
 
-  return { authState, flowData, startFlow, performLogout };
+  return { authState, flowData, flowError, startFlow, performLogout };
 }

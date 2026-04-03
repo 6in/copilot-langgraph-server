@@ -1,10 +1,12 @@
 // frontend/src/api/client.ts
 // Typed fetch wrappers for all backend endpoints.
-// All API paths are RELATIVE (./api/...) so the browser resolves them against
-// the current page origin + Vite's `base` path. This means:
-//   - Dev: Vite proxy intercepts and forwards to FastAPI
-//   - Prod behind nginx: nginx strips the prefix, FastAPI sees /api/...
-//   - No hardcoded prefix needed in JS code
+// API_BASE is the URL prefix baked in at build time via VITE_APP_BASE env var (default: '').
+//   - No prefix:       API_BASE=''        → paths become /api/...
+//   - With prefix:     API_BASE=/orochi   → paths become /orochi/api/...
+// In dev, Vite proxy matches ${VITE_APP_BASE}/api and strips the prefix before forwarding.
+// Behind nginx, nginx strips the prefix; FastAPI always sees /api/...
+
+const API_BASE = (import.meta.env.VITE_APP_BASE ?? '').replace(/\/$/, '');
 
 import type {
   AuthStartResponse,
@@ -30,44 +32,44 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 // Auth
 export const checkAuthStatus = () =>
-  apiFetch<AuthStatusResponse>('./api/auth/status');
+  apiFetch<AuthStatusResponse>('${API_BASE}/api/auth/status');
 
 export const startAuthFlow = () =>
-  apiFetch<AuthStartResponse>('./api/auth/start', { method: 'POST' });
+  apiFetch<AuthStartResponse>('${API_BASE}/api/auth/start', { method: 'POST' });
 
 export const pollAuthFlow = (flowId: string) =>
-  apiFetch<AuthPollResponse>(`./api/auth/poll?flow_id=${encodeURIComponent(flowId)}`);
+  apiFetch<AuthPollResponse>(`${API_BASE}/api/auth/poll?flow_id=${encodeURIComponent(flowId)}`);
 
 export const logout = () =>
-  apiFetch<AuthLogoutResponse>('./api/auth/logout', { method: 'POST' });
+  apiFetch<AuthLogoutResponse>('${API_BASE}/api/auth/logout', { method: 'POST' });
 
 // User info
-export const getMe = () => apiFetch<UserInfoResponse>('./api/me');
+export const getMe = () => apiFetch<UserInfoResponse>('${API_BASE}/api/me');
 
 // Chat
 export const postChat = (req: ChatRequest) =>
-  apiFetch<ChatAsyncResponse>('./api/chat', {
+  apiFetch<ChatAsyncResponse>('${API_BASE}/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   });
 
 export const getJob = (jobId: string) =>
-  apiFetch<JobStatusResponse>(`./api/job/${encodeURIComponent(jobId)}`);
+  apiFetch<JobStatusResponse>(`${API_BASE}/api/job/${encodeURIComponent(jobId)}`);
 
 // SSE — returns a native EventSource for the caller to manage lifecycle.
-// The URL is a GET (./api/chat/{job_id}/stream) so native EventSource works.
+// The URL is a GET (${API_BASE}/api/chat/{job_id}/stream) so native EventSource works.
 export const streamJob = (jobId: string): EventSource =>
-  new EventSource(`./api/chat/${encodeURIComponent(jobId)}/stream`);
+  new EventSource(`${API_BASE}/api/chat/${encodeURIComponent(jobId)}/stream`);
 
 // Threads
-export const listThreads = () => apiFetch<ThreadInfo[]>('./api/threads');
+export const listThreads = () => apiFetch<ThreadInfo[]>('${API_BASE}/api/threads');
 
 export const createThread = () =>
-  apiFetch<{ thread_id: string; label: string }>('./api/threads', { method: 'POST' });
+  apiFetch<{ thread_id: string; label: string }>('${API_BASE}/api/threads', { method: 'POST' });
 
 export const deleteThread = async (threadId: string): Promise<void> => {
-  const resp = await fetch(`./api/threads/${encodeURIComponent(threadId)}`, {
+  const resp = await fetch(`${API_BASE}/api/threads/${encodeURIComponent(threadId)}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -78,7 +80,7 @@ export const deleteThread = async (threadId: string): Promise<void> => {
 
 export const renameThread = (threadId: string, label: string) =>
   apiFetch<{ thread_id: string; label: string }>(
-    `./api/threads/${encodeURIComponent(threadId)}`,
+    `${API_BASE}/api/threads/${encodeURIComponent(threadId)}`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -88,7 +90,7 @@ export const renameThread = (threadId: string, label: string) =>
 
 export const getThreadMessages = (threadId: string) =>
   apiFetch<ThreadMessagesResponse>(
-    `./api/threads/${encodeURIComponent(threadId)}/messages`
+    `${API_BASE}/api/threads/${encodeURIComponent(threadId)}/messages`
   );
 
 // Convenience: fetch the full message list as ChatMessage[]
