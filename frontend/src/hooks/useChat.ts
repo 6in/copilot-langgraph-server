@@ -9,6 +9,7 @@ import type { ChatMessage } from '../types';
 interface UseChatOptions {
   activeThreadId: string | null;
   selectedModel: string;
+  selectedTaskType?: string;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
@@ -22,6 +23,7 @@ interface UseChatReturn {
 export function useChat({
   activeThreadId,
   selectedModel,
+  selectedTaskType = 'langgraph',
   setMessages,
   refreshThreads,
 }: UseChatOptions): UseChatReturn {
@@ -45,6 +47,7 @@ export function useChat({
         message: text,
         thread_id: resolvedThreadId,
         model: selectedModel,
+        task_type: selectedTaskType,
       });
 
       // 2. Check if already done (reconnect / very fast response edge case)
@@ -102,7 +105,7 @@ export function useChat({
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, isThinking, setMessages, refreshThreads]);
+  }, [activeThreadId, selectedModel, selectedTaskType, isThinking, setMessages, refreshThreads]);
 
   return { isThinking, sendMessage };
 }

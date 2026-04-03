@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     message: str
     thread_id: str
     model: str = "gpt-4.1"
+    task_type: str = "langgraph"
 
 
 class ChatResponse(BaseModel):
