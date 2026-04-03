@@ -103,7 +103,14 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、個人�
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+### Merge Workflow
+
+「マージして」と指示された場合、マージを実行する前に必ず次を確認する:
+
+> 「`/create-adr` でこのブランチの振り返りを記録しますか？」
+
+- 了解なら `/create-adr` を実行してから PR 作成 → マージへ進む
+- 不要なら即マージへ進む
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
