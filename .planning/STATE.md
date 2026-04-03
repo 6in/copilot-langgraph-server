@@ -137,6 +137,7 @@ Recent decisions affecting current work:
 - Phase 5 added: GitHubユーザー情報取得＆ヘッダー表示（/api/me エンドポイント追加 + UI）
 - Phase 6 added: SQLiteからPostgreSQLへのCheckpointer移行（langgraph-checkpoint-postgres + Docker Compose）
 - Phase 7 added: React製チャットUI — chat-ui-kit-react + Vite + Bun で frontend/ ディレクトリに独立モジュールとして実装し、既存 Vanilla JS版と並存
+- Phase 8 added: スーパーエージェントサンプル実装 — OrchestratorGraph + SubAgent + メニュー追加（docs/pre/phase1_spec.md 仕様準拠、別ブランチ作業）
 
 ### Pending Todos
 
