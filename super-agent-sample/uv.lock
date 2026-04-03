@@ -875,6 +875,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "cryptography" },
     { name = "github-copilot-sdk" },
+    { name = "httpx" },
     { name = "langchain-core" },
     { name = "langgraph" },
     { name = "pydantic" },
@@ -893,6 +894,7 @@ dev = [
 requires-dist = [
     { name = "cryptography", specifier = ">=41.0" },
     { name = "github-copilot-sdk", specifier = "==0.2.0" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "langchain-core", specifier = ">=0.3.0" },
     { name = "langgraph", specifier = ">=1.1.4" },
     { name = "pydantic", specifier = ">=2.0" },
