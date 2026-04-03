@@ -32,7 +32,7 @@ def test_subagent_from_dir_default_model(tmp_path):
     )
     with patch("agent.ChatCopilot") as MockLLM:
         agent = SubAgent.from_dir(agent_dir)
-        MockLLM.assert_called_once_with(model="claude-sonnet-4-6", github_token=ANY)
+        MockLLM.assert_called_once_with(model="claude-sonnet-4-6", auth_manager=ANY)
     assert agent.name == "no-model-agent"
 
 
