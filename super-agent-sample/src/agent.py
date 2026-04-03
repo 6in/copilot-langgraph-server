@@ -1,9 +1,9 @@
 from __future__ import annotations
-import os
 import frontmatter
 from pathlib import Path
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from copilot import ChatCopilot
+from auth_manager import CopilotAuthManager
 
 from state import AgentState
 
@@ -12,7 +12,7 @@ class SubAgent:
     def __init__(self, name: str, description: str, model: str, system_prompt: str):
         self.name = name
         self.description = description
-        self._llm = ChatCopilot(model=model, github_token=os.environ.get("GITHUB_TOKEN", ""))
+        self._llm = ChatCopilot(model=model, auth_manager=CopilotAuthManager())
         self._system_prompt = system_prompt
 
     @classmethod

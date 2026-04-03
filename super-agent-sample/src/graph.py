@@ -1,7 +1,7 @@
 from __future__ import annotations
-import os
 from typing import Any
 from copilot import ChatCopilot
+from auth_manager import CopilotAuthManager
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
@@ -27,7 +27,7 @@ ROUTER_PROMPT = """\
 class RouterNode:
     def __init__(self, registry: SubAgentRegistry):
         self._registry = registry
-        self._llm = ChatCopilot(model="claude-haiku-4-5-20251001", github_token=os.environ.get("GITHUB_TOKEN", ""))  # ルーターは軽量モデル
+        self._llm = ChatCopilot(model="claude-haiku-4-5-20251001", auth_manager=CopilotAuthManager())  # ルーターは軽量モデル
 
     async def __call__(self, state: AgentState) -> AgentState:
         agents = self._registry.all()
@@ -83,7 +83,7 @@ def build_simple_graph() -> Any:
     """チャットモード用：LLM 1発"""
 
     async def simple_node(state: AgentState) -> AgentState:
-        llm = ChatCopilot(model="claude-sonnet-4-6", github_token=os.environ.get("GITHUB_TOKEN", ""))
+        llm = ChatCopilot(model="claude-sonnet-4-6", auth_manager=CopilotAuthManager())
         response = await llm.ainvoke([HumanMessage(content=state["input"])])
         return {"output": response.content, "messages": []}
 
