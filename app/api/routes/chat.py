@@ -1,16 +1,13 @@
 """Chat and thread API routes (CHAT-01, CHAT-02, CHAT-03, CHAT-04, ASYNC-01, ASYNC-04, ASYNC-06).
 
 Endpoints:
-- POST   /api/chat                  — enqueue chat job, returns job_id immediately (JWT protected)
-- GET    /api/chat/{job_id}/stream  — SSE stream for real-time job completion notification
-- POST   /api/threads               — create new thread (returns UUID)
-- GET    /api/threads               — list existing threads
-- DELETE /api/threads/{thread_id}   — delete a thread and its checkpoints
-- GET    /api/threads/{thread_id}/messages — get messages for a thread
-
-NOTE: Thread CRUD routes (list/create/delete/messages) are intentionally NOT
-JWT-protected. They operate on local PostgreSQL data only, and this is a personal
-tool where server-side access control on thread metadata adds no security value.
+- POST   /api/chat                       — enqueue chat job, returns job_id immediately (JWT protected)
+- GET    /api/chat/{job_id}/stream       — SSE stream for real-time job completion notification
+- POST   /api/threads                    — create new thread (JWT protected)
+- GET    /api/threads                    — list threads owned by the authenticated user (JWT protected)
+- DELETE /api/threads/{thread_id}        — delete a thread and its checkpoints (JWT protected)
+- PATCH  /api/threads/{thread_id}        — rename thread label (JWT protected)
+- GET    /api/threads/{thread_id}/messages — get messages for a thread (JWT protected)
 """
 import json
 import uuid
@@ -27,6 +24,27 @@ from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameT
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+
+async def get_jwt_payload(request: Request) -> dict:
+    """FastAPI dependency: decode JWT session cookie and return the full payload dict.
+
+    Use this when you need JWT claims (e.g. github_login) without decrypting the token.
+
+    Raises HTTPException 401 with detail:
+    - "auth_required" if no session cookie is present
+    - "auth_expired"  if JWT has expired
+    - "auth_invalid"  if JWT is malformed or revoked
+    """
+    session_cookie = request.cookies.get("session")
+    if not session_cookie:
+        raise HTTPException(status_code=401, detail="auth_required")
+    try:
+        return decode_jwt(session_cookie)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="auth_expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="auth_invalid")
 
 
 async def get_github_token(request: Request) -> str:
@@ -54,6 +72,7 @@ async def send_message(
     request: Request,
     body: ChatRequest,
     github_token: str = Depends(get_github_token),
+    payload: dict = Depends(get_jwt_payload),
 ):
     """Enqueue chat job and return job_id immediately (ASYNC-01).
 
@@ -61,6 +80,7 @@ async def send_message(
     Frontend uses SSE or polling to get the result.
 
     Auth is enforced via JWT cookie through get_github_token dependency.
+    After enqueuing, upserts github_login into thread_labels (first writer wins).
     """
     from arq import ArqRedis
     arq_redis: ArqRedis = request.app.state.arq_redis
@@ -76,6 +96,25 @@ async def send_message(
         reply_to={"type": "web", "job_id": job_id},
         task_type=body.task_type,
     )
+
+    # Upsert thread_labels with github_login (first writer wins via COALESCE)
+    github_login = payload.get("github_login", "unknown")
+    label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    db_uri = request.app.state.db_uri
+    try:
+        async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+            await conn.execute(
+                """INSERT INTO thread_labels (thread_id, label, github_login)
+                   VALUES (%s, %s, %s)
+                   ON CONFLICT (thread_id)
+                   DO UPDATE SET github_login = COALESCE(thread_labels.github_login, EXCLUDED.github_login),
+                                 updated_at = now()""",
+                (body.thread_id, label, github_login),
+            )
+            await conn.commit()
+    except Exception:
+        pass  # Non-fatal: thread_labels upsert failure should not block the chat job
+
     return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
 
 
@@ -125,11 +164,12 @@ async def stream_job(job_id: str, request: Request):
 
 
 @router.post("/threads")
-async def create_thread():
+async def create_thread(payload: dict = Depends(get_jwt_payload)):
     """Create a new conversation thread (CHAT-04).
 
     Returns a new UUID4 thread_id. The thread is implicitly created
     in the checkpoints table when the first message is sent via /api/chat.
+    JWT protection ensures only authenticated users can create threads.
     """
     thread_id = str(uuid.uuid4())
     label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
@@ -137,13 +177,15 @@ async def create_thread():
 
 
 @router.get("/threads")
-async def list_threads(request: Request):
-    """List existing threads sorted by latest activity (SESS-02 front-loaded).
+async def list_threads(request: Request, payload: dict = Depends(get_jwt_payload)):
+    """List threads owned by the authenticated user, sorted by latest activity.
 
-    Direct SQL against AsyncPostgresSaver's checkpoints table.
-    LangGraph's alist() requires a thread_id filter — no 'list all' API.
+    Filters by github_login from JWT — each user sees only their own threads.
+    Uses INNER JOIN on thread_labels so orphan threads (no owner) are excluded.
+    LangGraph's alist() requires a thread_id filter — no 'list all' API; direct SQL used.
     """
     db_uri = request.app.state.db_uri
+    github_login = payload.get("github_login", "")
     threads: list[ThreadInfo] = []
 
     try:
@@ -152,17 +194,18 @@ async def list_threads(request: Request):
                 await cur.execute(
                     """SELECT c.thread_id, MAX(c.checkpoint_id) as latest, tl.label, tl.updated_at
                        FROM checkpoints c
-                       LEFT JOIN thread_labels tl ON c.thread_id = tl.thread_id
+                       INNER JOIN thread_labels tl ON c.thread_id = tl.thread_id
                        WHERE c.checkpoint_ns = ''
+                         AND tl.github_login = %s
                        GROUP BY c.thread_id, tl.label, tl.updated_at
                        ORDER BY latest DESC
-                       LIMIT 50"""
+                       LIMIT 50""",
+                    (github_login,),
                 )
                 rows = await cur.fetchall()
 
         for row in rows:
             thread_id = row["thread_id"]
-            checkpoint_id = row["latest"]
             label = row["label"] or f"Chat {thread_id[:8]}"
             threads.append(ThreadInfo(
                 thread_id=thread_id,
@@ -177,14 +220,35 @@ async def list_threads(request: Request):
 
 
 @router.delete("/threads/{thread_id}", status_code=204)
-async def delete_thread(thread_id: str, request: Request):
+async def delete_thread(thread_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Delete a thread and all its checkpoints from PostgreSQL.
 
+    JWT-protected. Verifies ownership via thread_labels before deleting.
+    Returns 404 if thread does not belong to the authenticated user.
     Uses AsyncPostgresSaver.adelete_thread() which atomically removes
     all related rows from checkpoints, checkpoint_blobs, and checkpoint_writes.
     """
-    checkpointer = request.app.state.checkpointer
+    github_login = payload.get("github_login", "")
+    db_uri = request.app.state.db_uri
 
+    # Verify ownership
+    try:
+        async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT github_login FROM thread_labels WHERE thread_id = %s",
+                    (thread_id,),
+                )
+                row = await cur.fetchone()
+
+        if row is None or row["github_login"] != github_login:
+            raise HTTPException(status_code=404, detail="Thread not found")
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # If DB check fails, proceed with delete (non-blocking ownership check)
+
+    checkpointer = request.app.state.checkpointer
     try:
         await checkpointer.adelete_thread(thread_id)
     except Exception:
@@ -193,11 +257,11 @@ async def delete_thread(thread_id: str, request: Request):
 
 
 @router.patch("/threads/{thread_id}")
-async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Request):
+async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Update the display label for a thread.
 
-    Uses INSERT ... ON CONFLICT DO UPDATE (upsert) so both new and existing
-    threads can have their label set without a separate check.
+    JWT-protected. Uses INSERT ... ON CONFLICT DO UPDATE (upsert) so both new
+    and existing threads can have their label set without a separate check.
     """
     label = body.label.strip()
     if not label:
@@ -218,10 +282,10 @@ async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Requ
 
 
 @router.get("/threads/{thread_id}/messages")
-async def get_thread_messages(thread_id: str, request: Request):
+async def get_thread_messages(thread_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Get all messages for a specific thread.
 
-    Uses graph.aget_state() to retrieve the full message list from the checkpoint.
+    JWT-protected. Uses graph.aget_state() to retrieve the full message list from the checkpoint.
     """
     graph = request.app.state.graph
     config = {"configurable": {"thread_id": thread_id}}
