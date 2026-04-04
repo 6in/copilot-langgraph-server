@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
 status: executing
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-04-04T06:15:57.321Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-04-04T14:40:29.643Z"
 last_activity: 2026-04-04
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 38
-  completed_plans: 38
+  total_phases: 8
+  completed_phases: 5
+  total_plans: 24
+  completed_plans: 23
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 11 — rpccontext-integration
+**Current focus:** Phase 12 — hybrid-subagentregistry-tool-quality
 
 ## Current Position
 
-Phase: 11
-Plan: Not started
+Phase: 12 (hybrid-subagentregistry-tool-quality) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
 Last activity: 2026-04-04
 
@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 11-rpccontext-integration P02 | 2min | 2 tasks | 2 files |
 | Phase 11-rpccontext-integration P03 | 1min | 1 tasks | 2 files |
 | Phase 11-rpccontext-integration P04 | 8min | 2 tasks | 4 files |
+| Phase 12-hybrid-subagentregistry-tool-quality P03 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,8 @@ Recent decisions affecting current work:
 - [Phase Phase 11-04]: github_login extracted before enqueue_job in chat.py — ensures user_id in arq job payload at request intake for complete correlation chain
 - [Phase Phase 11-04]: error: None always in initial AgentState — AgentState has no NotRequired annotation; all fields required at every turn
 - [Phase Phase 11-04]: app_id hardcoded to 'superchat' in OrchestratorHandler — OrchestratorHandler is only used for SuperChat mode
+- [Phase 12-hybrid-subagentregistry-tool-quality]: INPUT_SCHEMA optional for legacy tools: ScriptBackend skips validation when absent, enabling permissive backward-compatible operation
+- [Phase 12-hybrid-subagentregistry-tool-quality]: jsonschema.ValidationError re-raised as ValueError with 'validation failed' message — consistent error type for callers
 
 ### Roadmap Evolution
 
@@ -215,6 +218,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-04T06:09:56.680Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-04-04T14:40:29.640Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None

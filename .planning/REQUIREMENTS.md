@@ -33,9 +33,9 @@
 
 ### TOOL — ツール品質標準
 
-- [ ] **TOOL-01**: フォルダ型エージェントのツールスクリプトに INPUT_SCHEMA 定数を定義することで、ツールのインターフェースが明示される
-- [ ] **TOOL-02**: ScriptBackend がツール呼び出し前に INPUT_SCHEMA で入力値を jsonschema 検証し、不正入力を早期検出できる
-- [ ] **TOOL-03**: scripts/lint_tools.py が CI で全ツールの INPUT_SCHEMA 欠落を自動検出し、新規エージェント追加時の品質ゲートになる
+- [x] **TOOL-01**: フォルダ型エージェントのツールスクリプトに INPUT_SCHEMA 定数を定義することで、ツールのインターフェースが明示される
+- [x] **TOOL-02**: ScriptBackend がツール呼び出し前に INPUT_SCHEMA で入力値を jsonschema 検証し、不正入力を早期検出できる
+- [x] **TOOL-03**: scripts/lint_tools.py が CI で全ツールの INPUT_SCHEMA 欠落を自動検出し、新規エージェント追加時の品質ゲートになる
 
 ---
 
