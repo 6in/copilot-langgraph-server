@@ -54,11 +54,11 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | Complete |  2026-04-04 |
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
-| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 0/? | Not started | - |
+| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 0/3 | Planning | - |
 | 13. Scalable Routing | v3.0 | 0/? | Not started | - |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
-## v2.0 Phases
+## Shipped Phase Details
 
 ### Phase 7: React Chat UI — chatscope + Vite served at /react, full feature parity with Vanilla JS
 
@@ -124,7 +124,7 @@ Plans:
 - [ ] 10-04-PLAN.md — Wave 3: OrchestratorGraph checkpointer integration
 - [ ] 10-05-PLAN.md — Wave 4: Frontend useThreads mode support
 
-## v3.0 Agent Platform — Phase Details
+## Phase Details
 
 ### Phase 11: RPCContext Integration
 **Goal:** RPCContext (user_id / app_id / thread_id / correlation_id) is unified into AgentState and flows immutably through every node and log entry, enabling end-to-end request tracing
@@ -153,7 +153,12 @@ Plans:
   3. One agent fails initialization due to a missing dependency; GET /health/agents shows it as FAILED with the error reason while all other agents remain HEALTHY and the app starts normally
   4. Developer views GET /health/agents and sees HEALTHY/DEGRADED/FAILED status and failure reason for every registered agent
   5. CI fails a pull request when a new tool script is added without an INPUT_SCHEMA constant (scripts/lint_tools.py exits non-zero)
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md -- Hybrid SubAgentRegistry with health tracking (REGISTRY-01, 02, 03)
+- [ ] 12-02-PLAN.md -- GET /health/agents endpoint + startup metadata registry (REGISTRY-04)
+- [ ] 12-03-PLAN.md -- ScriptBackend + INPUT_SCHEMA + lint_tools.py (TOOL-01, 02, 03)
 
 ### Phase 13: Scalable Routing
 **Goal:** RouterNode operates as a 2-stage pipeline (keyword pre-filter then LLM) so routing stays accurate and prompt size stays bounded as the agent count grows, with every routing decision logged for analysis
