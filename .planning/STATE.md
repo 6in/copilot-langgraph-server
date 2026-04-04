@@ -185,6 +185,7 @@ Recent decisions affecting current work:
 | 260403-oo9 | Minimum multi-user thread isolation: github_login in JWT, thread_labels column, JWT-protected thread routes, GET /api/threads owner filter | 2026-04-03 | 9237aaf | [260403-oo9-minimum-multi-user](.planning/quick/260403-oo9-minimum-multi-user/) |
 | 260403-wlh | Replace ChatAnthropic with ChatCopilot in super-agent-sample: standalone copilot.py, async call chain, updated tests | 2026-04-03 | 9e7933b | [260403-wlh-super-agent-sample-chatanthropic-chatcop](.planning/quick/260403-wlh-super-agent-sample-chatanthropic-chatcop/) |
 | 260403-auth | Integrate CopilotAuthManager into super-agent-sample: standalone auth_manager.py, replace github_token env var with auth_manager= in all ChatCopilot instantiations | 2026-04-03 | 3be4e4c | [260403-auth-super-agent-sample](.planning/quick/260403-auth-super-agent-sample/) |
+| 260404-eoj | SuperChat UI: GET /api/agents endpoint, agents[] POST /api/chat field, OrchestratorHandler agent filtering, SuperChatApp with toggle chip UI | 2026-04-04 | 13c0c19 | [260404-eoj-superchat-ui](.planning/quick/260404-eoj-superchat-ui/) |
 
 ### Blockers/Concerns
 
@@ -192,7 +193,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-04
-Last session: 2026-04-04T00:37:13.878Z
-Stopped at: Completed 09-04-PLAN.md
+Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
+Last session: 2026-04-04T01:34:14.000Z
+Stopped at: Completed quick/260404-eoj-superchat-ui on feature/superchat-agent-toggle
 Resume file: None

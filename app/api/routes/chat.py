@@ -88,6 +88,7 @@ async def send_message(
         github_token=github_token,
         reply_to={"type": "web", "job_id": job_id},
         task_type=task_type,
+        agents=body.agents,
     )
 
     # Upsert thread_labels with github_login (first writer wins via COALESCE)

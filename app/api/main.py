@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import auth, chat, jobs, me
+from app.api.routes import agents, auth, chat, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -97,6 +97,7 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(jobs.router)
 app.include_router(me.router)
+app.include_router(agents.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.
 # Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).

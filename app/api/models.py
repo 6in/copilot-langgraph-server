@@ -10,12 +10,18 @@ from typing import Literal
 from pydantic import BaseModel
 
 
+class AgentInfo(BaseModel):
+    name: str
+    description: str
+
+
 class ChatRequest(BaseModel):
     message: str
     thread_id: str
     model: str = "gpt-4.1"
     task_type: str = "langgraph"
     mode: Literal["simple", "super"] = "simple"
+    agents: list[str] | None = None  # Optional list of agent names for super mode filtering
 
 
 class ChatResponse(BaseModel):
