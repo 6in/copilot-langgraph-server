@@ -205,6 +205,8 @@ Use these entry points:
 - `/gsd:execute-phase` for planned phase work
 
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+
+**ブランチ必須:** `/gsd:quick`・`/gsd:execute-phase`・`/gsd:debug`・`/gsd:do` など GSD コマンドで作業を開始する際は、必ず最初にブランチを作成すること。`main` ブランチ上で直接コミットしない。
 <!-- GSD:workflow-end -->
 
 
