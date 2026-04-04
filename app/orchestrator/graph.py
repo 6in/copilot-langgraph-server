@@ -34,6 +34,28 @@ class RouterNode:
 
     async def __call__(self, state: AgentState) -> AgentState:
         agents = self._registry.all()
+        context = state.get("context")
+
+        # --- Stage 1: Keyword pre-filter (per D-01) ---
+        user_input = state["input"].lower()
+        keyword_matches = [
+            a for a in agents
+            if any(kw.lower() in user_input for kw in getattr(a, "keywords", []))
+        ]
+        if len(keyword_matches) == 1:
+            chosen = keyword_matches[0].name
+            logger.info(json.dumps({
+                "event": "routing",
+                "input": state["input"][:80],
+                "chosen": chosen,
+                "candidates": [a.name for a in agents],
+                "stage": "keyword",
+                "thread_id": context.thread_id if context else "",
+                "correlation_id": context.correlation_id if context else "",
+            }))
+            return {"next": chosen}
+
+        # --- Stage 2: LLM routing (existing logic, unchanged) ---
         descriptions = "\n\n".join(
             f"name: {a.name}\ndescription: {a.description}"
             for a in agents
@@ -54,12 +76,12 @@ class RouterNode:
             }))
             chosen = "fallback"
 
-        context = state.get("context")
         logger.info(json.dumps({
             "event": "routing",
             "input": state["input"][:80],
             "chosen": chosen,
             "candidates": [a.name for a in agents],
+            "stage": "llm",
             "thread_id": context.thread_id if context else "",
             "correlation_id": context.correlation_id if context else "",
         }))
