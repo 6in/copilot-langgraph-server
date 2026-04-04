@@ -1,9 +1,56 @@
 from __future__ import annotations
+
 import frontmatter
+import importlib.util
+import logging
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
+
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
+
+logger = logging.getLogger(__name__)
+
+
+class AgentStatusEnum(str, Enum):
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    FAILED = "FAILED"
+
+
+@dataclass
+class AgentHealth:
+    name: str
+    agent_type: str  # "folder" or "code"
+    status: AgentStatusEnum
+    error: str | None = None
+
+
+# Exception types that indicate the agent code itself is broken (FAILED).
+# These imply the agent.py file has a code defect, not an external resource error.
+_INIT_FAILURE_TYPES = (ImportError, ModuleNotFoundError, SyntaxError, AttributeError)
+
+
+def _load_code_agent(agent_dir: Path, github_token: str) -> "SubAgent":
+    """Load a code-type agent from agent.py in agent_dir.
+
+    Convention: agent.py must expose a SubAgent class with from_dir(agent_dir, github_token)
+    classmethod.
+
+    Uses unique module name f"agent_{agent_dir.name}" to avoid import cache collisions
+    between agents with the same filename.
+    """
+    spec = importlib.util.spec_from_file_location(
+        f"agent_{agent_dir.name}",
+        agent_dir / "agent.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    agent_cls = module.SubAgent
+    return agent_cls.from_dir(agent_dir, github_token)
 
 
 class SubAgent:
@@ -43,19 +90,54 @@ class SubAgent:
 class SubAgentRegistry:
     def __init__(self, agent_dir: str, github_token: str):
         self.agents: dict[str, SubAgent] = {}
+        self.health: dict[str, AgentHealth] = {}
         self._github_token = github_token
-        for path in Path(agent_dir).glob("**/AGENT.md"):
-            agent = SubAgent.from_dir(path.parent, github_token)
-            self.agents[agent.name] = agent
-            print(f"[registry] loaded: {agent.name}")
+        for path in Path(agent_dir).glob("*/AGENT.md"):
+            agent_name = path.parent.name  # fallback name from directory
+            try:
+                if (path.parent / "agent.py").exists():
+                    agent = _load_code_agent(path.parent, github_token)
+                    agent_type = "code"
+                else:
+                    agent = SubAgent.from_dir(path.parent, github_token)
+                    agent_type = "folder"
+                self.agents[agent.name] = agent
+                self.health[agent.name] = AgentHealth(
+                    name=agent.name,
+                    agent_type=agent_type,
+                    status=AgentStatusEnum.HEALTHY,
+                )
+                logger.info("[registry] loaded: %s (type=%s)", agent.name, agent_type)
+            except _INIT_FAILURE_TYPES as e:
+                # Agent code is broken (ImportError, SyntaxError, etc.) — FAILED
+                self.health[agent_name] = AgentHealth(
+                    name=agent_name,
+                    agent_type="unknown",
+                    status=AgentStatusEnum.FAILED,
+                    error=str(e),
+                )
+                logger.error("[registry] FAILED to load agent %s: %s", agent_name, e)
+            except Exception as e:
+                # External dependency error (ConnectionError, OSError, etc.) — DEGRADED
+                self.health[agent_name] = AgentHealth(
+                    name=agent_name,
+                    agent_type="unknown",
+                    status=AgentStatusEnum.DEGRADED,
+                    error=str(e),
+                )
+                logger.warning("[registry] DEGRADED agent %s: %s", agent_name, e)
         if not self.agents:
-            print(f"[registry] WARNING: no agents found in {agent_dir}")
+            logger.warning("[registry] WARNING: no healthy agents found in %s", agent_dir)
 
     def get(self, name: str) -> SubAgent:
         return self.agents[name]
 
     def all(self) -> list[SubAgent]:
         return list(self.agents.values())
+
+    def list_health(self) -> list[AgentHealth]:
+        """Return health status for all discovered agents (HEALTHY, DEGRADED, FAILED)."""
+        return list(self.health.values())
 
     async def close(self) -> None:
         for agent in self.agents.values():

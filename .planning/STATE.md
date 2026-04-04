@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 11-rpccontext-integration P02 | 2min | 2 tasks | 2 files |
 | Phase 11-rpccontext-integration P03 | 1min | 1 tasks | 2 files |
 | Phase 11-rpccontext-integration P04 | 8min | 2 tasks | 4 files |
+| Phase 12-hybrid-subagentregistry-tool-quality P01 | 3min | 2 tasks | 2 files |
 | Phase 12-hybrid-subagentregistry-tool-quality P03 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
@@ -167,6 +168,9 @@ Recent decisions affecting current work:
 - [Phase Phase 11-04]: github_login extracted before enqueue_job in chat.py — ensures user_id in arq job payload at request intake for complete correlation chain
 - [Phase Phase 11-04]: error: None always in initial AgentState — AgentState has no NotRequired annotation; all fields required at every turn
 - [Phase Phase 11-04]: app_id hardcoded to 'superchat' in OrchestratorHandler — OrchestratorHandler is only used for SuperChat mode
+- [Phase 12]: FAILED = ImportError/SyntaxError/AttributeError (agent code broken); DEGRADED = ConnectionError/OSError/other (external dep unavailable)
+- [Phase 12]: Glob changed from **/AGENT.md to */AGENT.md (flat directory structure, avoid deep recursion)
+- [Phase 12]: list_health() added to SubAgentRegistry for future /health/agents endpoint
 - [Phase 12-hybrid-subagentregistry-tool-quality]: INPUT_SCHEMA optional for legacy tools: ScriptBackend skips validation when absent, enabling permissive backward-compatible operation
 - [Phase 12-hybrid-subagentregistry-tool-quality]: jsonschema.ValidationError re-raised as ValueError with 'validation failed' message — consistent error type for callers
 
