@@ -1,4 +1,6 @@
 from __future__ import annotations
+import json
+import logging
 from typing import Any
 from app.providers.copilot import ChatCopilot
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -6,6 +8,8 @@ from langgraph.graph import StateGraph, END
 
 from app.orchestrator.state import AgentState
 from app.orchestrator.agent import SubAgentRegistry
+
+logger = logging.getLogger(__name__)
 
 
 ROUTER_PROMPT = """\
@@ -43,10 +47,22 @@ class RouterNode:
 
         valid = {a.name for a in agents} | {"fallback"}
         if chosen not in valid:
-            print(f"[router] unknown '{chosen}' → fallback")
+            logger.warning(json.dumps({
+                "event": "routing_fallback",
+                "unknown": chosen,
+                "fallback": "fallback",
+            }))
             chosen = "fallback"
 
-        print(f"[router] '{state['input'][:40]}' → {chosen}")
+        context = state.get("context")
+        logger.info(json.dumps({
+            "event": "routing",
+            "input": state["input"][:80],
+            "chosen": chosen,
+            "candidates": [a.name for a in agents],
+            "thread_id": context.thread_id if context else "",
+            "correlation_id": context.correlation_id if context else "",
+        }))
         return {"next": chosen}
 
 
