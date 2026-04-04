@@ -153,3 +153,83 @@ async def test_shutdown_closes_redis():
     await shutdown(ctx)
 
     mock_redis.aclose.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Phase 10 Wave 0: Failing test for OrchestratorHandler with checkpointer
+# This test is SKIPPED until Wave 3 implements production code changes.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 3")
+async def test_orchestrator_handler_uses_checkpointer():
+    """OrchestratorHandler.handle() passes a checkpointer to build_orchestrator_graph (ORC-01).
+
+    Phase 10 behavior: OrchestratorHandler wires AsyncPostgresSaver as checkpointer
+    so that SuperChat conversations persist across turns (LangGraph thread continuity).
+    Verifies:
+    - build_orchestrator_graph is called with a non-None checkpointer argument
+    - graph.ainvoke is called with config={"configurable": {"thread_id": thread_id}}
+    """
+    from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
+
+    thread_id = "test-orchestrator-thread-001"
+    job = {
+        "job_id": "job-orch-001",
+        "prompt": "Hello orchestrator",
+        "github_token": "ghu_test_token",
+        "reply_to": {"type": "web", "job_id": "job-orch-001"},
+        "thread_id": thread_id,
+        "agents": None,
+    }
+
+    mock_job_store = AsyncMock()
+    ctx = {"job_store": mock_job_store}
+
+    # Mock the graph that build_orchestrator_graph returns
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke = AsyncMock(return_value={
+        "output": "Orchestrator reply",
+        "messages": [],
+        "next": "",
+    })
+
+    # Mock the registry with at least one agent
+    mock_agent = MagicMock()
+    mock_registry = MagicMock()
+    mock_registry.agents = {"agent-one": mock_agent}
+    mock_registry.close = AsyncMock()
+
+    # Mock AsyncPostgresSaver — will be imported in the handler after Wave 3
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+    mock_saver_class = MagicMock()
+    mock_saver_class.from_conn_string = MagicMock(return_value=mock_checkpointer)
+
+    captured_build_args = {}
+
+    def capture_build_orchestrator_graph(registry, github_token, checkpointer=None, **kwargs):
+        captured_build_args["checkpointer"] = checkpointer
+        return mock_graph
+
+    with patch("app.jobs.handlers.orchestrator_handler.build_orchestrator_graph", side_effect=capture_build_orchestrator_graph), \
+         patch("app.jobs.handlers.orchestrator_handler.SubAgentRegistry", return_value=mock_registry), \
+         patch("app.jobs.handlers.orchestrator_handler.AsyncPostgresSaver", mock_saver_class):
+
+        handler = OrchestratorHandler()
+        await handler.handle(ctx, job)
+
+    # Verify build_orchestrator_graph was called with a non-None checkpointer
+    assert "checkpointer" in captured_build_args, \
+        "build_orchestrator_graph must be called with a checkpointer keyword argument"
+    assert captured_build_args["checkpointer"] is not None, \
+        "checkpointer passed to build_orchestrator_graph must not be None"
+
+    # Verify graph.ainvoke was called with thread_id in config
+    mock_graph.ainvoke.assert_called_once()
+    call_args = mock_graph.ainvoke.call_args
+    # ainvoke is called as ainvoke(initial, config={"configurable": {"thread_id": ...}})
+    config = call_args.kwargs.get("config") or (call_args.args[1] if len(call_args.args) > 1 else None)
+    assert config is not None, "graph.ainvoke must be called with a config argument"
+    assert config.get("configurable", {}).get("thread_id") == thread_id, \
+        f"Expected thread_id={thread_id!r} in config.configurable, got: {config}"
