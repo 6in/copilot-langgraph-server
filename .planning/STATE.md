@@ -193,7 +193,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-04
-Last session: 2026-04-04T01:30:00.000Z
-Stopped at: Completed quick/260404-eoj-PLAN.md
+Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
+Last session: 2026-04-04T01:34:14.000Z
+Stopped at: Completed quick/260404-eoj-superchat-ui on feature/superchat-agent-toggle
 Resume file: None
