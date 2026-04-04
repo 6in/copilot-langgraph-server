@@ -27,8 +27,8 @@
 ### CONTEXT — RPCContext 統合
 
 - [ ] **CONTEXT-01**: RPCContext（user_id / app_id / thread_id / correlation_id）が AgentState のフィールドとして統合され、全ノードから state["context"] で参照できる
-- [ ] **CONTEXT-02**: RPCContext が frozen=True データクラス + _keep_first reducer により、グラフ実行中にノードが上書きできない
-- [ ] **CONTEXT-03**: HTTP リクエスト（from_http）と Slack イベント（from_slack）から RPCContext を構築するファクトリメソッドが利用できる
+- [x] **CONTEXT-02**: RPCContext が frozen=True データクラス + _keep_first reducer により、グラフ実行中にノードが上書きできない
+- [x] **CONTEXT-03**: HTTP リクエスト（from_http）と Slack イベント（from_slack）から RPCContext を構築するファクトリメソッドが利用できる
 - [ ] **CONTEXT-04**: ルーティングログ・監査ログに correlation_id が含まれ、1リクエストの処理を横断追跡できる
 
 ### TOOL — ツール品質標準

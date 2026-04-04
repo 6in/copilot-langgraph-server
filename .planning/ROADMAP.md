@@ -53,7 +53,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | Complete |  2026-04-04 |
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
-| 11. RPCContext Integration | v3.0 | 0/4 | Planning | - |
+| 11. RPCContext Integration | v3.0 | 1/4 | In Progress|  |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 0/? | Not started | - |
 | 13. Scalable Routing | v3.0 | 0/? | Not started | - |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
@@ -135,10 +135,10 @@ Plans:
   2. A node that attempts to overwrite state["context"] is silently ignored — the original context from request intake survives the full graph execution
   3. Developer can construct an RPCContext from an HTTP request via RPCContext.from_http() with app_id, user_id, and auto-generated correlation_id
   4. A routing log entry and an audit log entry for the same request share the same correlation_id, making the full processing chain traceable
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
-- [ ] 11-01-PLAN.md -- RPCContext dataclass + _keep_first reducer + unit tests
+- [x] 11-01-PLAN.md -- RPCContext dataclass + _keep_first reducer + unit tests
 - [ ] 11-02-PLAN.md -- AgentState context + error fields with reducer integration tests
 - [ ] 11-03-PLAN.md -- RouterNode structured logging with correlation_id
 - [ ] 11-04-PLAN.md -- Wire HTTP -> arq job -> OrchestratorHandler RPCContext injection

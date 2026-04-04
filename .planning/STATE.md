@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v3.0
-milestone_name: Agent Platform
-status: Roadmap defined
-stopped_at: Phase 11 not started
-last_updated: "2026-04-04T00:00:00.000Z"
+milestone_name: Agent Platform Phases
+status: executing
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-04-04T05:57:06.032Z"
 last_activity: 2026-04-04
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 11
+  completed_phases: 10
+  total_plans: 38
+  completed_plans: 35
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v3.0 Agent Platform — Phase 11 (RPCContext Integration) — not started
+**Current focus:** Phase 11 — rpccontext-integration
 
 ## Current Position
 
-Phase: 11 — RPCContext Integration (not started)
-Plan: —
-Status: Roadmap defined, ready to plan Phase 11
-Last activity: 2026-04-04 — v3.0 roadmap created (4 phases, 18 requirements)
+Phase: 11 (rpccontext-integration) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-04-04
 
 Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
@@ -75,6 +75,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 09 P03 | 8min | 3 tasks | 4 files |
 | Phase 09 P04 | 2min | 1 tasks | 0 files |
 | Phase 10 P06 | 5min | 2 tasks | 1 files |
+| Phase 11 P01 | 5min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,9 @@ Recent decisions affecting current work:
 - [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
 - [Phase 10]: general-assistant AGENT.md added to agents/ — SubAgentRegistry auto-loads via glob; no code change needed
 - [Phase 10]: Agent addition pattern: drop AGENT.md in agents/<name>/ — zero code change, auto-registered by SubAgentRegistry on startup
+- [Phase 11]: from_http takes explicit kwargs not raw HTTP headers — worker never has raw request
+- [Phase 11]: _keep_first returns a if a is not None else b — handles None first arg for new thread checkpoints
+- [Phase 11]: RPCContext minimal fields: user_id, app_id, thread_id, correlation_id — extra fields deferred to future phases
 
 ### Roadmap Evolution
 
@@ -199,6 +203,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-04T04:31:09.087Z
-Stopped at: v3.0 roadmap created — ready to start Phase 11
+Last session: 2026-04-04T05:57:06.029Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
