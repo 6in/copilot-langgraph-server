@@ -83,3 +83,13 @@ Plans:
 - [x] 09-02-PLAN.md — OrchestratorHandler + API mode routing + Docker env vars
 - [x] 09-03-PLAN.md — Frontend mode toggle in React UI
 - [x] 09-04-PLAN.md — Integration smoke test and UAT verification
+
+### Phase 10: SuperChat 履歴保存とモード別スレッド分離 — thread_labels に mode カラム追加、GET /api/threads を LEFT JOIN 化、OrchestratorGraph を LangGraph checkpointer 対応にして会話継続性を修正、フロント useThreads をモード別リスト対応に
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 9
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 10 to break down)
