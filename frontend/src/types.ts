@@ -61,4 +61,5 @@ export interface ChatRequest {
   thread_id: string;
   model: string;
   task_type?: string;
+  mode?: 'simple' | 'super';
 }

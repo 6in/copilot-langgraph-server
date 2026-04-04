@@ -22,6 +22,8 @@ interface MessageAreaProps {
   messages: ChatMessage[];
   isThinking: boolean;
   onSend: (text: string) => void;
+  mode: 'simple' | 'super';
+  onModeChange: (mode: 'simple' | 'super') => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -90,7 +92,7 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
-export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, onSend, mode, onModeChange }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageListRef = useRef<{ scrollToBottom: (behavior: 'auto' | 'smooth') => void }>(null);
@@ -200,6 +202,36 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
             <CopyAllButton messages={messages} />
           </div>
         )}
+        <div style={{ display: 'flex', gap: '4px', padding: '4px 8px 0' }}>
+          <button
+            onClick={() => onModeChange('simple')}
+            style={{
+              padding: '2px 8px',
+              borderRadius: '4px',
+              border: '1px solid #d1dbe3',
+              background: mode === 'simple' ? '#0366d6' : 'transparent',
+              color: mode === 'simple' ? '#fff' : '#666',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+            }}
+          >
+            {'Simple'}
+          </button>
+          <button
+            onClick={() => onModeChange('super')}
+            style={{
+              padding: '2px 8px',
+              borderRadius: '4px',
+              border: '1px solid #d1dbe3',
+              background: mode === 'super' ? '#0366d6' : 'transparent',
+              color: mode === 'super' ? '#fff' : '#666',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+            }}
+          >
+            {'Super'}
+          </button>
+        </div>
         <div style={{
           display: 'flex',
           alignItems: 'flex-end',
