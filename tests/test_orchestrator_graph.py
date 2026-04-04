@@ -79,6 +79,7 @@ async def test_router_log_contains_correlation_id(caplog):
     assert "general-assistant" in routing_log["candidates"]
     assert routing_log["thread_id"] == "thread-001"
     assert "input" in routing_log
+    assert routing_log["stage"] == "llm", "LLM path should log stage='llm'"
 
     # Result should have the chosen agent
     assert result["next"] == "general-assistant"
@@ -122,4 +123,5 @@ async def test_router_log_handles_missing_context(caplog):
     assert routing_log is not None, "No JSON routing log entry found in log output"
     assert routing_log["correlation_id"] == "", "Missing context should produce empty correlation_id"
     assert routing_log["thread_id"] == "", "Missing context should produce empty thread_id"
+    assert routing_log["stage"] == "llm", "LLM path should log stage='llm'"
     assert result["next"] == "general-assistant"
