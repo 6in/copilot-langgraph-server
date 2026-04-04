@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Ready to execute
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-04-04T00:33:11.388Z"
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-04-04T00:37:13.880Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 ## Current Position
 
 Phase: 09 (superchat-orchestratorgraph-app-chat) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
 Ready to plan next milestone.
 
@@ -73,6 +73,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 08 P03 | 79min | 2 tasks | 1 files |
 | Phase 09 P02 | 3min | 4 tasks | 6 files |
 | Phase 09 P03 | 8min | 3 tasks | 4 files |
+| Phase 09 P04 | 2min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,8 @@ Recent decisions affecting current work:
 - [Phase 09]: AGENT_DIR and MENU_DIR added to api and worker Docker services — points to /app/agents and /app/menus via existing volume
 - [Phase 09]: Mode toggle is local React state (not persisted per thread) — switching threads does not change the mode selection
 - [Phase 09]: Toggle always visible in input bar; active button highlighted with primary blue #0366d6
+- [Phase 09]: TypeScript check deferred to Docker build: node_modules owned by root in worktree; not a code defect
+- [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
 
 ### Roadmap Evolution
 
@@ -190,6 +193,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-04T00:33:11.385Z
-Stopped at: Completed 09-03-PLAN.md
+Last session: 2026-04-04T00:37:13.878Z
+Stopped at: Completed 09-04-PLAN.md
 Resume file: None

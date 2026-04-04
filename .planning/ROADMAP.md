@@ -82,4 +82,4 @@ Plans:
 - [x] 09-01-PLAN.md — Create app/orchestrator/ module + repo-root agents/menus directories
 - [x] 09-02-PLAN.md — OrchestratorHandler + API mode routing + Docker env vars
 - [x] 09-03-PLAN.md — Frontend mode toggle in React UI
-- [ ] 09-04-PLAN.md — Integration smoke test and UAT verification
+- [x] 09-04-PLAN.md — Integration smoke test and UAT verification
