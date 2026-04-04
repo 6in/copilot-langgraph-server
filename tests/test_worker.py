@@ -156,11 +156,6 @@ async def test_shutdown_closes_redis():
 
 
 # ---------------------------------------------------------------------------
-# Phase 10 Wave 0: Failing test for OrchestratorHandler with checkpointer
-# This test is SKIPPED until Wave 3 implements production code changes.
-# ---------------------------------------------------------------------------
-
-@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 3")
 async def test_orchestrator_handler_uses_checkpointer():
     """OrchestratorHandler.handle() passes a checkpointer to build_orchestrator_graph (ORC-01).
 

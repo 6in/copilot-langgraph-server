@@ -97,24 +97,22 @@ async def test_delete_thread_calls_adelete(api_client):
 
 
 # ---------------------------------------------------------------------------
-# Phase 10 Wave 0: Failing tests for mode column, LEFT JOIN, mode upsert
-# These tests are SKIPPED until Wave 1-2 implement production code changes.
+# Phase 10: Tests for normalized schema (applications/threads/audit_log)
+# These tests verify the Phase 10 implementation: app_id filter, LEFT JOIN,
+# threads upsert with app_id.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 1-2")
-async def test_list_threads_mode_filter(api_client, mock_arq_redis, jwt_cookie):
-    """GET /api/threads?mode=superchat returns only superchat threads (DB-01, API-02).
+async def test_list_threads_app_id_filter(api_client, jwt_cookie):
+    """GET /api/threads?app_id=superchat returns only superchat threads (API-01, FE-01).
 
-    Phase 10 behavior: thread_labels has a mode column; GET /api/threads accepts
-    a ?mode query param and filters results accordingly.
+    Phase 10 behavior: threads table has app_id column; GET /api/threads accepts
+    a ?app_id query param and filters results accordingly.
     """
-    from unittest.mock import patch, AsyncMock, MagicMock
+    from unittest.mock import patch, AsyncMock
 
-    # --- setup: POST /api/chat with mode='super' creates a superchat thread ---
     superchat_thread_id = "test-superchat-thread-001"
     chat_thread_id = "test-chat-thread-001"
 
-    # Mock psycopg connection for both POST /api/chat upserts and GET /api/threads queries
     mock_conn = AsyncMock()
     mock_cursor = AsyncMock()
     mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
@@ -122,20 +120,17 @@ async def test_list_threads_mode_filter(api_client, mock_arq_redis, jwt_cookie):
     mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
     mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
 
-    # Simulate GET /api/threads?mode=superchat returning the superchat thread
     superchat_row = {
         "thread_id": superchat_thread_id,
-        "latest": "abc123",
+        "app_id": "superchat",
         "label": "Super Chat 2026-04-04 03:00",
         "updated_at": None,
-        "mode": "superchat",
     }
     mock_cursor.fetchall = AsyncMock(return_value=[superchat_row])
 
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
-        # GET /api/threads?mode=superchat should return the superchat thread
         resp = await api_client.get(
-            "/api/threads?mode=superchat",
+            "/api/threads?app_id=superchat",
             cookies={"session": jwt_cookie},
         )
     assert resp.status_code == 200
@@ -143,35 +138,28 @@ async def test_list_threads_mode_filter(api_client, mock_arq_redis, jwt_cookie):
     assert len(threads) == 1
     assert threads[0]["thread_id"] == superchat_thread_id
 
-    # GET /api/threads?mode=chat should NOT return the superchat thread
     chat_row = {
         "thread_id": chat_thread_id,
-        "latest": "def456",
+        "app_id": "chat",
         "label": "Chat 2026-04-04 03:00",
         "updated_at": None,
-        "mode": "chat",
     }
     mock_cursor.fetchall = AsyncMock(return_value=[chat_row])
 
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
         resp = await api_client.get(
-            "/api/threads?mode=chat",
+            "/api/threads?app_id=chat",
             cookies={"session": jwt_cookie},
         )
     assert resp.status_code == 200
     threads = resp.json()
     assert len(threads) == 1
     assert threads[0]["thread_id"] == chat_thread_id
-    # Superchat thread must NOT appear in chat mode filter
     assert not any(t["thread_id"] == superchat_thread_id for t in threads)
 
 
-@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 1-2")
-async def test_list_threads_no_mode_returns_all(api_client, jwt_cookie):
-    """GET /api/threads without ?mode returns all threads (backward compat, API-02).
-
-    Validates Pitfall 5 from RESEARCH.md: no mode param must not break existing clients.
-    """
+async def test_list_threads_no_app_id_returns_all(api_client, jwt_cookie):
+    """GET /api/threads without ?app_id returns all threads (backward compat, API-02)."""
     from unittest.mock import patch, AsyncMock
 
     mock_conn = AsyncMock()
@@ -181,30 +169,14 @@ async def test_list_threads_no_mode_returns_all(api_client, jwt_cookie):
     mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
     mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
 
-    # Both chat and superchat threads returned when no mode filter
     all_rows = [
-        {
-            "thread_id": "thread-chat-001",
-            "latest": "aaa",
-            "label": "Chat 2026-04-04",
-            "updated_at": None,
-            "mode": "chat",
-        },
-        {
-            "thread_id": "thread-super-001",
-            "latest": "bbb",
-            "label": "Super Chat 2026-04-04",
-            "updated_at": None,
-            "mode": "superchat",
-        },
+        {"thread_id": "thread-chat-001", "app_id": "chat", "label": "Chat 2026-04-04", "updated_at": None},
+        {"thread_id": "thread-super-001", "app_id": "superchat", "label": "Super Chat 2026-04-04", "updated_at": None},
     ]
     mock_cursor.fetchall = AsyncMock(return_value=all_rows)
 
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
-        resp = await api_client.get(
-            "/api/threads",
-            cookies={"session": jwt_cookie},
-        )
+        resp = await api_client.get("/api/threads", cookies={"session": jwt_cookie})
 
     assert resp.status_code == 200
     threads = resp.json()
@@ -214,16 +186,13 @@ async def test_list_threads_no_mode_returns_all(api_client, jwt_cookie):
     assert "thread-super-001" in thread_ids
 
 
-@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 1-2")
-async def test_chat_upsert_mode(api_client, mock_arq_redis, jwt_cookie):
-    """POST /api/chat with mode='super' writes mode='superchat' to thread_labels (DB-01, API-01).
+async def test_chat_upsert_app_id(api_client, mock_arq_redis, jwt_cookie):
+    """POST /api/chat with mode='super' writes app_id='superchat' to threads (API-03, DB-01).
 
-    POST /api/chat with mode='simple' (or no mode) writes mode='chat'.
-    This tests the upsert SQL includes the mode column.
+    POST /api/chat with mode='simple' (or no mode) writes app_id='chat'.
     """
-    from unittest.mock import patch, AsyncMock, call
+    from unittest.mock import patch, AsyncMock
 
-    # Track all SQL statements executed
     executed_sqls = []
 
     mock_conn = AsyncMock()
@@ -237,7 +206,6 @@ async def test_chat_upsert_mode(api_client, mock_arq_redis, jwt_cookie):
     mock_conn.execute = track_execute
 
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
-        # POST with mode='super' should upsert mode='superchat'
         resp = await api_client.post(
             "/api/chat",
             json={"message": "Hello", "thread_id": "thread-super-upsert-001", "mode": "super"},
@@ -245,15 +213,12 @@ async def test_chat_upsert_mode(api_client, mock_arq_redis, jwt_cookie):
         )
     assert resp.status_code == 200
 
-    # Find the INSERT into thread_labels
-    upsert_calls = [(sql, params) for sql, params in executed_sqls if "thread_labels" in sql]
-    assert len(upsert_calls) >= 1, "Expected at least one INSERT into thread_labels"
-    # The upsert should include mode='superchat'
+    upsert_calls = [(sql, params) for sql, params in executed_sqls if "threads" in sql and "INSERT" in sql.upper()]
+    assert len(upsert_calls) >= 1, "Expected at least one INSERT into threads"
     last_upsert_sql, last_upsert_params = upsert_calls[-1]
-    assert "mode" in last_upsert_sql.lower(), "Expected mode column in upsert SQL"
+    assert "app_id" in last_upsert_sql.lower(), "Expected app_id column in upsert SQL"
     assert "superchat" in last_upsert_params, "Expected 'superchat' value in upsert params"
 
-    # POST without mode should upsert mode='chat'
     executed_sqls.clear()
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
         resp = await api_client.post(
@@ -263,20 +228,18 @@ async def test_chat_upsert_mode(api_client, mock_arq_redis, jwt_cookie):
         )
     assert resp.status_code == 200
 
-    upsert_calls = [(sql, params) for sql, params in executed_sqls if "thread_labels" in sql]
+    upsert_calls = [(sql, params) for sql, params in executed_sqls if "threads" in sql and "INSERT" in sql.upper()]
     assert len(upsert_calls) >= 1
     last_upsert_sql, last_upsert_params = upsert_calls[-1]
-    assert "mode" in last_upsert_sql.lower()
+    assert "app_id" in last_upsert_sql.lower()
     assert "chat" in last_upsert_params
 
 
-@pytest.mark.skip(reason="Phase 10 Wave 0: will pass after Wave 1-2")
 async def test_list_threads_left_join(api_client, jwt_cookie):
-    """GET /api/threads returns threads from thread_labels even without checkpoints (API-03).
+    """GET /api/threads returns threads even without checkpoints (API-01, DB-01).
 
-    Phase 10 change: the SQL uses LEFT JOIN instead of INNER JOIN, so threads
-    that have a thread_labels row but no checkpoint yet are still returned.
-    (Currently INNER JOIN excludes such threads — this test ensures the fix works.)
+    Phase 10 uses LEFT JOIN from threads to checkpoints so threads without
+    checkpoints yet are still returned.
     """
     from unittest.mock import patch, AsyncMock
 
@@ -287,18 +250,14 @@ async def test_list_threads_left_join(api_client, jwt_cookie):
     mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
     mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
 
-    # A thread that exists in thread_labels but has no checkpoint row yet
-    # With LEFT JOIN, this should still appear
     thread_no_checkpoint = {
-        "thread_id": "thread-labels-only-001",
-        "latest": None,  # NULL because no checkpoint
+        "thread_id": "thread-no-checkpoint-001",
+        "app_id": "chat",
         "label": "New Thread (no checkpoint yet)",
         "updated_at": None,
-        "mode": "chat",
     }
     mock_cursor.fetchall = AsyncMock(return_value=[thread_no_checkpoint])
 
-    # Capture the SQL to verify LEFT JOIN is used
     executed_sqls = []
     original_execute = mock_cursor.execute
 
@@ -309,17 +268,13 @@ async def test_list_threads_left_join(api_client, jwt_cookie):
     mock_cursor.execute = capture_execute
 
     with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
-        resp = await api_client.get(
-            "/api/threads",
-            cookies={"session": jwt_cookie},
-        )
+        resp = await api_client.get("/api/threads", cookies={"session": jwt_cookie})
 
     assert resp.status_code == 200
     threads = resp.json()
     assert len(threads) == 1
-    assert threads[0]["thread_id"] == "thread-labels-only-001"
+    assert threads[0]["thread_id"] == "thread-no-checkpoint-001"
 
-    # Verify LEFT JOIN is used in the SQL (not INNER JOIN)
     if executed_sqls:
         assert any("LEFT JOIN" in sql.upper() for sql in executed_sqls), \
-            "Expected LEFT JOIN in GET /api/threads SQL, but found INNER JOIN or no JOIN"
+            "Expected LEFT JOIN in GET /api/threads SQL"

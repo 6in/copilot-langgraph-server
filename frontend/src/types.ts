@@ -38,6 +38,7 @@ export interface ThreadInfo {
   thread_id: string;
   updated_at?: string | null;
   label: string;
+  app_id?: string;
 }
 
 export interface UserInfoResponse {
