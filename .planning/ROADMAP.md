@@ -34,7 +34,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | In Progress|  |
-| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 5/5 | Complete | 2026-04-04 |
+| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 5/5 | Complete    | 2026-04-04 |
 
 ## v2.0 Phases
 
@@ -93,4 +93,4 @@ Plans:
 
 **Depends on:** Phase 9
 
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans complete
