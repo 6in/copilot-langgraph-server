@@ -74,13 +74,10 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 09 P02 | 3min | 4 tasks | 6 files |
 | Phase 09 P03 | 8min | 3 tasks | 4 files |
 | Phase 09 P04 | 2min | 1 tasks | 0 files |
-<<<<<<< HEAD
 | Phase 10 P06 | 5min | 2 tasks | 1 files |
 | Phase 11 P01 | 5min | 1 tasks | 2 files |
 | Phase 11-rpccontext-integration P02 | 2min | 2 tasks | 2 files |
-=======
 | Phase 11-rpccontext-integration P03 | 1min | 1 tasks | 2 files |
->>>>>>> worktree-agent-a381be9a
 | Phase 11-rpccontext-integration P04 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
@@ -156,7 +153,6 @@ Recent decisions affecting current work:
 - [Phase 09]: TypeScript check deferred to Docker build: node_modules owned by root in worktree; not a code defect
 - [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
 
-<<<<<<< HEAD
 
 - [Phase 10]: general-assistant AGENT.md added to agents/ — SubAgentRegistry auto-loads via glob; no code change needed
 - [Phase 10]: Agent addition pattern: drop AGENT.md in agents/<name>/ — zero code change, auto-registered by SubAgentRegistry on startup
@@ -165,13 +161,8 @@ Recent decisions affecting current work:
 - [Phase 11]: RPCContext minimal fields: user_id, app_id, thread_id, correlation_id — extra fields deferred to future phases
 - [Phase 11-02]: context: Annotated[RPCContext, _keep_first] — _keep_first reducer preserves initial context value even when nodes return a new context
 - [Phase 11-02]: error: str | None added without Annotated — last-writer-wins semantics for error field; nodes can clear by returning None
-
-=======
-
 - [Phase 11-rpccontext-integration]: logger.warning() for routing_fallback separate from logger.info() routing event — warning signals unexpected LLM output
 - [Phase 11-rpccontext-integration]: state.get('context') not state['context'] in RouterNode — gracefully handles legacy threads without context (empty strings)
-
->>>>>>> worktree-agent-a381be9a
 
 - [Phase Phase 11-04]: github_login extracted before enqueue_job in chat.py — ensures user_id in arq job payload at request intake for complete correlation chain
 - [Phase Phase 11-04]: error: None always in initial AgentState — AgentState has no NotRequired annotation; all fields required at every turn
@@ -224,13 +215,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-<<<<<<< HEAD
 Last activity: 2026-04-04
 Last session: 2026-04-04T06:09:56.680Z
 Stopped at: Completed 11-04-PLAN.md
-=======
-Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
-Last session: 2026-04-04T06:01:29.869Z
-Stopped at: Completed 11-03-PLAN.md
->>>>>>> worktree-agent-a381be9a
 Resume file: None
