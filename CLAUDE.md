@@ -3,18 +3,19 @@
 
 **Copilot LangGraph Chat**
 
-GitHub Copilot を LangGraph の AI プロバイダーとして使う、マルチユーザ向けの汎用チャット Web アプリ。
+GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内向け汎用チャット Web アプリ。
 `ChatCopilot`（`BaseChatModel` のカスタム実装）を通じて Copilot の推論能力を活用しながら、LangGraph のグラフ構造により将来のエージェント化・ツール呼び出し拡張に対応できる設計を目指す。
 
-> **方針変更:** 当初は個人用ツールとして設計されたが、現在はマルチユーザ対応への改修を進めている。スレッド履歴のユーザー分離など、複数ユーザーが共存できる設計に移行中。
+> **利用コンテキスト:** 当初は個人用ツールとして設計されたが、現在は **社内プロジェクト向けシステム**として開発を進めている。想定ユーザー規模は **200名程度**。リクエスト量は多くないが、マルチユーザー・マルチアプリケーションの運用に耐える設計（ユーザー分離、アプリケーション管理、監査ログ）を整備中。
 
-**Core Value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること。
+**Core Value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること。
 
 ### Constraints
 
 - **Tech Stack**: Python（LangChain / LangGraph / Copilot SDK） — ドキュメントのサンプルコードが Python ベース
 - **Auth**: Device Flow のみ — 非インタラクティブ環境向け PAT 方式は今回対象外
 - **SDK 安定性**: Copilot SDK は Technical Preview — 外部インターフェースを薄いラッパーで隔離しておく
+- **スケール感**: 200名規模・社内利用 — 高トラフィック対策より運用性（監査ログ・アプリ管理）を優先する
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:research/STACK.md -->
