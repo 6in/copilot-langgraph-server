@@ -39,13 +39,19 @@ from app.orchestrator.agent import (  # noqa: E402  (import after stub)
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _write_agent_md(agent_dir: Path, name: str, description: str = "A test agent", model: str = "gpt-4.1") -> None:
+def _write_agent_md(
+    agent_dir: Path,
+    name: str,
+    description: str = "A test agent.\n対象外: none",
+    model: str = "gpt-4.1",
+    keywords: list[str] | None = None,
+) -> None:
     """Write a minimal AGENT.md with required frontmatter into agent_dir."""
     agent_dir.mkdir(parents=True, exist_ok=True)
-    post = frontmatter.Post(
-        content="You are a test agent.",
-        **{"name": name, "description": description, "model": model},
-    )
+    metadata: dict = {"name": name, "description": description, "model": model}
+    if keywords is not None:
+        metadata["keywords"] = keywords
+    post = frontmatter.Post(content="You are a test agent.", **metadata)
     (agent_dir / "AGENT.md").write_text(frontmatter.dumps(post))
 
 
@@ -275,3 +281,71 @@ def test_empty_dir_no_crash(tmp_path: Path) -> None:
     assert registry.agents == {}
     assert registry.health == {}
     assert registry.all() == []
+
+
+# ---------------------------------------------------------------------------
+# Test: ROUTING-01 warning for missing 対象外 exclusion section
+# ---------------------------------------------------------------------------
+
+def test_missing_exclusion_warns(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """Agent with no 対象外 in description triggers ROUTING-01 WARNING.
+
+    caplog must contain a WARNING record that includes both '対象外' and the agent name.
+    """
+    import logging
+
+    agent_dir = tmp_path / "test-agent"
+    _write_agent_md(agent_dir, name="test-agent", description="A test agent without exclusion")
+
+    with caplog.at_level(logging.WARNING, logger="app.orchestrator.agent"):
+        _make_registry(tmp_path)
+
+    warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("対象外" in msg and "test-agent" in msg for msg in warning_messages), (
+        f"Expected ROUTING-01 warning with '対象外' and 'test-agent' in messages: {warning_messages}"
+    )
+
+
+def test_with_exclusion_no_warn(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """Agent with 対象外 in description does NOT trigger ROUTING-01 WARNING.
+
+    caplog must NOT contain a WARNING record with '対象外' and the agent name.
+    """
+    import logging
+
+    agent_dir = tmp_path / "test-agent"
+    _write_agent_md(agent_dir, name="test-agent", description="Handles code.\n対象外: deployment")
+
+    with caplog.at_level(logging.WARNING, logger="app.orchestrator.agent"):
+        _make_registry(tmp_path)
+
+    warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert not any("対象外" in msg and "test-agent" in msg for msg in warning_messages), (
+        f"Unexpected ROUTING-01 warning for agent with 対象外: {warning_messages}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test: keywords attribute loading from frontmatter
+# ---------------------------------------------------------------------------
+
+def test_keywords_loaded(tmp_path: Path) -> None:
+    """Agent with keywords frontmatter -> agent.keywords == the list."""
+    agent_dir = tmp_path / "test-agent"
+    _write_agent_md(agent_dir, name="test-agent", keywords=["Python", "lint"])
+
+    registry = _make_registry(tmp_path)
+
+    assert "test-agent" in registry.agents
+    assert registry.agents["test-agent"].keywords == ["Python", "lint"]
+
+
+def test_keywords_default_empty(tmp_path: Path) -> None:
+    """Agent without keywords frontmatter -> agent.keywords == []."""
+    agent_dir = tmp_path / "test-agent"
+    _write_agent_md(agent_dir, name="test-agent")  # no keywords
+
+    registry = _make_registry(tmp_path)
+
+    assert "test-agent" in registry.agents
+    assert registry.agents["test-agent"].keywords == []
