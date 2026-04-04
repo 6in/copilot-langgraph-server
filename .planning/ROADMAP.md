@@ -36,7 +36,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
 - [x] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs (completed 2026-04-04)
 - [x] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint (completed 2026-04-04)
-- [ ] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id
+- [x] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id (completed 2026-04-04)
 - [ ] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
 
 ## Progress
@@ -55,7 +55,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
-| 13. Scalable Routing | v3.0 | 1/2 | In Progress|  |
+| 13. Scalable Routing | v3.0 | 2/2 | Complete   | 2026-04-04 |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
 ## Shipped Phase Details
@@ -168,11 +168,11 @@ Plans:
   1. An AGENT.md file without an exclusion section ("対象外") triggers a warning log entry when SubAgentRegistry loads it, telling the developer what is missing
   2. A request that clearly matches a keyword-stage agent is routed without invoking the LLM, reducing latency and token usage for unambiguous cases
   3. After a routing decision is made, a structured log entry records input message, chosen agent, candidate list, and correlation_id — visible in application logs without additional instrumentation
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
-- [ ] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
+- [x] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
 
 ### Phase 14: Application Packages + Menu
 **Goal:** Developers define application packages that declare an agent subset, and users select an application from a menu screen that launches a chat scoped to only that application's agents
@@ -187,5 +187,5 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
+- [x] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
 - [ ] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
