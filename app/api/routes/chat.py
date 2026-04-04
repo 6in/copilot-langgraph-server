@@ -68,7 +68,9 @@ async def send_message(
     Frontend uses SSE or polling to get the result.
 
     Auth is enforced via JWT cookie through get_github_token dependency.
-    After enqueuing, upserts github_login into thread_labels (first writer wins).
+    After enqueuing, upserts github_login and app_id into threads table (first writer wins).
+    app_id is derived from mode: 'super' -> 'superchat', 'simple' -> 'chat'.
+    app_id is never overwritten on conflict — first message determines the application.
     """
     from arq import ArqRedis
     arq_redis: ArqRedis = request.app.state.arq_redis
@@ -91,23 +93,25 @@ async def send_message(
         agents=body.agents,
     )
 
-    # Upsert thread_labels with github_login (first writer wins via COALESCE)
+    # Upsert threads table with app_id and github_login (first writer wins via COALESCE)
+    # app_id is NOT overwritten on conflict — first message determines the application
+    app_id = "superchat" if body.mode == "super" else "chat"
     github_login = payload.get("github_login", "unknown")
     label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
     db_uri = request.app.state.db_uri
     try:
         async with await psycopg.AsyncConnection.connect(db_uri) as conn:
             await conn.execute(
-                """INSERT INTO thread_labels (thread_id, label, github_login)
-                   VALUES (%s, %s, %s)
+                """INSERT INTO threads (thread_id, app_id, github_login, label, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, now(), now())
                    ON CONFLICT (thread_id)
-                   DO UPDATE SET github_login = COALESCE(thread_labels.github_login, EXCLUDED.github_login),
+                   DO UPDATE SET github_login = COALESCE(threads.github_login, EXCLUDED.github_login),
                                  updated_at = now()""",
-                (body.thread_id, label, github_login),
+                (body.thread_id, app_id, github_login, label),
             )
             await conn.commit()
     except Exception:
-        pass  # Non-fatal: thread_labels upsert failure should not block the chat job
+        pass  # Non-fatal: threads upsert failure should not block the chat job
 
     return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
 
@@ -171,11 +175,14 @@ async def create_thread(payload: dict = Depends(get_jwt_payload)):
 
 
 @router.get("/threads")
-async def list_threads(request: Request, payload: dict = Depends(get_jwt_payload)):
+async def list_threads(request: Request, app_id: str | None = None, payload: dict = Depends(get_jwt_payload)):
     """List threads owned by the authenticated user, sorted by latest activity.
 
     Filters by github_login from JWT — each user sees only their own threads.
-    Uses INNER JOIN on thread_labels so orphan threads (no owner) are excluded.
+    Uses LEFT JOIN from threads to checkpoints so threads without checkpoints are still visible.
+    Optionally filters by app_id (e.g. 'chat' or 'superchat') when provided.
+    Sorting uses t.updated_at DESC — checkpoint_id is NULL for new threads (LEFT JOIN), which
+    would break sort order if used. updated_at from threads table is always reliable.
     LangGraph's alist() requires a thread_id filter — no 'list all' API; direct SQL used.
     """
     db_uri = request.app.state.db_uri
@@ -185,17 +192,29 @@ async def list_threads(request: Request, payload: dict = Depends(get_jwt_payload
     try:
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
-                    """SELECT c.thread_id, MAX(c.checkpoint_id) as latest, tl.label, tl.updated_at
-                       FROM checkpoints c
-                       INNER JOIN thread_labels tl ON c.thread_id = tl.thread_id
-                       WHERE c.checkpoint_ns = ''
-                         AND tl.github_login = %s
-                       GROUP BY c.thread_id, tl.label, tl.updated_at
-                       ORDER BY latest DESC
-                       LIMIT 50""",
-                    (github_login,),
-                )
+                if app_id is not None:
+                    await cur.execute(
+                        """SELECT t.thread_id, t.app_id, t.label, t.updated_at
+                           FROM threads t
+                           LEFT JOIN checkpoints c ON t.thread_id = c.thread_id AND c.checkpoint_ns = ''
+                           WHERE t.github_login = %s
+                             AND t.app_id = %s
+                           GROUP BY t.thread_id, t.app_id, t.label, t.updated_at
+                           ORDER BY t.updated_at DESC
+                           LIMIT 50""",
+                        (github_login, app_id),
+                    )
+                else:
+                    await cur.execute(
+                        """SELECT t.thread_id, t.app_id, t.label, t.updated_at
+                           FROM threads t
+                           LEFT JOIN checkpoints c ON t.thread_id = c.thread_id AND c.checkpoint_ns = ''
+                           WHERE t.github_login = %s
+                           GROUP BY t.thread_id, t.app_id, t.label, t.updated_at
+                           ORDER BY t.updated_at DESC
+                           LIMIT 50""",
+                        (github_login,),
+                    )
                 rows = await cur.fetchall()
 
         for row in rows:
@@ -203,6 +222,7 @@ async def list_threads(request: Request, payload: dict = Depends(get_jwt_payload
             label = row["label"] or f"Chat {thread_id[:8]}"
             threads.append(ThreadInfo(
                 thread_id=thread_id,
+                app_id=row["app_id"],
                 updated_at=row["updated_at"].isoformat() if row["updated_at"] else None,
                 label=label,
             ))
@@ -217,7 +237,7 @@ async def list_threads(request: Request, payload: dict = Depends(get_jwt_payload
 async def delete_thread(thread_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Delete a thread and all its checkpoints from PostgreSQL.
 
-    JWT-protected. Verifies ownership via thread_labels before deleting.
+    JWT-protected. Verifies ownership via threads table before deleting.
     Returns 404 if thread does not belong to the authenticated user.
     Uses AsyncPostgresSaver.adelete_thread() which atomically removes
     all related rows from checkpoints, checkpoint_blobs, and checkpoint_writes.
@@ -230,7 +250,7 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "SELECT github_login FROM thread_labels WHERE thread_id = %s",
+                    "SELECT github_login FROM threads WHERE thread_id = %s",
                     (thread_id,),
                 )
                 row = await cur.fetchone()
@@ -254,8 +274,8 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
 async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Update the display label for a thread.
 
-    JWT-protected. Uses INSERT ... ON CONFLICT DO UPDATE (upsert) so both new
-    and existing threads can have their label set without a separate check.
+    JWT-protected. Updates the label in the threads table.
+    Only called on existing threads from the UI — if thread doesn't exist, UPDATE affects 0 rows (acceptable).
     """
     label = body.label.strip()
     if not label:
@@ -264,11 +284,8 @@ async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Requ
     db_uri = request.app.state.db_uri
     async with await psycopg.AsyncConnection.connect(db_uri) as conn:
         await conn.execute(
-            """INSERT INTO thread_labels (thread_id, label)
-               VALUES (%s, %s)
-               ON CONFLICT (thread_id)
-               DO UPDATE SET label = EXCLUDED.label, updated_at = now()""",
-            (thread_id, label),
+            "UPDATE threads SET label = %s, updated_at = now() WHERE thread_id = %s",
+            (label, thread_id),
         )
         await conn.commit()
 

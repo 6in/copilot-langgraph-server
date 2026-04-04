@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
-status: Ready to execute
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-04-04T03:07:08.048Z"
-last_activity: 2026-04-04
+status: Executing Phase 10
+stopped_at: Completed 10-03-PLAN.md
+last_updated: "2026-04-04T03:11:15.593Z"
+last_activity: "2026-04-04 - Phase 10 Wave 2 complete"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 14
   percent: 100
 ---
 
@@ -76,6 +76,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 09 P04 | 2min | 1 tasks | 0 files |
 | Phase 10 P01 | 2min | 2 tasks | 2 files |
 | Phase 10 P02 | 5min | 1 tasks | 1 files |
+| Phase 10 P03 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,8 @@ Recent decisions affecting current work:
 - [Phase 10]: Wave 0 tests marked skip so existing CI stays green while serving as executable spec for Waves 1-3
 - [Phase 10]: DROP TABLE IF EXISTS thread_labels before new tables — clean break avoids complex column migration in dev environment
 - [Phase 10]: audit_log schema-only in plan 10-02 — INSERT write path deferred to future phases per plan spec
+- [Phase 10]: list_threads uses t.updated_at DESC not checkpoint_id: NULL for new threads under LEFT JOIN breaks sort
+- [Phase 10]: app_id derived from mode at send_message time: super->superchat, simple->chat; never overwritten on conflict
 
 ### Roadmap Evolution
 
@@ -199,7 +202,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-04
-Last session: 2026-04-04T03:07:08.045Z
-Stopped at: Completed 10-02-PLAN.md
+Last activity: 2026-04-04 - Phase 10 Wave 2 complete
+Last session: 2026-04-04T03:11:15.590Z
+Stopped at: Completed 10-03-PLAN.md
 Resume file: None
