@@ -47,20 +47,63 @@ async def lifespan(app: FastAPI):
 
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         await checkpointer.setup()
-        # Custom table for user-defined thread labels (editable via PATCH /api/threads/{id})
+        # Schema migration: replace thread_labels with normalized schema
+        # (applications, threads, audit_log).
         async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
+            # 1. Drop legacy table
+            await conn.execute("DROP TABLE IF EXISTS thread_labels")
+
+            # 2. Applications registry
             await conn.execute(
-                """CREATE TABLE IF NOT EXISTS thread_labels (
-                       thread_id  TEXT PRIMARY KEY,
-                       label      TEXT NOT NULL,
-                       github_login TEXT,
-                       updated_at TIMESTAMPTZ DEFAULT now()
+                """CREATE TABLE IF NOT EXISTS applications (
+                       app_id       TEXT PRIMARY KEY,
+                       display_name TEXT NOT NULL,
+                       enabled      BOOLEAN NOT NULL DEFAULT true,
+                       created_at   TIMESTAMPTZ DEFAULT now()
                    )"""
             )
-            # Add github_login to existing databases without the column
+
+            # 3. Seed known applications (idempotent)
             await conn.execute(
-                "ALTER TABLE thread_labels ADD COLUMN IF NOT EXISTS github_login TEXT"
+                """INSERT INTO applications (app_id, display_name, enabled, created_at) VALUES
+                       ('chat',      'Chat',      true, now()),
+                       ('superchat', 'SuperChat', true, now())
+                   ON CONFLICT DO NOTHING"""
             )
+
+            # 4. Thread metadata (replaces thread_labels)
+            await conn.execute(
+                """CREATE TABLE IF NOT EXISTS threads (
+                       thread_id    TEXT PRIMARY KEY,
+                       app_id       TEXT NOT NULL REFERENCES applications(app_id),
+                       github_login TEXT NOT NULL,
+                       label        TEXT NOT NULL,
+                       created_at   TIMESTAMPTZ DEFAULT now(),
+                       updated_at   TIMESTAMPTZ DEFAULT now()
+                   )"""
+            )
+
+            # 5. Audit log (schema only — no write logic added here)
+            await conn.execute(
+                """CREATE TABLE IF NOT EXISTS audit_log (
+                       id           BIGSERIAL PRIMARY KEY,
+                       github_login TEXT NOT NULL,
+                       app_id       TEXT REFERENCES applications(app_id),
+                       thread_id    TEXT,
+                       action       TEXT NOT NULL,
+                       metadata     JSONB,
+                       created_at   TIMESTAMPTZ DEFAULT now()
+                   )"""
+            )
+
+            # 6. Indexes on audit_log
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS audit_log_github_login_idx ON audit_log(github_login)"
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at)"
+            )
+
             await conn.commit()
         app.state.graph = build_graph(llm, checkpointer)
         app.state.checkpointer = checkpointer
