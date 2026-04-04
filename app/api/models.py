@@ -5,6 +5,8 @@ Used by:
 - app/api/routes/auth.py (Plan 02): AuthStartResponse, AuthPollResponse, AuthStatusResponse
 """
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -13,6 +15,7 @@ class ChatRequest(BaseModel):
     thread_id: str
     model: str = "gpt-4.1"
     task_type: str = "langgraph"
+    mode: Literal["simple", "super"] = "simple"
 
 
 class ChatResponse(BaseModel):

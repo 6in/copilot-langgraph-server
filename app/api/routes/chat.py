@@ -74,6 +74,11 @@ async def send_message(
     arq_redis: ArqRedis = request.app.state.arq_redis
     job_id = str(uuid.uuid4())
 
+    # Mode -> task_type translation (D-04, D-05)
+    # mode='super' overrides task_type to 'orchestrator'
+    # mode='simple' preserves the existing task_type field (default 'langgraph')
+    task_type = "orchestrator" if body.mode == "super" else body.task_type
+
     await arq_redis.enqueue_job(
         "process_chat",
         job_id=job_id,
@@ -82,7 +87,7 @@ async def send_message(
         model=body.model,
         github_token=github_token,
         reply_to={"type": "web", "job_id": job_id},
-        task_type=body.task_type,
+        task_type=task_type,
     )
 
     # Upsert thread_labels with github_login (first writer wins via COALESCE)

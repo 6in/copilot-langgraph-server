@@ -32,6 +32,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     refreshThreads,
   } = useThreads();
 
+  const [chatMode, setChatMode] = useState<'simple' | 'super'>('simple');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const dragStartX = useRef<number | null>(null);
@@ -53,6 +54,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
   const { isThinking, sendMessage } = useChat({
     activeThreadId,
     selectedModel,
+    selectedMode: chatMode,
     setMessages,
     refreshThreads,
   });
@@ -140,6 +142,8 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
             messages={messages}
             isThinking={isThinking}
             onSend={handleSend}
+            mode={chatMode}
+            onModeChange={setChatMode}
           />
         )}
       </MainContainer>

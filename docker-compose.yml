@@ -28,6 +28,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      - AGENT_DIR=/app/agents
+      - MENU_DIR=/app/menus
     ports:
       - "8000:8000"
     volumes:
@@ -46,6 +48,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      - AGENT_DIR=/app/agents
+      - MENU_DIR=/app/menus
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk

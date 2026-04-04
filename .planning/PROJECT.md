@@ -26,9 +26,10 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ PostgreSQL チェックポインター — AsyncPostgresSaver で会話履歴を永続化、Docker Compose で postgres サービスを提供 — v1.0
 - ✓ スレッド削除 — `adelete_thread()` でスレッドと全チェックポイントを原子的に削除 — v1.0
 
-### Active
+### Active (v2.0)
 
-*(Next milestone requirements — to be defined via `/gsd:new-milestone`)*
+- OrchestratorGraph + SubAgent マルチエージェントルーティング — `app/orchestrator/` モジュール、`github_token` threading でマルチユーザー対応 — Phase 9
+- Simple / Super モード切替 — React UI トグル + `POST /api/chat` の `mode` フィールドで OrchestratorHandler へルーティング — Phase 9
 
 ### Out of Scope
 
@@ -40,8 +41,9 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 ## Context
 
 **v1.0 shipped 2026-04-02** — 6 phases, 17 plans, 163 commits, 2 days
+**v2.0 Phase 9 complete 2026-04-04** — OrchestratorGraph + SubAgent routing integrated into main app; Simple/Super mode toggle in React UI
 **Codebase:** ~4,935 Python LOC · 640 JS · 719 CSS · 144 files changed
-**Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector/pgvector:pg17) · Vanilla JS
+**Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector/pgvector:pg17) · Vanilla JS · React 19
 
 - Copilot SDK (`github-copilot-sdk==0.2.0`) は JSON-RPC で Copilot CLI と通信。`BaseChatModel` カスタム実装が必須。
 - SDK は **Technical Preview** — `app/providers/copilot.py` の薄いラッパーで変更を隔離
