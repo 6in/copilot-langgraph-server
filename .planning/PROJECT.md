@@ -37,7 +37,13 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 - ✓ general-assistant エージェント追加 — `agents/general-assistant/AGENT.md` で SubAgentRegistry に汎用会話エージェントを追加、RouterNode が一般メッセージを正しくルーティング可能に — Validated in Phase 10 (10-06)
 
-### Active
+### Active (v3.0)
+
+- [ ] ハイブリッド SubAgentRegistry — フォルダ定義型（AGENT.md + tools/）とコード実装型（agent.py）を自動判別してロード、HEALTHY/DEGRADED/FAILED ステータス管理、/health/agents エンドポイント
+- [ ] アプリケーションパッケージ — アプリ定義ファイルでエージェントサブセットを宣言、メニュー画面からアプリ選択 → 対応エージェント群のみ RouterNode に渡す
+- [ ] スケーラブルルーティング — AGENT.md description 規約（対象外 必須）、2段ルーター（キーワード前段 → LLM）、構造化ルーティングログ
+- [ ] RPCContext 統合 — app_id / user_id / correlation_id を AgentState に統合、全ノードで参照可能・不変
+- [ ] INPUT_SCHEMA 標準化 — ツールスクリプトに INPUT_SCHEMA 定数必須化、AST 抽出 + jsonschema バリデーション、CI lint スクリプト
 
 ### Out of Scope
 
@@ -45,6 +51,17 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ストリーミング応答 — Copilot SDK Technical Preview では未対応（v2 候補）
 - ツール呼び出し（bind_tools） — 設計考慮済み（ToolNode extension point 文書化）、実装は v2 以降
 - モバイル対応 — PC ブラウザのみ対象
+
+## Current Milestone: v3.0 Agent Platform
+
+**Goal:** 50エージェント・複数アプリケーションに耐えるマルチエージェントプラットフォーム基盤を構築し、エージェント追加・組み合わせをユーザー体験の核心にする。
+
+**Target features:**
+- ハイブリッド SubAgentRegistry（フォルダ型 + コード型、HEALTHY/DEGRADED/FAILED）
+- アプリケーションパッケージ（エージェントサブセットをアプリ定義で管理、メニューから選択）
+- スケーラブルルーティング（description 規約 + 2段ルーター + 構造化ログ）
+- RPCContext 統合（app_id / user_id / correlation_id を AgentState に）
+- INPUT_SCHEMA 標準化（AST 抽出 + jsonschema + CI lint）
 
 ## Context
 
@@ -98,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after Phase 10 complete — general-assistant agent added, all Phase 10 UAT passed*
+*Last updated: 2026-04-04 — Milestone v3.0 Agent Platform started*
