@@ -34,7 +34,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
 ## v3.0 Agent Platform Phases
 
-- [ ] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs
+- [x] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs (completed 2026-04-04)
 - [ ] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint
 - [ ] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id
 - [ ] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
@@ -53,7 +53,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | Complete |  2026-04-04 |
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
-| 11. RPCContext Integration | v3.0 | 2/4 | In Progress|  |
+| 11. RPCContext Integration | v3.0 | 4/4 | Complete   | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 0/? | Not started | - |
 | 13. Scalable Routing | v3.0 | 0/? | Not started | - |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
@@ -135,13 +135,13 @@ Plans:
   2. A node that attempts to overwrite state["context"] is silently ignored — the original context from request intake survives the full graph execution
   3. Developer can construct an RPCContext from an HTTP request via RPCContext.from_http() with app_id, user_id, and auto-generated correlation_id
   4. A routing log entry and an audit log entry for the same request share the same correlation_id, making the full processing chain traceable
-**Plans:** 2/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 11-01-PLAN.md -- RPCContext dataclass + _keep_first reducer + unit tests
 - [x] 11-02-PLAN.md -- AgentState context + error fields with reducer integration tests
-- [ ] 11-03-PLAN.md -- RouterNode structured logging with correlation_id
-- [ ] 11-04-PLAN.md -- Wire HTTP -> arq job -> OrchestratorHandler RPCContext injection
+- [x] 11-03-PLAN.md -- RouterNode structured logging with correlation_id
+- [x] 11-04-PLAN.md -- Wire HTTP -> arq job -> OrchestratorHandler RPCContext injection
 
 ### Phase 12: Hybrid SubAgentRegistry + Tool Quality
 **Goal:** Agents are auto-discovered from the agents/ directory — both folder-type (AGENT.md only) and code-type (agent.py present) — with HEALTHY/DEGRADED/FAILED health status, and all tool scripts expose INPUT_SCHEMA for validation and CI enforcement

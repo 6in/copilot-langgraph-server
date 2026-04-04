@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
 status: executing
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-04-04T06:03:00.000Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-04-04T06:09:56.682Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 11
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 38
-  completed_plans: 36
+  completed_plans: 38
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 ## Current Position
 
 Phase: 11 (rpccontext-integration) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-04-04
 
@@ -81,6 +81,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 =======
 | Phase 11-rpccontext-integration P03 | 1min | 1 tasks | 2 files |
 >>>>>>> worktree-agent-a381be9a
+| Phase 11-rpccontext-integration P04 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -154,7 +155,9 @@ Recent decisions affecting current work:
 - [Phase 09]: Toggle always visible in input bar; active button highlighted with primary blue #0366d6
 - [Phase 09]: TypeScript check deferred to Docker build: node_modules owned by root in worktree; not a code defect
 - [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
+
 <<<<<<< HEAD
+
 - [Phase 10]: general-assistant AGENT.md added to agents/ — SubAgentRegistry auto-loads via glob; no code change needed
 - [Phase 10]: Agent addition pattern: drop AGENT.md in agents/<name>/ — zero code change, auto-registered by SubAgentRegistry on startup
 - [Phase 11]: from_http takes explicit kwargs not raw HTTP headers — worker never has raw request
@@ -162,10 +165,17 @@ Recent decisions affecting current work:
 - [Phase 11]: RPCContext minimal fields: user_id, app_id, thread_id, correlation_id — extra fields deferred to future phases
 - [Phase 11-02]: context: Annotated[RPCContext, _keep_first] — _keep_first reducer preserves initial context value even when nodes return a new context
 - [Phase 11-02]: error: str | None added without Annotated — last-writer-wins semantics for error field; nodes can clear by returning None
+
 =======
+
 - [Phase 11-rpccontext-integration]: logger.warning() for routing_fallback separate from logger.info() routing event — warning signals unexpected LLM output
 - [Phase 11-rpccontext-integration]: state.get('context') not state['context'] in RouterNode — gracefully handles legacy threads without context (empty strings)
+
 >>>>>>> worktree-agent-a381be9a
+
+- [Phase Phase 11-04]: github_login extracted before enqueue_job in chat.py — ensures user_id in arq job payload at request intake for complete correlation chain
+- [Phase Phase 11-04]: error: None always in initial AgentState — AgentState has no NotRequired annotation; all fields required at every turn
+- [Phase Phase 11-04]: app_id hardcoded to 'superchat' in OrchestratorHandler — OrchestratorHandler is only used for SuperChat mode
 
 ### Roadmap Evolution
 
@@ -216,8 +226,8 @@ Recent decisions affecting current work:
 
 <<<<<<< HEAD
 Last activity: 2026-04-04
-Last session: 2026-04-04T06:00:39.110Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-04-04T06:09:56.680Z
+Stopped at: Completed 11-04-PLAN.md
 =======
 Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
 Last session: 2026-04-04T06:01:29.869Z
