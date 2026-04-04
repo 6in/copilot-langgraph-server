@@ -57,14 +57,12 @@ Source: `MenuScreen.tsx` padding `3rem 2rem`, card padding `1.5rem`, grid gap `1
 | Body | 16px (1rem) | 400 | 1.5 |
 | Label / Small | 13.6px (0.85rem) | 400 | 1.4 |
 | Card title | 16px (1rem) | 600 | 1.2 |
-| Screen heading | 32px (2rem) | 700 | 1.2 |
+| Screen heading | 32px (2rem) | 600 | 1.2 |
 
 Notes:
-- Card title uses weight 600 — matches existing `fontWeight: 600` in `FeatureCard`.
-- Screen heading uses weight 700 — matches existing `fontWeight: 700` in `MenuScreen` `<h1>`.
-- Only 2 weights used: 400 (regular) and 600/700 (semibold/bold). Treat 600 and 700 as the "heavy" tier — use 600 for cards, 700 for page-level headings only.
+- 2 weights: 400 (regular) and 600 (semibold — used for both card titles and screen heading).
 
-Source: `MenuScreen.tsx` — `fontSize: '2rem', fontWeight: 700` (h1), `fontSize: '1rem', fontWeight: 600` (card title), `fontSize: '0.85rem'` (card description).
+Source: `MenuScreen.tsx` — `fontSize: '2rem'` (h1), `fontSize: '1rem', fontWeight: 600` (card title), `fontSize: '0.85rem'` (card description). Screen heading `fontWeight` changes from 700 to 600 in this phase.
 
 ---
 
