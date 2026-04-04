@@ -55,7 +55,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
-| 13. Scalable Routing | v3.0 | 2/2 | Complete   | 2026-04-04 |
+| 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
 ## Shipped Phase Details
