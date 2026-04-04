@@ -6,9 +6,9 @@
 
 ### REGISTRY — SubAgentRegistry 強化
 
-- [ ] **REGISTRY-01**: ユーザーがフォルダ定義型エージェント（AGENT.md + tools/）を agents/ に配置するだけでシステムが自動ロードできる
-- [ ] **REGISTRY-02**: ユーザーがコード実装型エージェント（AGENT.md + agent.py）を配置した場合、agent.py の SubAgent 実装がフォルダ型より優先使用される
-- [ ] **REGISTRY-03**: エージェントの初期化失敗が FAILED / 外部依存エラーが DEGRADED に分類され、1つの障害がシステム全体を止めない
+- [x] **REGISTRY-01**: ユーザーがフォルダ定義型エージェント（AGENT.md + tools/）を agents/ に配置するだけでシステムが自動ロードできる
+- [x] **REGISTRY-02**: ユーザーがコード実装型エージェント（AGENT.md + agent.py）を配置した場合、agent.py の SubAgent 実装がフォルダ型より優先使用される
+- [x] **REGISTRY-03**: エージェントの初期化失敗が FAILED / 外部依存エラーが DEGRADED に分類され、1つの障害がシステム全体を止めない
 - [ ] **REGISTRY-04**: ユーザーが GET /health/agents で全エージェントのステータス（HEALTHY/DEGRADED/FAILED）と障害理由を確認できる
 
 ### APP — アプリケーションパッケージ

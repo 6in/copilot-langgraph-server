@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
 status: executing
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-04-04T06:15:57.321Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-04-04T14:36:01.562Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 11
@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 11-rpccontext-integration P02 | 2min | 2 tasks | 2 files |
 | Phase 11-rpccontext-integration P03 | 1min | 1 tasks | 2 files |
 | Phase 11-rpccontext-integration P04 | 8min | 2 tasks | 4 files |
+| Phase 12-hybrid-subagentregistry-tool-quality P01 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,9 @@ Recent decisions affecting current work:
 - [Phase Phase 11-04]: github_login extracted before enqueue_job in chat.py — ensures user_id in arq job payload at request intake for complete correlation chain
 - [Phase Phase 11-04]: error: None always in initial AgentState — AgentState has no NotRequired annotation; all fields required at every turn
 - [Phase Phase 11-04]: app_id hardcoded to 'superchat' in OrchestratorHandler — OrchestratorHandler is only used for SuperChat mode
+- [Phase 12]: FAILED = ImportError/SyntaxError/AttributeError (agent code broken); DEGRADED = ConnectionError/OSError/other (external dep unavailable)
+- [Phase 12]: Glob changed from **/AGENT.md to */AGENT.md (flat directory structure, avoid deep recursion)
+- [Phase 12]: list_health() added to SubAgentRegistry for future /health/agents endpoint
 
 ### Roadmap Evolution
 
@@ -215,6 +219,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-04T06:09:56.680Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-04-04T14:36:01.560Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
