@@ -85,19 +85,19 @@ Plans:
 - [x] 09-03-PLAN.md — Frontend mode toggle in React UI
 - [x] 09-04-PLAN.md — Integration smoke test and UAT verification
 
-### Phase 10: SuperChat 履歴保存とモード別スレッド分離 — thread_labels に mode カラム追加、GET /api/threads を LEFT JOIN 化、OrchestratorGraph を LangGraph checkpointer 対応にして会話継続性を修正、フロント useThreads をモード別リスト対応に
+### Phase 10: SuperChat 履歴保存とモード別スレッド分離 — applications/threads/audit_log スキーマ刷新、GET /api/threads を LEFT JOIN 化、OrchestratorGraph checkpointer 対応、フロ���ト useThreads をアプリ別対応に
 
-**Goal:** Chat と SuperChat をアプリケーション（モード）として捉え、アプリケーション＋ユーザーという単位でスレッドを分離・管理できるようにする。thread_labels に mode カラムを追加し、GET /api/threads を LEFT JOIN + mode フィルタ対応にし、OrchestratorGraph に checkpointer を接続して SuperChat の会話継続性を実現し、フロント useThreads をモード別対応にする。
+**Goal:** Chat と SuperChat をアプリケーション（モード）として捉え、アプリケーシ��ン＋ユーザーという単位でス���ッドを分離・管理できるように��る。thread_labels を廃止し applications/threads/audit_log に刷新。GET /api/threads を LEFT JOIN + app_id フィルタ対応にし、OrchestratorGraph に checkpointer を接続して SuperChat の会話継続性を実現し、フロント useThreads ���アプリ��対応にする。
 
-**Requirements:** DB-01 (mode column), DB-02 (default chat for existing), API-01 (LEFT JOIN + mode filter), API-02 (backward compat no-mode), API-03 (mode upsert in POST /api/chat), ORC-01 (checkpointer + thread_id), FE-01 (useThreads mode param), FE-02 (ChatApp/SuperChatApp pass mode)
+**Requirements:** DB-01 (applications/threads/audit_log tables), DB-02 (seed chat/superchat), API-01 (LEFT JOIN + app_id filter), API-02 (backward compat no app_id), API-03 (app_id upsert in POST /api/chat), ORC-01 (checkpointer + thread_id), FE-01 (useThreads appId param), FE-02 (ChatApp/SuperChatApp pass appId)
 
 **Depends on:** Phase 9
 
 **Plans:** 5 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Wave 0: Test scaffolding (failing tests for all new behaviors)
-- [ ] 10-02-PLAN.md — Wave 1: DB migration (thread_labels mode column)
-- [ ] 10-03-PLAN.md — Wave 2: API changes (LEFT JOIN + mode filter + mode upsert)
+- [ ] 10-01-PLAN.md — Wave 0: Test scaffolding (skipped tests for all new behaviors)
+- [ ] 10-02-PLAN.md — Wave 1: DB migration (DROP thread_labels, CREATE applications/threads/audit_log)
+- [ ] 10-03-PLAN.md — Wave 2: API changes (LEFT JOIN + app_id filter + threads upsert)
 - [ ] 10-04-PLAN.md — Wave 3: OrchestratorGraph checkpointer integration
-- [ ] 10-05-PLAN.md — Wave 4: Frontend useThreads mode support
+- [ ] 10-05-PLAN.md — Wave 4: Frontend useThreads appId support
