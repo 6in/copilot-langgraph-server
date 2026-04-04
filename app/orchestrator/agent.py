@@ -34,6 +34,30 @@ class AgentHealth:
 _INIT_FAILURE_TYPES = (ImportError, ModuleNotFoundError, SyntaxError, AttributeError)
 
 
+def _check_agent_importable(agent_dir: Path) -> None:
+    """Attempt to import agent.py without instantiating ChatCopilot.
+
+    Loads the module and verifies it has a SubAgent class. Does NOT call
+    from_dir() or create any instances -- metadata-only check.
+
+    Raises the original exception on failure so the caller can classify
+    it as FAILED (_INIT_FAILURE_TYPES) or DEGRADED (other).
+
+    Uses the same f"agent_{name}" naming convention as _load_code_agent
+    to avoid import cache collisions (Pitfall 2).
+    """
+    spec = importlib.util.spec_from_file_location(
+        f"agent_{agent_dir.name}",
+        agent_dir / "agent.py",
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot create module spec for {agent_dir / 'agent.py'}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    if not hasattr(mod, "SubAgent"):
+        raise AttributeError(f"agent.py missing SubAgent class in {agent_dir}")
+
+
 def _load_code_agent(agent_dir: Path, github_token: str) -> "SubAgent":
     """Load a code-type agent from agent.py in agent_dir.
 

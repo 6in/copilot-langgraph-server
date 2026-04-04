@@ -11,6 +11,7 @@ All shared via app.state for route access.
 """
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -21,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import agents, auth, chat, jobs, me
+from app.api.routes import agents, auth, chat, health, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -116,6 +117,41 @@ async def lifespan(app: FastAPI):
         app.state.redis = redis_client
         app.state.arq_redis = arq_redis
         app.state.job_store = job_store
+
+        # Phase 12: Build metadata-only agent health for GET /health/agents
+        # This does NOT instantiate ChatCopilot -- only parses AGENT.md and checks agent.py importability
+        from app.orchestrator.agent import (
+            AgentHealth, AgentStatusEnum,
+            _check_agent_importable, _INIT_FAILURE_TYPES,
+        )
+        import frontmatter as fm
+        agent_health: list[AgentHealth] = []
+        agent_dir_path = os.getenv("AGENT_DIR", "./agents")
+        for agent_md in Path(agent_dir_path).glob("*/AGENT.md"):
+            agent_name = agent_md.parent.name
+            try:
+                post = fm.load(str(agent_md))
+                name = post.metadata.get("name", agent_name)
+                has_code = (agent_md.parent / "agent.py").exists()
+                agent_type = "code" if has_code else "folder"
+                # For code-type, verify the module is importable (but don't instantiate)
+                if has_code:
+                    _check_agent_importable(agent_md.parent)
+                agent_health.append(AgentHealth(
+                    name=name, agent_type=agent_type, status=AgentStatusEnum.HEALTHY
+                ))
+            except _INIT_FAILURE_TYPES as e:
+                agent_health.append(AgentHealth(
+                    name=agent_name, agent_type="unknown",
+                    status=AgentStatusEnum.FAILED, error=str(e)
+                ))
+            except Exception as e:
+                agent_health.append(AgentHealth(
+                    name=agent_name, agent_type="unknown",
+                    status=AgentStatusEnum.DEGRADED, error=str(e)
+                ))
+        app.state.agent_health = agent_health
+
         yield
 
     await llm.close()
@@ -141,6 +177,7 @@ app.include_router(chat.router)
 app.include_router(jobs.router)
 app.include_router(me.router)
 app.include_router(agents.router)
+app.include_router(health.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.
 # Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).
