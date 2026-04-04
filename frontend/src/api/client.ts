@@ -9,6 +9,7 @@
 const API_BASE = (import.meta.env.VITE_APP_BASE ?? '').replace(/\/$/, '');
 
 import type {
+  AgentInfo,
   AuthStartResponse,
   AuthPollResponse,
   AuthStatusResponse,
@@ -98,3 +99,7 @@ export const loadThreadMessages = async (threadId: string): Promise<ChatMessage[
   const data = await getThreadMessages(threadId);
   return data.messages;
 };
+
+// Agents
+export const getAgents = () =>
+  apiFetch<AgentInfo[]>(`${API_BASE}/api/agents`);

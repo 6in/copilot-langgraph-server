@@ -73,6 +73,16 @@ export function MenuScreen({ onNavigate }: MenuScreenProps) {
           subtitleColor={subtitleColor}
           onClick={() => onNavigate('chat')}
         />
+        <FeatureCard
+          icon="&#x26A1;"
+          title="SuperChat"
+          description="Multi-agent orchestration with selectable agents"
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          subtitleColor={subtitleColor}
+          onClick={() => onNavigate('superchat')}
+        />
       </div>
     </div>
   );

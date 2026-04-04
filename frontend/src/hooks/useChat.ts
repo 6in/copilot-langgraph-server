@@ -11,6 +11,7 @@ interface UseChatOptions {
   selectedModel: string;
   selectedTaskType?: string;
   selectedMode?: 'simple' | 'super';
+  agents?: string[];
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
@@ -26,6 +27,7 @@ export function useChat({
   selectedModel,
   selectedTaskType = 'langgraph',
   selectedMode = 'simple',
+  agents,
   setMessages,
   refreshThreads,
 }: UseChatOptions): UseChatReturn {
@@ -51,6 +53,8 @@ export function useChat({
         model: selectedModel,
         task_type: selectedTaskType,
         mode: selectedMode,
+        // Pass selected agents only in super mode; undefined in simple mode preserves all agents
+        agents: selectedMode === 'super' ? agents : undefined,
       });
 
       // 2. Check if already done (reconnect / very fast response edge case)
@@ -108,7 +112,7 @@ export function useChat({
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, isThinking, setMessages, refreshThreads]);
+  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, isThinking, setMessages, refreshThreads]);
 
   return { isThinking, sendMessage };
 }
