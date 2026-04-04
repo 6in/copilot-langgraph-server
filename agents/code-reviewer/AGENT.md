@@ -1,5 +1,13 @@
 ---
 name: code-reviewer
+keywords:
+  - コードレビュー
+  - リント
+  - フォーマット
+  - 静的解析
+  - Python
+  - JavaScript
+  - TypeScript
 description: |
   Python/JavaScript/TypeScript コードの静的解析・リント・フォーマットチェックを行う。
   入力: コードスニペットまたはファイルパス

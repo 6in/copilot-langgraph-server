@@ -1,5 +1,12 @@
 ---
 name: sql-analyst
+keywords:
+  - SQL
+  - クエリ
+  - パフォーマンス
+  - インデックス
+  - 実行計画
+  - テーブル定義
 description: |
   SQLクエリのパフォーマンス分析・最適化を行う。
   入力: SQLクエリまたはテーブル定義

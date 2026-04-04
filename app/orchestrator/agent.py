@@ -78,9 +78,18 @@ def _load_code_agent(agent_dir: Path, github_token: str) -> "SubAgent":
 
 
 class SubAgent:
-    def __init__(self, name: str, description: str, model: str, system_prompt: str, github_token: str):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        model: str,
+        system_prompt: str,
+        github_token: str,
+        keywords: list[str] | None = None,
+    ):
         self.name = name
         self.description = description
+        self.keywords: list[str] = keywords or []
         self._llm = ChatCopilot(model=model, github_token=github_token)
         self._system_prompt = system_prompt
 
@@ -94,6 +103,7 @@ class SubAgent:
             model=meta.get("model", "claude-sonnet-4-6"),
             system_prompt=post.content,
             github_token=github_token,
+            keywords=meta.get("keywords", []),
         )
 
     async def run(self, state: AgentState) -> AgentState:
@@ -132,6 +142,12 @@ class SubAgentRegistry:
                     status=AgentStatusEnum.HEALTHY,
                 )
                 logger.info("[registry] loaded: %s (type=%s)", agent.name, agent_type)
+                if "対象外" not in agent.description:
+                    logger.warning(
+                        "[registry] AGENT.md for '%s' has no exclusion section (対象外). "
+                        "Add a '対象外:' line to description to improve routing quality.",
+                        agent.name,
+                    )
             except _INIT_FAILURE_TYPES as e:
                 # Agent code is broken (ImportError, SyntaxError, etc.) — FAILED
                 self.health[agent_name] = AgentHealth(
