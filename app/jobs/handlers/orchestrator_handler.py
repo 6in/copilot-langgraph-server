@@ -27,6 +27,7 @@ class OrchestratorHandler(TaskHandler):
         notifier = build_notifier(reply_to, job_store)
 
         registry = SubAgentRegistry(AGENT_DIR, github_token)
+        agents_filter: list[str] | None = job.get("agents")
         try:
             await notifier.progress("thinking")
 
@@ -35,6 +36,18 @@ class OrchestratorHandler(TaskHandler):
                     f"No agents found in AGENT_DIR={AGENT_DIR}. "
                     "Check that agents/ directory exists and contains AGENT.md files."
                 )
+
+            # Filter registry to only requested agents (when agents[] provided)
+            # None means "all agents" (simple mode or legacy clients)
+            if agents_filter:
+                registry.agents = {
+                    k: v for k, v in registry.agents.items() if k in agents_filter
+                }
+                if not registry.agents:
+                    raise RuntimeError(
+                        f"No matching agents after filtering: requested={agents_filter}, "
+                        f"available={list(SubAgentRegistry(AGENT_DIR, github_token).agents.keys())}"
+                    )
 
             graph = build_orchestrator_graph(registry, github_token)
 
