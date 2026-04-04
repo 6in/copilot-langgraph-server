@@ -57,7 +57,7 @@ def fallback_node(state: AgentState) -> AgentState:
     }
 
 
-def build_orchestrator_graph(registry: SubAgentRegistry, github_token: str) -> Any:
+def build_orchestrator_graph(registry: SubAgentRegistry, github_token: str, checkpointer=None) -> Any:
     graph = StateGraph(AgentState)
 
     graph.add_node("router", RouterNode(registry, github_token))
@@ -75,4 +75,4 @@ def build_orchestrator_graph(registry: SubAgentRegistry, github_token: str) -> A
         graph.add_edge(agent.name, END)
     graph.add_edge("fallback", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)

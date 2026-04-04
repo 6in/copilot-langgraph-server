@@ -2,6 +2,8 @@
 import os
 import logging
 
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
 from app.orchestrator.agent import SubAgentRegistry
@@ -11,6 +13,7 @@ from app.orchestrator.state import AgentState
 logger = logging.getLogger(__name__)
 
 AGENT_DIR = os.getenv("AGENT_DIR", "./agents")
+DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 
 
 class OrchestratorHandler(TaskHandler):
@@ -18,6 +21,7 @@ class OrchestratorHandler(TaskHandler):
 
     async def handle(self, ctx: dict, job: dict) -> dict:
         job_id: str = job["job_id"]
+        thread_id: str = job["thread_id"]
         prompt: str = job["prompt"]
         github_token: str = job["github_token"]
         # model is intentionally unused in super mode; each agent's AGENT.md defines its own model
@@ -49,15 +53,19 @@ class OrchestratorHandler(TaskHandler):
                         f"available={list(SubAgentRegistry(AGENT_DIR, github_token).agents.keys())}"
                     )
 
-            graph = build_orchestrator_graph(registry, github_token)
+            async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+                await checkpointer.setup()
+                graph = build_orchestrator_graph(registry, github_token, checkpointer=checkpointer)
+                config = {"configurable": {"thread_id": thread_id}}
 
-            initial: AgentState = {
-                "input": prompt,
-                "output": "",
-                "messages": [],
-                "next": "",
-            }
-            result = await graph.ainvoke(initial)
+                # Per AgentState reducer: do NOT pass messages — checkpointer accumulates
+                # via operator.add. Pass only input/output/next each turn.
+                initial: AgentState = {
+                    "input": prompt,
+                    "output": "",
+                    "next": "",
+                }
+                result = await graph.ainvoke(initial, config=config)
             final_text = result["output"]
 
             await job_store.save_result(job_id, final_text)
