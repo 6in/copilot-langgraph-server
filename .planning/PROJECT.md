@@ -41,12 +41,15 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 - ✓ RPCContext 統合 — `app/orchestrator/context.py` に `RPCContext` frozen dataclass + `_keep_first` reducer、`AgentState` に `context: Annotated[RPCContext, _keep_first]` + `error: str | None`、OrchestratorHandler で構築して注入、RouterNode が correlation_id を構造化 JSON ログに出力 — Validated in Phase 11
 
+### Validated (v3.0) — Phase 12
+
+- ✓ ハイブリッド SubAgentRegistry — フォルダ定義型（AGENT.md のみ）とコード実装型（agent.py あり）を自動判別してロード、HEALTHY/DEGRADED/FAILED ステータス管理、GET /health/agents エンドポイント（JWT 不要） — Validated in Phase 12
+- ✓ INPUT_SCHEMA 標準化 — ツールスクリプトに INPUT_SCHEMA 定数、ScriptBackend が jsonschema で事前バリデーション、CI lint スクリプト（scripts/lint_tools.py）で全ツールスクリプトの INPUT_SCHEMA 有無を強制 — Validated in Phase 12
+
 ### Active (v3.0)
 
-- [ ] ハイブリッド SubAgentRegistry — フォルダ定義型（AGENT.md + tools/）とコード実装型（agent.py）を自動判別してロード、HEALTHY/DEGRADED/FAILED ステータス管理、/health/agents エンドポイント
 - [ ] アプリケーションパッケージ — アプリ定義ファイルでエージェントサブセットを宣言、メニュー画面からアプリ選択 → 対応エージェント群のみ RouterNode に渡す
 - [ ] スケーラブルルーティング — AGENT.md description 規約（対象外 必須）、2段ルーター（キーワード前段 → LLM）、構造化ルーティングログ
-- [ ] INPUT_SCHEMA 標準化 — ツールスクリプトに INPUT_SCHEMA 定数必須化、AST 抽出 + jsonschema バリデーション、CI lint スクリプト
 
 ### Out of Scope
 
@@ -70,6 +73,7 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 **v1.0 shipped 2026-04-02** — 6 phases, 17 plans, 163 commits, 2 days
 **v2.0 Phase 10 complete 2026-04-04** — thread_labels replaced with applications/threads/audit_log; app-isolated thread listing; OrchestratorGraph checkpointer; frontend useThreads appId support
+**v3.0 Phase 12 complete 2026-04-04** — Hybrid SubAgentRegistry with HEALTHY/DEGRADED/FAILED health tracking; GET /health/agents endpoint; INPUT_SCHEMA tool standard with ScriptBackend validation and CI lint enforcement
 **Codebase:** ~4,935 Python LOC · 640 JS · 719 CSS · 144 files changed
 **Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector/pgvector:pg17) · Vanilla JS · React 19
 
