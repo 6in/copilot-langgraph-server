@@ -7,6 +7,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
 from app.orchestrator.agent import SubAgentRegistry
+from app.orchestrator.context import RPCContext
 from app.orchestrator.graph import build_orchestrator_graph
 from app.orchestrator.state import AgentState
 
@@ -53,17 +54,31 @@ class OrchestratorHandler(TaskHandler):
                         f"available={list(SubAgentRegistry(AGENT_DIR, github_token).agents.keys())}"
                     )
 
+            # Extract github_login from job payload; default to "unknown" for legacy jobs
+            github_login: str = job.get("github_login", "unknown")
+
+            # Construct RPCContext at job intake — correlation_id generated here flows
+            # through every node and log entry (CONTEXT-01, CONTEXT-04)
+            context = RPCContext.from_http(
+                user_id=github_login,
+                app_id="superchat",
+                thread_id=thread_id,
+            )
+
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 await checkpointer.setup()
                 graph = build_orchestrator_graph(registry, github_token, checkpointer=checkpointer)
                 config = {"configurable": {"thread_id": thread_id}}
 
                 # Per AgentState reducer: do NOT pass messages — checkpointer accumulates
-                # via operator.add. Pass only input/output/next each turn.
+                # via operator.add. Pass only input/output/next/context/error each turn.
+                # context and error must always be present — no NotRequired on AgentState.
                 initial: AgentState = {
                     "input": prompt,
                     "output": "",
                     "next": "",
+                    "error": None,
+                    "context": context,
                 }
                 result = await graph.ainvoke(initial, config=config)
             final_text = result["output"]
