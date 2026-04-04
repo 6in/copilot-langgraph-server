@@ -126,7 +126,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
   return (
     // cs-chat-container: gives flex-grow:1 and flex-direction:column from chatscope CSS.
     // height:initial overrides the default height:100% so the textarea row can sit below.
-    <div className="cs-chat-container" style={{ height: 'initial', flex: 1 }}>
+    <div className="cs-chat-container" style={{ height: 'initial', flex: 1, minHeight: 0 }}>
       {/* typingIndicator is a PROP, not a JSX child — per 07-RESEARCH.md Pitfall section */}
       <MessageList
         ref={messageListRef}
