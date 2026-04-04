@@ -37,12 +37,15 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 - ✓ general-assistant エージェント追加 — `agents/general-assistant/AGENT.md` で SubAgentRegistry に汎用会話エージェントを追加、RouterNode が一般メッセージを正しくルーティング可能に — Validated in Phase 10 (10-06)
 
+### Validated (v3.0)
+
+- ✓ RPCContext 統合 — `app/orchestrator/context.py` に `RPCContext` frozen dataclass + `_keep_first` reducer、`AgentState` に `context: Annotated[RPCContext, _keep_first]` + `error: str | None`、OrchestratorHandler で構築して注入、RouterNode が correlation_id を構造化 JSON ログに出力 — Validated in Phase 11
+
 ### Active (v3.0)
 
 - [ ] ハイブリッド SubAgentRegistry — フォルダ定義型（AGENT.md + tools/）とコード実装型（agent.py）を自動判別してロード、HEALTHY/DEGRADED/FAILED ステータス管理、/health/agents エンドポイント
 - [ ] アプリケーションパッケージ — アプリ定義ファイルでエージェントサブセットを宣言、メニュー画面からアプリ選択 → 対応エージェント群のみ RouterNode に渡す
 - [ ] スケーラブルルーティング — AGENT.md description 規約（対象外 必須）、2段ルーター（キーワード前段 → LLM）、構造化ルーティングログ
-- [ ] RPCContext 統合 — app_id / user_id / correlation_id を AgentState に統合、全ノードで参照可能・不変
 - [ ] INPUT_SCHEMA 標準化 — ツールスクリプトに INPUT_SCHEMA 定数必須化、AST 抽出 + jsonschema バリデーション、CI lint スクリプト
 
 ### Out of Scope
@@ -115,4 +118,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 — Milestone v3.0 Agent Platform started*
+*Last updated: 2026-04-04 — Phase 11 complete: RPCContext unified into AgentState, correlation_id flows through all logs*
