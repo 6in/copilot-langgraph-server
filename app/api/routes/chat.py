@@ -81,6 +81,11 @@ async def send_message(
     # mode='simple' preserves the existing task_type field (default 'langgraph')
     task_type = "orchestrator" if body.mode == "super" else body.task_type
 
+    # Extract github_login before enqueue_job so it flows into the arq job payload
+    # (CONTEXT-01: correlation chain requires user_id at job intake)
+    app_id = "superchat" if body.mode == "super" else "chat"
+    github_login = payload.get("github_login", "unknown")
+
     await arq_redis.enqueue_job(
         "process_chat",
         job_id=job_id,
@@ -91,12 +96,11 @@ async def send_message(
         reply_to={"type": "web", "job_id": job_id},
         task_type=task_type,
         agents=body.agents,
+        github_login=github_login,
     )
 
     # Upsert threads table with app_id and github_login (first writer wins via COALESCE)
     # app_id is NOT overwritten on conflict — first message determines the application
-    app_id = "superchat" if body.mode == "super" else "chat"
-    github_login = payload.get("github_login", "unknown")
     label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
     db_uri = request.app.state.db_uri
     try:

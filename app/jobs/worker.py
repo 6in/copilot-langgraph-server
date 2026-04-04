@@ -60,6 +60,7 @@ async def process_chat(
     reply_to: dict,
     task_type: str = "langgraph",
     agents: list[str] | None = None,
+    github_login: str = "unknown",
 ) -> dict:
     """arq job function: route to the appropriate handler by task_type.
 
@@ -85,6 +86,7 @@ async def process_chat(
         "reply_to": reply_to,
         "task_type": task_type,
         "agents": agents,
+        "github_login": github_login,
     }
     return await handler.handle(ctx, job)
 
