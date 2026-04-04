@@ -3,7 +3,8 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1–6 (shipped 2026-04-02) — [Archive](milestones/v1.0-ROADMAP.md)
-- 📋 **v2.0** — Phases 7+ (in progress)
+- ✅ **v2.0** — Phases 7–10 (shipped 2026-04-04)
+- 📋 **v3.0 Agent Platform** — Phases 11–14 (in progress)
 
 ## Phases
 
@@ -21,6 +22,23 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 
 </details>
 
+<details>
+<summary>✅ v2.0 (Phases 7–10) — SHIPPED 2026-04-04</summary>
+
+- [x] **Phase 7: React Chat UI** — chatscope + Vite + Bun served at /app, full feature parity with Vanilla JS (completed 2026-04-02)
+- [x] **Phase 8: Super Agent Sample** — OrchestratorGraph + SubAgent architecture in super-agent-sample/, live smoke test verified (completed 2026-04-03)
+- [x] **Phase 9: SuperChat App Integration** — OrchestratorGraph integrated into app/, simple/super mode toggle in React UI (completed 2026-04-04)
+- [x] **Phase 10: SuperChat Thread Persistence** — applications/threads schema, app-isolated thread listing, OrchestratorGraph checkpointer, general-assistant agent (completed 2026-04-04)
+
+</details>
+
+## v3.0 Agent Platform Phases
+
+- [ ] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs
+- [ ] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint
+- [ ] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id
+- [ ] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -33,8 +51,12 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
 | 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
-| 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | In Progress|  |
-| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 1/5 | Complete    | 2026-04-04 |
+| 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | Complete |  2026-04-04 |
+| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
+| 11. RPCContext Integration | v3.0 | 0/? | Not started | - |
+| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 0/? | Not started | - |
+| 13. Scalable Routing | v3.0 | 0/? | Not started | - |
+| 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
 ## v2.0 Phases
 
@@ -101,3 +123,50 @@ Plans:
 - [ ] 10-03-PLAN.md — Wave 2: API changes (LEFT JOIN + mode filter + mode upsert)
 - [ ] 10-04-PLAN.md — Wave 3: OrchestratorGraph checkpointer integration
 - [ ] 10-05-PLAN.md — Wave 4: Frontend useThreads mode support
+
+## v3.0 Agent Platform — Phase Details
+
+### Phase 11: RPCContext Integration
+**Goal:** RPCContext (user_id / app_id / thread_id / correlation_id) is unified into AgentState and flows immutably through every node and log entry, enabling end-to-end request tracing
+**Depends on:** Phase 10
+**Requirements:** CONTEXT-01, CONTEXT-02, CONTEXT-03, CONTEXT-04
+**Success Criteria** (what must be TRUE):
+  1. Developer can access state["context"].correlation_id from any node in the graph without passing extra arguments
+  2. A node that attempts to overwrite state["context"] is silently ignored — the original context from request intake survives the full graph execution
+  3. Developer can construct an RPCContext from an HTTP request via RPCContext.from_http() with app_id, user_id, and auto-generated correlation_id
+  4. A routing log entry and an audit log entry for the same request share the same correlation_id, making the full processing chain traceable
+**Plans**: TBD
+
+### Phase 12: Hybrid SubAgentRegistry + Tool Quality
+**Goal:** Agents are auto-discovered from the agents/ directory — both folder-type (AGENT.md only) and code-type (agent.py present) — with HEALTHY/DEGRADED/FAILED health status, and all tool scripts expose INPUT_SCHEMA for validation and CI enforcement
+**Depends on:** Phase 11
+**Requirements:** REGISTRY-01, REGISTRY-02, REGISTRY-03, REGISTRY-04, TOOL-01, TOOL-02, TOOL-03
+**Success Criteria** (what must be TRUE):
+  1. Developer drops a new folder into agents/ with only an AGENT.md and tools/ scripts; on next startup the agent appears in GET /health/agents as HEALTHY with no code change
+  2. Developer adds an agent.py to an existing folder-type agent; GET /health/agents shows the agent is using the code implementation (agent.py takes precedence)
+  3. One agent fails initialization due to a missing dependency; GET /health/agents shows it as FAILED with the error reason while all other agents remain HEALTHY and the app starts normally
+  4. Developer views GET /health/agents and sees HEALTHY/DEGRADED/FAILED status and failure reason for every registered agent
+  5. CI fails a pull request when a new tool script is added without an INPUT_SCHEMA constant (scripts/lint_tools.py exits non-zero)
+**Plans**: TBD
+
+### Phase 13: Scalable Routing
+**Goal:** RouterNode operates as a 2-stage pipeline (keyword pre-filter then LLM) so routing stays accurate and prompt size stays bounded as the agent count grows, with every routing decision logged for analysis
+**Depends on:** Phase 12
+**Requirements:** ROUTING-01, ROUTING-02, ROUTING-03
+**Success Criteria** (what must be TRUE):
+  1. An AGENT.md file without an exclusion section ("対象外") triggers a warning log entry when SubAgentRegistry loads it, telling the developer what is missing
+  2. A request that clearly matches a keyword-stage agent is routed without invoking the LLM, reducing latency and token usage for unambiguous cases
+  3. After a routing decision is made, a structured log entry records input message, chosen agent, candidate list, and correlation_id — visible in application logs without additional instrumentation
+**Plans**: TBD
+
+### Phase 14: Application Packages + Menu
+**Goal:** Developers define application packages that declare an agent subset, and users select an application from a menu screen that launches a chat scoped to only that application's agents
+**Depends on:** Phase 13
+**Requirements:** APP-01, APP-02, APP-03, APP-04
+**Success Criteria** (what must be TRUE):
+  1. Developer creates an app definition file listing 3 of 10 installed agents; the app appears on the menu screen after restart with no code change
+  2. User selects an application from the menu screen and the chat UI opens with a title or indicator showing which application is active
+  3. A message sent in App A is routed only among App A's declared agents — an agent registered only to App B is never a candidate, even if it would otherwise match
+  4. The same agent folder (e.g. agents/code-reviewer/) is listed in two app definition files; both apps route to it correctly without duplicating the agent definition
+**UI hint**: yes
+**Plans**: TBD

@@ -57,25 +57,23 @@
 
 ## Traceability
 
-> Filled by roadmapper
-
 | REQ-ID | Phase | Plan |
 |--------|-------|------|
-| REGISTRY-01 | — | — |
-| REGISTRY-02 | — | — |
-| REGISTRY-03 | — | — |
-| REGISTRY-04 | — | — |
-| APP-01 | — | — |
-| APP-02 | — | — |
-| APP-03 | — | — |
-| APP-04 | — | — |
-| ROUTING-01 | — | — |
-| ROUTING-02 | — | — |
-| ROUTING-03 | — | — |
-| CONTEXT-01 | — | — |
-| CONTEXT-02 | — | — |
-| CONTEXT-03 | — | — |
-| CONTEXT-04 | — | — |
-| TOOL-01 | — | — |
-| TOOL-02 | — | — |
-| TOOL-03 | — | — |
+| CONTEXT-01 | Phase 11 | — |
+| CONTEXT-02 | Phase 11 | — |
+| CONTEXT-03 | Phase 11 | — |
+| CONTEXT-04 | Phase 11 | — |
+| REGISTRY-01 | Phase 12 | — |
+| REGISTRY-02 | Phase 12 | — |
+| REGISTRY-03 | Phase 12 | — |
+| REGISTRY-04 | Phase 12 | — |
+| TOOL-01 | Phase 12 | — |
+| TOOL-02 | Phase 12 | — |
+| TOOL-03 | Phase 12 | — |
+| ROUTING-01 | Phase 13 | — |
+| ROUTING-02 | Phase 13 | — |
+| ROUTING-03 | Phase 13 | — |
+| APP-01 | Phase 14 | — |
+| APP-02 | Phase 14 | — |
+| APP-03 | Phase 14 | — |
+| APP-04 | Phase 14 | — |
