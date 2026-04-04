@@ -34,6 +34,7 @@ class ThreadInfo(BaseModel):
     thread_id: str
     updated_at: str | None = None
     label: str  # "Chat YYYY-MM-DD HH:mm" format
+    app_id: str | None = None  # "chat" | "superchat" — application the thread belongs to
 
 
 class AuthStartResponse(BaseModel):
