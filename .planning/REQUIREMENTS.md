@@ -20,8 +20,8 @@
 
 ### ROUTING — ルーティング品質
 
-- [ ] **ROUTING-01**: AGENT.md の description に「対象外」節がない場合、SubAgentRegistry のロード時に警告ログを出力する
-- [ ] **ROUTING-02**: RouterNode が2段構成（キーワード前段フィルタ → LLM）で動作し、50エージェント規模でもプロンプトサイズと精度が両立できる
+- [x] **ROUTING-01**: AGENT.md の description に「対象外」節がない場合、SubAgentRegistry のロード時に警告ログを出力する
+- [x] **ROUTING-02**: RouterNode が2段構成（キーワード前段フィルタ → LLM）で動作し、50エージェント規模でもプロンプトサイズと精度が両立できる
 - [ ] **ROUTING-03**: ルーティング結果が構造化ログ（input / chosen / candidates / correlation_id）に記録され、ミスルーティング分析が可能になる
 
 ### CONTEXT — RPCContext 統合
