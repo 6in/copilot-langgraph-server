@@ -55,7 +55,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
-| 13. Scalable Routing | v3.0 | 0/? | Not started | - |
+| 13. Scalable Routing | v3.0 | 0/2 | In progress | - |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
 ## Shipped Phase Details
@@ -168,7 +168,11 @@ Plans:
   1. An AGENT.md file without an exclusion section ("対象外") triggers a warning log entry when SubAgentRegistry loads it, telling the developer what is missing
   2. A request that clearly matches a keyword-stage agent is routed without invoking the LLM, reducing latency and token usage for unambiguous cases
   3. After a routing decision is made, a structured log entry records input message, chosen agent, candidate list, and correlation_id — visible in application logs without additional instrumentation
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
+- [ ] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
 
 ### Phase 14: Application Packages + Menu
 **Goal:** Developers define application packages that declare an agent subset, and users select an application from a menu screen that launches a chat scoped to only that application's agents
@@ -180,4 +184,8 @@ Plans:
   3. A message sent in App A is routed only among App A's declared agents — an agent registered only to App B is never a candidate, even if it would otherwise match
   4. The same agent folder (e.g. agents/code-reviewer/) is listed in two app definition files; both apps route to it correctly without duplicating the agent definition
 **UI hint**: yes
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
+- [ ] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
