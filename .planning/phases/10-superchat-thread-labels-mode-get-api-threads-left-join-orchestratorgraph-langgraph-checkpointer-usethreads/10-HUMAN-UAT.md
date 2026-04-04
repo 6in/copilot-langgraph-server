@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 10-superchat-thread-labels-mode-get-api-threads-left-join-orchestratorgraph-langgraph-checkpointer-usethreads
 source: [10-VERIFICATION.md]
 started: 2026-04-04T03:30:00.000Z
@@ -25,18 +25,15 @@ fix: agents/general-assistant/AGENT.md added by 10-06 (commit 0085f02) — pendi
 
 ### 3. SuperChat general message routing (new — after 10-06 fix)
 expected: After docker compose restart worker, sending a general message in SuperChat (e.g. "今日の天気は？") returns a natural AI answer — NOT "対応できるエージェントが見つかりませんでした。"
-result: [pending]
-steps: |
-  1. docker compose restart worker
-  2. Send "今日の天気は？" in SuperChat
-  3. Verify response is an AI-generated answer
+result: pass
+notes: "Sent '今何時かな？', received natural AI response with current time (JST). Routing to general-assistant confirmed."
 
 ## Summary
 
 total: 3
-passed: 1
+passed: 2
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
