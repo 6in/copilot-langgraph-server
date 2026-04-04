@@ -6,6 +6,19 @@ Tests verify:
 - No JWT authentication required
 - FAILED agents include a non-null error string in the response
 """
+import sys
+from types import ModuleType
+from unittest.mock import MagicMock
+
+# ---------------------------------------------------------------------------
+# Stub out the github-copilot-sdk (not installed in unit-test environment)
+# ---------------------------------------------------------------------------
+_copilot_stub = ModuleType("copilot")
+_copilot_stub.CopilotClient = MagicMock  # type: ignore[attr-defined]
+_copilot_stub.SubprocessConfig = MagicMock  # type: ignore[attr-defined]
+_copilot_stub.PermissionHandler = MagicMock  # type: ignore[attr-defined]
+sys.modules.setdefault("copilot", _copilot_stub)
+
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient

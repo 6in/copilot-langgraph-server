@@ -81,3 +81,10 @@ class UserInfoResponse(BaseModel):
 
 class RenameThreadRequest(BaseModel):
     label: str
+
+
+class AgentHealthEntry(BaseModel):
+    name: str
+    agent_type: str
+    status: str  # "HEALTHY" | "DEGRADED" | "FAILED"
+    error: str | None = None
