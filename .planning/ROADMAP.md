@@ -34,6 +34,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | In Progress|  |
+| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 0/5 | Planned | |
 
 ## v2.0 Phases
 
@@ -86,10 +87,17 @@ Plans:
 
 ### Phase 10: SuperChat 履歴保存とモード別スレッド分離 — thread_labels に mode カラム追加、GET /api/threads を LEFT JOIN 化、OrchestratorGraph を LangGraph checkpointer 対応にして会話継続性を修正、フロント useThreads をモード別リスト対応に
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Chat と SuperChat をアプリケーション（モード）として捉え、アプリケーション＋ユーザーという単位でスレッドを分離・管理できるようにする。thread_labels に mode カラムを追加し、GET /api/threads を LEFT JOIN + mode フィルタ対応にし、OrchestratorGraph に checkpointer を接続して SuperChat の会話継続性を実現し、フロント useThreads をモード別対応にする。
+
+**Requirements:** DB-01 (mode column), DB-02 (default chat for existing), API-01 (LEFT JOIN + mode filter), API-02 (backward compat no-mode), API-03 (mode upsert in POST /api/chat), ORC-01 (checkpointer + thread_id), FE-01 (useThreads mode param), FE-02 (ChatApp/SuperChatApp pass mode)
+
 **Depends on:** Phase 9
-**Plans:** 0 plans
+
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 10 to break down)
+- [ ] 10-01-PLAN.md — Wave 0: Test scaffolding (failing tests for all new behaviors)
+- [ ] 10-02-PLAN.md — Wave 1: DB migration (thread_labels mode column)
+- [ ] 10-03-PLAN.md — Wave 2: API changes (LEFT JOIN + mode filter + mode upsert)
+- [ ] 10-04-PLAN.md — Wave 3: OrchestratorGraph checkpointer integration
+- [ ] 10-05-PLAN.md — Wave 4: Frontend useThreads mode support
