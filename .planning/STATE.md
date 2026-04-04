@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Ready to execute
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-04-03T16:37:59.035Z"
-last_activity: 2026-04-03
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-04-04T00:33:11.388Z"
+last_activity: 2026-04-04
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 ## Current Position
 
 Phase: 09 (superchat-orchestratorgraph-app-chat) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
 Ready to plan next milestone.
 
@@ -72,6 +72,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 08 P01 | 2min | 2 tasks | 8 files |
 | Phase 08 P03 | 79min | 2 tasks | 1 files |
 | Phase 09 P02 | 3min | 4 tasks | 6 files |
+| Phase 09 P03 | 8min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,8 @@ Recent decisions affecting current work:
 - [Phase 09]: OrchestratorHandler builds SubAgentRegistry per job for multi-user token isolation — no app.state sharing
 - [Phase 09]: mode='super' overrides task_type to 'orchestrator' — mode takes priority over task_type field, backward compatible
 - [Phase 09]: AGENT_DIR and MENU_DIR added to api and worker Docker services — points to /app/agents and /app/menus via existing volume
+- [Phase 09]: Mode toggle is local React state (not persisted per thread) — switching threads does not change the mode selection
+- [Phase 09]: Toggle always visible in input bar; active button highlighted with primary blue #0366d6
 
 ### Roadmap Evolution
 
@@ -186,7 +189,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-03
-Last session: 2026-04-03T16:37:59.032Z
-Stopped at: Completed 09-02-PLAN.md
+Last activity: 2026-04-04
+Last session: 2026-04-04T00:33:11.385Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None

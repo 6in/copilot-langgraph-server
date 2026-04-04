@@ -33,7 +33,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
 | 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
 | 8. Super Agent Sample | v2.0 | 3/3 | Complete   | 2026-04-03 |
-| 9. SuperChat メインアプリ統合 | v2.0 | 2/4 | In Progress|  |
+| 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | In Progress|  |
 
 ## v2.0 Phases
 
@@ -76,10 +76,10 @@ Plans:
 
 **Depends on:** Phase 8
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [x] 09-01-PLAN.md — Create app/orchestrator/ module + repo-root agents/menus directories
 - [x] 09-02-PLAN.md — OrchestratorHandler + API mode routing + Docker env vars
-- [ ] 09-03-PLAN.md — Frontend mode toggle in React UI
+- [x] 09-03-PLAN.md — Frontend mode toggle in React UI
 - [ ] 09-04-PLAN.md — Integration smoke test and UAT verification
