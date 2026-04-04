@@ -30,7 +30,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     removeThread,
     setMessages,
     refreshThreads,
-  } = useThreads();
+  } = useThreads('chat');
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);

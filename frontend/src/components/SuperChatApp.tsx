@@ -115,7 +115,7 @@ export function SuperChatApp({ selectedModel }: SuperChatAppProps) {
     removeThread,
     setMessages,
     refreshThreads,
-  } = useThreads();
+  } = useThreads('superchat');
 
   const { agents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
 
