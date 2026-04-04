@@ -35,6 +35,8 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ OrchestratorGraph checkpointer 接続 — AsyncPostgresSaver で SuperChat の会話継続性を実現 — Validated in Phase 10
 - ✓ フロント useThreads appId 対応 — ChatApp/SuperChatApp が各自の app_id でスレッドを分離取得 — Validated in Phase 10
 
+- ✓ general-assistant エージェント追加 — `agents/general-assistant/AGENT.md` で SubAgentRegistry に汎用会話エージェントを追加、RouterNode が一般メッセージを正しくルーティング可能に — Validated in Phase 10 (10-06)
+
 ### Active
 
 ### Out of Scope
@@ -96,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after v1.0 milestone — Copilot LangGraph Chat MVP shipped*
+*Last updated: 2026-04-04 after Phase 10 complete — general-assistant agent added, all Phase 10 UAT passed*
