@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Executing Phase 10
-stopped_at: Completed 10-04-PLAN.md
-last_updated: "2026-04-04T03:15:11.930Z"
-last_activity: "2026-04-04 - Phase 10 Wave 3 complete"
+stopped_at: Completed 10-05-PLAN.md
+last_updated: "2026-04-04T03:20:00.000Z"
+last_activity: "2026-04-04 - Phase 10 Wave 4 complete"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 100
 ---
 
@@ -79,6 +79,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 10 P03 | 2min | 2 tasks | 2 files |
 | Phase 10 P04 | 54s | 2 tasks | 2 files |
 
+| Phase 10 P05 | 1min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,7 @@ Recent decisions affecting current work:
 - [Phase 10]: app_id derived from mode at send_message time: super->superchat, simple->chat; never overwritten on conflict
 - [Phase 10]: OrchestratorGraph checkpointer: checkpointer=None default keeps backward compat; omit messages from initial state (checkpointer accumulates via operator.add); await checkpointer.setup() per job is idempotent
 
+- [Phase 10-05]: useThreads accepts optional 'chat' | 'superchat' mode; mode added to refreshThreads useCallback dep array
 
 ### Roadmap Evolution
 
@@ -206,7 +208,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-04 - Phase 10 Wave 3 complete
-Last session: 2026-04-04T03:15:11.927Z
-Stopped at: Completed 10-04-PLAN.md
+Last activity: 2026-04-04 - Phase 10 Wave 4 complete
+Last session: 2026-04-04T03:20:00.000Z
+Stopped at: Completed 10-05-PLAN.md
 Resume file: None

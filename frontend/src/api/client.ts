@@ -64,7 +64,10 @@ export const streamJob = (jobId: string): EventSource =>
   new EventSource(`${API_BASE}/api/chat/${encodeURIComponent(jobId)}/stream`);
 
 // Threads
-export const listThreads = () => apiFetch<ThreadInfo[]>(`${API_BASE}/api/threads`);
+export const listThreads = (appId?: string) =>
+  apiFetch<ThreadInfo[]>(
+    `${API_BASE}/api/threads${appId ? `?app_id=${encodeURIComponent(appId)}` : ''}`
+  );
 
 export const createThread = () =>
   apiFetch<{ thread_id: string; label: string }>(`${API_BASE}/api/threads`, { method: 'POST' });
