@@ -26,10 +26,16 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ PostgreSQL チェックポインター — AsyncPostgresSaver で会話履歴を永続化、Docker Compose で postgres サービスを提供 — v1.0
 - ✓ スレッド削除 — `adelete_thread()` でスレッドと全チェックポイントを原子的に削除 — v1.0
 
-### Active (v2.0)
+### Validated (v2.0)
 
-- OrchestratorGraph + SubAgent マルチエージェントルーティング — `app/orchestrator/` モジュール、`github_token` threading でマルチユーザー対応 — Phase 9
-- Simple / Super モード切替 — React UI トグル + `POST /api/chat` の `mode` フィールドで OrchestratorHandler へルーティング — Phase 9
+- ✓ OrchestratorGraph + SubAgent マルチエージェントルーティング — `app/orchestrator/` モジュール、`github_token` threading でマルチユーザー対応 — Validated in Phase 9
+- ✓ Simple / Super モード切替 — React UI トグル + `POST /api/chat` の `mode` フィールドで OrchestratorHandler へルーティング — Validated in Phase 9
+- ✓ applications/threads/audit_log スキーマ刷新 — thread_labels 廃止、applications + threads テーブルで Chat/SuperChat スレッドを分離管理 — Validated in Phase 10
+- ✓ GET /api/threads LEFT JOIN + app_id フィルタ — チェックポイントなしスレッドも返却、app_id でアプリ別フィルタ可能 — Validated in Phase 10
+- ✓ OrchestratorGraph checkpointer 接続 — AsyncPostgresSaver で SuperChat の会話継続性を実現 — Validated in Phase 10
+- ✓ フロント useThreads appId 対応 — ChatApp/SuperChatApp が各自の app_id でスレッドを分離取得 — Validated in Phase 10
+
+### Active
 
 ### Out of Scope
 
@@ -41,7 +47,7 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 ## Context
 
 **v1.0 shipped 2026-04-02** — 6 phases, 17 plans, 163 commits, 2 days
-**v2.0 Phase 9 complete 2026-04-04** — OrchestratorGraph + SubAgent routing integrated into main app; Simple/Super mode toggle in React UI
+**v2.0 Phase 10 complete 2026-04-04** — thread_labels replaced with applications/threads/audit_log; app-isolated thread listing; OrchestratorGraph checkpointer; frontend useThreads appId support
 **Codebase:** ~4,935 Python LOC · 640 JS · 719 CSS · 144 files changed
 **Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector/pgvector:pg17) · Vanilla JS · React 19
 
