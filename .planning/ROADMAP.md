@@ -35,7 +35,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 ## v3.0 Agent Platform Phases
 
 - [x] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs (completed 2026-04-04)
-- [ ] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint
+- [x] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint (completed 2026-04-04)
 - [ ] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id
 - [ ] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
 
@@ -54,7 +54,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 9. SuperChat メインアプリ統合 | v2.0 | 3/4 | Complete |  2026-04-04 |
 | 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete    | 2026-04-04 |
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
-| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 2/3 | In Progress|  |
+| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete   | 2026-04-04 |
 | 13. Scalable Routing | v3.0 | 0/? | Not started | - |
 | 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
 
@@ -153,11 +153,11 @@ Plans:
   3. One agent fails initialization due to a missing dependency; GET /health/agents shows it as FAILED with the error reason while all other agents remain HEALTHY and the app starts normally
   4. Developer views GET /health/agents and sees HEALTHY/DEGRADED/FAILED status and failure reason for every registered agent
   5. CI fails a pull request when a new tool script is added without an INPUT_SCHEMA constant (scripts/lint_tools.py exits non-zero)
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 12-01-PLAN.md -- Hybrid SubAgentRegistry with health tracking (REGISTRY-01, 02, 03)
-- [ ] 12-02-PLAN.md -- GET /health/agents endpoint + startup metadata registry (REGISTRY-04)
+- [x] 12-02-PLAN.md -- GET /health/agents endpoint + startup metadata registry (REGISTRY-04)
 - [x] 12-03-PLAN.md -- ScriptBackend + INPUT_SCHEMA + lint_tools.py (TOOL-01, 02, 03)
 
 ### Phase 13: Scalable Routing
