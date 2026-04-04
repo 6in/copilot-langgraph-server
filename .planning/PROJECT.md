@@ -122,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 — Phase 11 complete: RPCContext unified into AgentState, correlation_id flows through all logs*
+*Last updated: 2026-04-05 — Phase 13 complete: 2-stage RouterNode (keyword pre-filter + LLM fallback), SubAgent.keywords loaded from AGENT.md frontmatter, ROUTING-01 startup warning for missing 対象外 sections*
