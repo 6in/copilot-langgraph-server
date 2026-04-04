@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Milestone complete
-stopped_at: Completed 10-05-PLAN.md
-last_updated: "2026-04-04T03:29:47.182Z"
-last_activity: 2026-04-04
+stopped_at: Completed 10-06-PLAN.md
+last_updated: "2026-04-04T04:31:09.090Z"
+last_activity: "2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築"
 progress:
   total_phases: 4
-  completed_phases: 4
+  completed_phases: 3
   total_plans: 16
-  completed_plans: 16
+  completed_plans: 12
   percent: 100
 ---
 
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02 after v1.0)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、スレッド維持付きのチャット UI から使えること
-**Current focus:** Phase 10 — superchat-thread-labels-mode-get-api-threads-left-join-orchestratorgraph-langgraph-checkpointer-usethreads
+**Current focus:** Phase 09 — superchat-orchestratorgraph-app-chat
 
 ## Current Position
 
-Phase: 10
+Phase: 09
 Plan: Not started
 Milestone v1.0 shipped 2026-04-02. All 6 phases complete.
 Ready to plan next milestone.
@@ -74,12 +74,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 09 P02 | 3min | 4 tasks | 6 files |
 | Phase 09 P03 | 8min | 3 tasks | 4 files |
 | Phase 09 P04 | 2min | 1 tasks | 0 files |
-| Phase 10 P01 | 2min | 2 tasks | 2 files |
-| Phase 10 P02 | 5min | 1 tasks | 1 files |
-| Phase 10 P03 | 2min | 2 tasks | 2 files |
-| Phase 10 P04 | 54s | 2 tasks | 2 files |
-
-| Phase 10 P05 | 1min | 2 tasks | 4 files |
+| Phase 10 P06 | 5min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -153,14 +148,8 @@ Recent decisions affecting current work:
 - [Phase 09]: Toggle always visible in input bar; active button highlighted with primary blue #0366d6
 - [Phase 09]: TypeScript check deferred to Docker build: node_modules owned by root in worktree; not a code defect
 - [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
-- [Phase 10]: Wave 0 tests marked skip so existing CI stays green while serving as executable spec for Waves 1-3
-- [Phase 10]: DROP TABLE IF EXISTS thread_labels before new tables — clean break avoids complex column migration in dev environment
-- [Phase 10]: audit_log schema-only in plan 10-02 — INSERT write path deferred to future phases per plan spec
-- [Phase 10]: list_threads uses t.updated_at DESC not checkpoint_id: NULL for new threads under LEFT JOIN breaks sort
-- [Phase 10]: app_id derived from mode at send_message time: super->superchat, simple->chat; never overwritten on conflict
-- [Phase 10]: OrchestratorGraph checkpointer: checkpointer=None default keeps backward compat; omit messages from initial state (checkpointer accumulates via operator.add); await checkpointer.setup() per job is idempotent
-
-- [Phase 10-05]: useThreads accepts optional 'chat' | 'superchat' mode; mode added to refreshThreads useCallback dep array
+- [Phase 10]: general-assistant AGENT.md added to agents/ — SubAgentRegistry auto-loads via glob; no code change needed
+- [Phase 10]: Agent addition pattern: drop AGENT.md in agents/<name>/ — zero code change, auto-registered by SubAgentRegistry on startup
 
 ### Roadmap Evolution
 
@@ -208,7 +197,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-04
-Last session: 2026-04-04T03:20:00.000Z
-Stopped at: Completed 10-05-PLAN.md
+Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
+Last session: 2026-04-04T04:31:09.087Z
+Stopped at: Completed 10-06-PLAN.md
 Resume file: None
