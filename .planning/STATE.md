@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Phases
 status: Milestone complete
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-04-04T01:23:50.137Z"
-last_activity: 2026-04-04
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-04-04T03:01:08.868Z"
+last_activity: "2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 16
+  completed_plans: 12
   percent: 100
 ---
 
@@ -74,6 +74,7 @@ Progress: [██████████] 100% (v1.0 complete)
 | Phase 09 P02 | 3min | 4 tasks | 6 files |
 | Phase 09 P03 | 8min | 3 tasks | 4 files |
 | Phase 09 P04 | 2min | 1 tasks | 0 files |
+| Phase 10 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,7 @@ Recent decisions affecting current work:
 - [Phase 09]: Toggle always visible in input bar; active button highlighted with primary blue #0366d6
 - [Phase 09]: TypeScript check deferred to Docker build: node_modules owned by root in worktree; not a code defect
 - [Phase 09]: 5 of 6 smoke test checks pass: all Python integration verified; tsc blocked by environment only
+- [Phase 10]: Wave 0 tests marked skip so existing CI stays green while serving as executable spec for Waves 1-3
 
 ### Roadmap Evolution
 
@@ -195,6 +197,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04 - Completed quick task 260404-eoj: SuperChat UI エージェント選択トグルと動的構築
-Last session: 2026-04-04T01:34:14.000Z
-Stopped at: Completed quick/260404-eoj-superchat-ui on feature/superchat-agent-toggle
+Last session: 2026-04-04T03:01:08.865Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
