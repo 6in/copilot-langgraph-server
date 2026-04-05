@@ -571,17 +571,17 @@ try {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`build_graph()` への SystemMessage 注入**
    - What we know: `graph.ainvoke({"messages": [HumanMessage(...)]})` は `messages` リストを直接受け取る。LangChain の `MessagesState` は `add_messages` reducer を使うため、リスト内の順序がそのまま LLM に渡される
    - What's unclear: Copilot SDK が `SystemMessage` を正しくシステムプロンプトとして処理するか（SDK は JSON-RPC ベースの独自実装）
-   - Recommendation: Worker で `[SystemMessage(content=sp), HumanMessage(content=prompt)]` として渡し、Phase 実装時に動作確認する。問題があれば ChatCopilot の `_agenerate()` でシステムプロンプトを別処理する
+   - RESOLVED: Worker で `[SystemMessage(content=sp), HumanMessage(content=prompt)]` として渡し、Phase 実装時に動作確認する。問題があれば ChatCopilot の `_agenerate()` でシステムプロンプトを別処理する
 
 2. **canvas_apps upsert の UNIQUE 制約**
    - What we know: CONTEXT.md は `thread_id + github_login` で既存レコードを探してデータを更新するよう指定
    - What's unclear: `ON CONFLICT DO UPDATE` には UNIQUE 制約が必要。DDL に `UNIQUE (thread_id, github_login)` を追加するか、明示的な SELECT + UPDATE を使うか
-   - Recommendation: `UNIQUE (thread_id, github_login)` 制約を DDL に追加し、`INSERT ... ON CONFLICT (thread_id, github_login) DO UPDATE SET html = EXCLUDED.html` の形式を使う
+   - RESOLVED: `UNIQUE (thread_id, github_login)` 制約を DDL に追加し、`INSERT ... ON CONFLICT (thread_id, github_login) DO UPDATE SET html = EXCLUDED.html` の形式を使う
 
 ---
 
