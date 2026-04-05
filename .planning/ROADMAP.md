@@ -57,6 +57,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
 | 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
 | 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
+| 15. Gem + Canvas | — | 0/4 | Planning | - |
 
 ## Shipped Phase Details
 
@@ -189,3 +190,21 @@ Plans:
 Plans:
 - [ ] 14-01-PLAN.md — Backend: AppRegistry + GET /api/apps + chat.py app_id + OrchestratorHandler update (APP-01, APP-03, APP-04)
 - [ ] 14-02-PLAN.md — Frontend: Dynamic MenuScreen + App.tsx activeApp + SuperChatApp props + Header app name (APP-02, APP-03, APP-04)
+
+### Phase 15: Gem + Canvas 機能実装
+**Goal:** Gem（AI ペルソナ）と Canvas（シングルファイル HTML 生成・デプロイ）機能を実装する。gems / canvas_apps テーブルを追加し、Gem CRUD API / Canvas Apps API / Worker HTML 抽出を実装し、React UI に GemSelector チップストリップと CanvasPane エディタ/プレビュー/デプロイ UI を追加する
+**Depends on:** Phase 14
+**Requirements:** GEM-01, GEM-02, GEM-03, CANVAS-01, CANVAS-02, CANVAS-03, CANVAS-04, FE-01, FE-02, FE-03, FE-04
+**Success Criteria** (what must be TRUE):
+  1. ユーザーが Gem（AI ペルソナ）を作成・一覧・更新・削除でき、他ユーザーの Gem にはアクセスできない
+  2. Canvas Gem を選択してチャットを開始すると、AI がシングルファイル HTML を生成し、canvas_apps テーブルに自動保存される
+  3. Canvas ペインでエディタ/プレビューを切り替えて HTML を編集・保存でき、Deploy ボタンで /apps/{app_id}/ に公開できる
+  4. HTML アップロードで外部作成のアプリを canvas_apps に登録できる
+**UI hint**: yes
+**Plans:** 4 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Backend DB + Pydantic models + Gem CRUD API (GEM-01, GEM-02, GEM-03, CANVAS-01)
+- [ ] 15-02-PLAN.md — Backend Canvas API + Worker extension + Deploy (CANVAS-02, CANVAS-03, CANVAS-04)
+- [ ] 15-03-PLAN.md — Frontend types + hooks + GemSelector (FE-01, FE-02)
+- [ ] 15-04-PLAN.md — Frontend CanvasPane + ChatApp integration + human verification (FE-03, FE-04)

@@ -37,6 +37,26 @@
 - [x] **TOOL-02**: ScriptBackend がツール呼び出し前に INPUT_SCHEMA で入力値を jsonschema 検証し、不正入力を早期検出できる
 - [x] **TOOL-03**: scripts/lint_tools.py が CI で全ツールの INPUT_SCHEMA 欠落を自動検出し、新規エージェント追加時の品質ゲートになる
 
+### GEM — Gem（AI ペルソナ）管理
+
+- [ ] **GEM-01**: gems テーブルと canvas_apps テーブルが PostgreSQL に追加され、threads テーブルに gem_id カラムが追加される
+- [ ] **GEM-02**: 認証済みユーザーが Gem の作成・一覧・取得・更新・削除ができ、他ユーザーの Gem にはアクセスできない
+- [ ] **GEM-03**: スレッド作成時に gem_id を指定でき、threads テーブルに保存される
+
+### CANVAS — Canvas（HTML 生成・デプロイ）
+
+- [ ] **CANVAS-01**: canvas_apps テーブルの DDL が lifespan マイグレーションに含まれる
+- [ ] **CANVAS-02**: Canvas Apps API（アップロード・取得・編集・デプロイ・ソース）が JWT 認証 + 所有権チェック付きで動作する
+- [ ] **CANVAS-03**: Canvas Gem のスレッドで AI 応答から HTML を抽出して canvas_apps に upsert し、job result を JSON 形式で保存する
+- [ ] **CANVAS-04**: デプロイ機能が static/apps/{app_id}/index.html に HTML を書き出し、/apps/{app_id}/ で StaticFiles からアクセスできる
+
+### FE — フロントエンド拡張
+
+- [ ] **FE-01**: GemInfo / GemCreate / CanvasAppInfo の TypeScript 型と API クライアント関数が定義されている
+- [ ] **FE-02**: GemSelector コンポーネントで Gem チップの選択・作成・削除が UI-SPEC に準拠して動作する
+- [ ] **FE-03**: CanvasPane コンポーネントでエディタ/プレビュータブ切り替え・保存・デプロイが動作する
+- [ ] **FE-04**: ChatApp に Canvas ペインが統合され、Canvas Gem レスポンスで右側ペインが自動表示される
+
 ---
 
 ## Future Requirements
@@ -52,6 +72,9 @@
 - ツール呼び出し（LLM function calling） — INPUT_SCHEMA の構造は準備するが、bind_tools 実装は v4.0 以降
 - エージェント間の非同期並列実行 — 現状は逐次ルーティング、並列化は v3.1 以降
 - エージェント管理 UI（追加・削除・設定） — CLI / ファイル操作で管理、GUI は対象外
+- Canvas バージョン管理・ロールバック — v1 では最新 HTML のみ保持
+- 生成アプリからの社内 DB アクセス API — 拡張フェーズ
+- 生成アプリ内から AI へのプロンプト連携 API — 拡張フェーズ
 
 ---
 
@@ -77,3 +100,14 @@
 | APP-02 | Phase 14 | — |
 | APP-03 | Phase 14 | — |
 | APP-04 | Phase 14 | — |
+| GEM-01 | Phase 15 | 15-01 |
+| GEM-02 | Phase 15 | 15-01 |
+| GEM-03 | Phase 15 | 15-01 |
+| CANVAS-01 | Phase 15 | 15-01 |
+| CANVAS-02 | Phase 15 | 15-02 |
+| CANVAS-03 | Phase 15 | 15-02 |
+| CANVAS-04 | Phase 15 | 15-02 |
+| FE-01 | Phase 15 | 15-03 |
+| FE-02 | Phase 15 | 15-03 |
+| FE-03 | Phase 15 | 15-04 |
+| FE-04 | Phase 15 | 15-04 |
