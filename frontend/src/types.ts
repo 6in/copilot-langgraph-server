@@ -62,6 +62,14 @@ export interface AgentInfo {
   description: string;
 }
 
+export interface AppDefinition {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  agents: string[];
+}
+
 export interface ChatRequest {
   message: string;
   thread_id: string;
@@ -69,4 +77,5 @@ export interface ChatRequest {
   task_type?: string;
   mode?: 'simple' | 'super';
   agents?: string[];
+  app_id?: string;
 }
