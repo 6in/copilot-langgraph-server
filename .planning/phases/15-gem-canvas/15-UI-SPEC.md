@@ -45,7 +45,7 @@ Declared values (must be multiples of 4):
 
 Exceptions:
 - Header height: 48px (established — do not change)
-- Touch/click target minimum: 44px height for Gem selector chips and tab buttons
+- Touch/click target minimum: 44px height for Gem selector chips and tab buttons (WCAG 2.5.5 最小タッチターゲット要件)
 - Canvas pane minimum width: 320px (allows readable HTML preview on narrow screens)
 - Canvas pane default width: 40% of available chat area width (resizable by user — Claude's discretion, see Interaction Contract)
 - Gem chip height: 28px (compact — sits above the chat input bar)
@@ -59,14 +59,14 @@ Source: Existing spacing from `MessageArea.tsx` (`padding: '0.6rem 0.75rem'`, `g
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 16px (1rem) | 400 | 1.5 |
-| Label / Small | 13.6px (0.85rem) | 400 | 1.4 |
+| Label / Small | 12px (0.75rem) | 400 | 1.4 |
 | Gem name / Tab label | 14px (0.875rem) | 600 | 1.2 |
 | Section heading (Canvas pane) | 14px (0.875rem) | 600 | 1.2 |
 
 Notes:
 - 2 weights: 400 (regular) and 600 (semibold). Matches Phase 14 contract.
 - Canvas pane textarea (HTML editor): 13px monospace (`font-family: 'Courier New', Courier, monospace`) for code legibility. This is the only monospace exception.
-- Deploy URL copy: 13.6px (0.85rem), weight 400 — displayed as muted secondary text.
+- Deploy URL copy: 12px (0.75rem), weight 400 — displayed as muted secondary text.
 
 Source: `MessageArea.tsx` `fontSize: '0.95rem'` for textarea, `'0.75rem'` for copy buttons. Phase 14 UI-SPEC typography section.
 
@@ -138,7 +138,7 @@ These components are created or modified in this phase:
   - Editor tab: `<textarea>` (monospace, 13px, `resize: none`, `width: 100%`, `flex: 1`). Auto-resizes to fill pane height.
   - Preview tab: `<iframe srcDoc={html} sandbox="allow-scripts allow-forms" style={{ width: '100%', height: '100%', border: 'none' }}>`. No allow-same-origin to prevent XSS.
 - Tab bar: two tab buttons, active tab has bottom border `2px solid #7c6ff7`, inactive tab has background `#f0f0f0` (light) / `#252535` (dark).
-- "Save" button: shown in Editor tab only. Calls `PATCH /api/canvas/apps/{app_id}`. Label: "Save". Style: secondary (border, no fill). Height 32px.
+- "Save Changes" button: shown in Editor tab only. Calls `PATCH /api/canvas/apps/{app_id}`. Label: "Save Changes". Style: secondary (border, no fill). Height 32px.
 - "Deploy" button: always visible in pane header. Calls `POST /api/canvas/apps/{app_id}/deploy`. Label: "Deploy". Style: accent fill (`#7c6ff7`), white text. Height 36px.
 - After Deploy: show deploy URL as a clickable link (`/apps/{app_id}/`) with a "Copy URL" button beside it. Color: muted text. Opens in new tab.
 - Pane header: shows app name (from `canvas_apps.name`) in 14px semibold. Close button (×) at right to dismiss the pane.
@@ -225,7 +225,7 @@ Source: CONTEXT.md Pydantic モデル section and RESEARCH.md types.ts section.
 - Tabs toggle `display: none` / `display: flex` on the content panels — no animation.
 - Clicking "Editor" tab: show textarea, hide iframe.
 - Clicking "Preview" tab: update `<iframe srcDoc>` with current HTML content (always re-read from state, not from textarea value).
-- "Save" button only visible in Editor tab.
+- "Save Changes" button only visible in Editor tab.
 - Tab keyboard navigation: `Tab` key moves between tab buttons; `Enter`/`Space` activates tab. Standard browser button behavior — no custom keyboard handler needed.
 
 ### CanvasPane — Deploy Flow
@@ -257,7 +257,7 @@ Source: CONTEXT.md Pydantic モデル section and RESEARCH.md types.ts section.
 |---------|------|
 | Primary CTA (Gem) | "Create Gem" |
 | Primary CTA (Deploy) | "Deploy" |
-| Primary CTA (Save canvas) | "Save" |
+| Primary CTA (Save canvas) | "Save Changes" |
 | Gem chip — no gem selected | "No Gem" |
 | Gem chip — add new | "+" |
 | GemSelector empty state | "No Gems yet. Click + to create one." |
@@ -297,7 +297,8 @@ Note: No destructive action for Canvas apps in v1 (delete deferred). Only Gem de
 - Deploy URL link: `target="_blank"` must include `rel="noopener noreferrer"`.
 - Error states: wrap in `role="alert"` so screen readers announce without focus.
 - Gem delete confirm: confirm text must be keyboard-accessible (`Tab` to "Yes"/"No" links).
-- Touch target minimum: 44px height for all interactive chips, tab buttons, and deploy/save buttons.
+- Touch target minimum: 44px height for all interactive chips, tab buttons, and deploy/save buttons (WCAG 2.5.5 最小タッチターゲット要件).
+- Delete button (trash icon): `aria-label="Gem を削除"` required on the `<button>` element to convey purpose to screen readers.
 
 ---
 
