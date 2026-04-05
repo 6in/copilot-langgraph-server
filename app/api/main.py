@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import agents, apps, auth, chat, gems, health, jobs, me
+from app.api.routes import agents, apps, auth, canvas, chat, gems, health, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -241,12 +241,17 @@ app.include_router(agents.router)
 app.include_router(apps.router)
 app.include_router(health.router)
 app.include_router(gems.router)
+app.include_router(canvas.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.
 # Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).
 # Per Pitfall 5 in 07-RESEARCH.md.
 if os.path.isdir("frontend/dist"):
     app.mount("/react", StaticFiles(directory="frontend/dist", html=True), name="react")
+
+# Canvas deployed apps — must be before "/" catch-all
+os.makedirs("./static/apps", exist_ok=True)
+app.mount("/apps", StaticFiles(directory="./static/apps", html=True), name="canvas_apps")
 
 # Static files LAST — serves index.html for any non-API path
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
