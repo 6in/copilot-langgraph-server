@@ -9,9 +9,10 @@ import type { AppDefinition } from '../types';
 
 interface MenuScreenProps {
   onNavigate: (app: AppDefinition) => void;
+  onOpenGems: () => void;
 }
 
-export function MenuScreen({ onNavigate }: MenuScreenProps) {
+export function MenuScreen({ onNavigate, onOpenGems }: MenuScreenProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -93,6 +94,29 @@ export function MenuScreen({ onNavigate }: MenuScreenProps) {
           {error}
         </div>
       )}
+
+      {/* Gems 固定カード — ロード状態・エラー状態に依存しない（Pitfall 5 対策） */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: '1rem',
+          width: '100%',
+          maxWidth: '600px',
+          marginBottom: '1rem',
+        }}
+      >
+        <FeatureCard
+          icon="💎"
+          title="Gems"
+          description="AI ペルソナを管理してチャットを起動する"
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          subtitleColor={subtitleColor}
+          onClick={onOpenGems}
+        />
+      </div>
 
       {loading ? (
         <div
