@@ -9,11 +9,13 @@ import { useCallback, useRef, useState } from 'react';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
+import { CanvasPane } from './CanvasPane';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
+import { useCanvas } from '../hooks/useCanvas';
 import { renameThread } from '../api/client';
-import type { AgentInfo } from '../types';
+import type { AgentInfo, CanvasAppInfo } from '../types';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -136,8 +138,21 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [selectedGemId, setSelectedGemId] = useState<string | null>(null);
   const dragStartX = useRef<number | null>(null);
   const dragStartWidth = useRef<number>(SIDEBAR_DEFAULT);
+
+  const {
+    canvasApp,
+    setCanvasApp,
+    isSaving,
+    isDeploying,
+    deployUrl,
+    deployError,
+    saveCanvas,
+    deployCanvas,
+    dismissCanvas,
+  } = useCanvas();
 
   const { isThinking, sendMessage } = useChat({
     activeThreadId,
@@ -145,6 +160,8 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     selectedMode: 'super',
     agents: visibleSelectedAgents,
     appId: appId || undefined,
+    gemId: selectedGemId,
+    onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
   });
@@ -242,9 +259,23 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               messages={messages}
               isThinking={isThinking}
               onSend={handleSend}
+              selectedGemId={selectedGemId}
+              onSelectGem={setSelectedGemId}
             />
           )}
         </div>
+        {canvasApp && (
+          <CanvasPane
+            canvasApp={canvasApp}
+            isSaving={isSaving}
+            isDeploying={isDeploying}
+            deployUrl={deployUrl}
+            deployError={deployError}
+            onSave={saveCanvas}
+            onDeploy={deployCanvas}
+            onClose={dismissCanvas}
+          />
+        )}
       </MainContainer>
     </div>
   );
