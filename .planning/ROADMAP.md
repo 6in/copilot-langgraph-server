@@ -56,7 +56,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
 | 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
-| 14. Application Packages + Menu | v3.0 | 0/? | Not started | - |
+| 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
 
 ## Shipped Phase Details
 
@@ -187,5 +187,5 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [x] 13-01-PLAN.md -- SubAgent keywords + ROUTING-01 warning (ROUTING-01, ROUTING-02)
-- [ ] 13-02-PLAN.md -- 2-stage RouterNode + stage log field (ROUTING-02, ROUTING-03)
+- [ ] 14-01-PLAN.md — Backend: AppRegistry + GET /api/apps + chat.py app_id + OrchestratorHandler update (APP-01, APP-03, APP-04)
+- [ ] 14-02-PLAN.md — Frontend: Dynamic MenuScreen + App.tsx activeApp + SuperChatApp props + Header app name (APP-02, APP-03, APP-04)
