@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
-import type { ChatMessage } from '../types';
+import type { CanvasAppInfo, CanvasResult, ChatMessage } from '../types';
 
 interface UseChatOptions {
   activeThreadId: string | null;
@@ -13,14 +13,29 @@ interface UseChatOptions {
   selectedMode?: 'simple' | 'super';
   agents?: string[];
   appId?: string;
+  gemId?: string | null;           // Phase 15: Gem ID for chat request payload
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
+  onCanvasResponse?: (app: CanvasAppInfo) => void;  // Phase 15: Canvas response callback
 }
 
 interface UseChatReturn {
   isThinking: boolean;
   sendMessage: (text: string, threadId?: string) => Promise<void>;
+}
+
+// Phase 15: Parse job result — detect Canvas JSON payload vs plain text.
+function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.type === 'canvas') {
+      return { text: raw, canvas: parsed as CanvasResult };
+    }
+  } catch {
+    // plain text — not JSON
+  }
+  return { text: raw, canvas: null };
 }
 
 export function useChat({
@@ -30,8 +45,10 @@ export function useChat({
   selectedMode = 'simple',
   agents,
   appId,
+  gemId,
   setMessages,
   refreshThreads,
+  onCanvasResponse,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
 
@@ -59,12 +76,35 @@ export function useChat({
         agents: selectedMode === 'super' ? agents : undefined,
         // Pass app_id when provided for thread scoping
         ...(appId ? { app_id: appId } : {}),
+        // Phase 15: Pass gem_id when a Gem is selected
+        ...(gemId ? { gem_id: gemId } : {}),
       });
+
+      // Helper: handle result raw string (Canvas or plain text)
+      const handleResult = (raw: string) => {
+        const { text: resultText, canvas } = parseJobResult(raw);
+        if (canvas && onCanvasResponse) {
+          // Canvas response: show raw text in chat + open Canvas pane
+          setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+          onCanvasResponse({
+            app_id: canvas.app_id,
+            thread_id: resolvedThreadId,
+            name: 'Canvas App',
+            html: canvas.html,
+            source: 'canvas',
+            deployed: false,
+            deployed_at: null,
+            created_at: new Date().toISOString(),
+          });
+        } else {
+          setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+        }
+      };
 
       // 2. Check if already done (reconnect / very fast response edge case)
       const immediate = await getJob(job_id);
       if (immediate.status === 'done' && immediate.result) {
-        setMessages((prev) => [...prev, { role: 'ai', content: immediate.result! }]);
+        handleResult(immediate.result);
         setIsThinking(false);
         await refreshThreads?.();
         return;
@@ -80,7 +120,7 @@ export function useChat({
             es.close();
             const result = await getJob(job_id);
             if (result.result) {
-              setMessages((prev) => [...prev, { role: 'ai', content: result.result! }]);
+              handleResult(result.result);
             }
             setIsThinking(false);
             await refreshThreads?.();
@@ -99,7 +139,7 @@ export function useChat({
             const job = await getJob(job_id);
             if (job.status === 'done' && job.result) {
               clearInterval(timer);
-              setMessages((prev) => [...prev, { role: 'ai', content: job.result! }]);
+              handleResult(job.result);
               setIsThinking(false);
               await refreshThreads?.();
             }
@@ -116,7 +156,7 @@ export function useChat({
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, isThinking, setMessages, refreshThreads]);
+  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, isThinking, setMessages, refreshThreads, onCanvasResponse]);
 
   return { isThinking, sendMessage };
 }
