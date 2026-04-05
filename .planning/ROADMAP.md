@@ -58,6 +58,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
 | 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
+| 15.1. Gem UX 強化 | — | 0/3 | Pending | - |
 
 ## Shipped Phase Details
 
@@ -208,3 +209,15 @@ Plans:
 - [x] 15-02-PLAN.md — Backend Canvas API + Worker extension + Deploy (CANVAS-02, CANVAS-03, CANVAS-04)
 - [x] 15-03-PLAN.md — Frontend types + hooks + GemSelector (FE-01, FE-02)
 - [x] 15-04-PLAN.md — Frontend CanvasPane + ChatApp integration + human verification (FE-03, FE-04)
+
+### Phase 15.1: Gem UX 強化 — GemsScreen ハブ・GemChatApp・ナビゲーション改善
+
+**Goal:** Gem 機能を「アプリ」として再設計する。MenuScreen に「Gems」アプリカードを固定追加し、GemsScreen（Gem CRUD 管理ハブ）と GemChatApp（Gem 専用チャット）を新規作成する。既存 ChatApp / SuperChatApp から GemSelector を撤去する。
+**Requirements:** D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21
+**Depends on:** Phase 15
+**Plans:** 3 plans
+
+Plans:
+- [ ] 15.1-PLAN-1-hooks-cleanup.md — useGems.updateGem 追加・useThreads 型調整・GemSelector 撤去 (D-11, D-18〜D-21)
+- [ ] 15.1-PLAN-2-gems-screen.md — GemsScreen 新規作成（Gem CRUD ハブ画面）(D-08〜D-12)
+- [ ] 15.1-PLAN-3-navigation-gemchat.md — GemChatApp 新規作成・App.tsx 4画面ナビゲーション・MenuScreen Gems カード追加 (D-01〜D-07, D-13〜D-17)
