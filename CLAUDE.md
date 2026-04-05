@@ -106,6 +106,10 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内�
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
+### 応答言語
+
+**すべての応答は日本語で行うこと。** GSD ワークフロー（バナー・チェックポイント・Next Up ブロックなど）を含め、ユーザーへの出力は日本語を使用する。コードやコマンド、ファイルパス、技術的な固有名詞はそのまま英語で記載してよい。
+
 ### Merge Workflow
 
 「マージして」と指示された場合、マージを実行する前に必ず次を確認する:

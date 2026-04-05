@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
-status: verifying
+status: executing
 stopped_at: Phase 14 UI-SPEC approved
-last_updated: "2026-04-04T17:24:27.365Z"
-last_activity: 2026-04-04
+last_updated: "2026-04-05T01:59:10.022Z"
+last_activity: 2026-04-05 -- Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 26
+  total_plans: 28
   completed_plans: 26
-  percent: 100
+  percent: 93
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 13 — scalable-routing
+**Current focus:** Phase 14 — application-packages-menu
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-04
+Phase: 14 (application-packages-menu) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 14
+Last activity: 2026-04-05 -- Phase 14 execution started
 
 Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
