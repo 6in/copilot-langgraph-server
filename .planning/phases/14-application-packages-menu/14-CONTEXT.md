@@ -39,9 +39,9 @@ Creating new agents, modifying existing agents, or changing the routing algorith
 
 ### Agent Filtering Architecture
 
-- **D-07:** At startup, an `AppRegistry` loads all APP.md files from `apps/`. For each app, it builds a filtered `SubAgentRegistry` (containing only that app's declared agents) and compiles a dedicated `OrchestratorGraph`. Graphs stored by app slug in a dict.
-- **D-08:** Per-request routing: look up `app_graphs[app_slug]`, invoke that graph. RouterNode sees only that app's agents as candidates — no runtime filtering needed inside RouterNode (satisfies APP-03).
-- **D-09:** The existing single-registry global graph (used by SuperChat today) is replaced by the per-app graph lookup. If an app slug is unknown, return 404.
+- **D-07 (REVISED 2026-04-05):** `AppRegistry` is **metadata-only at startup**. It scans `apps/` folder, parses each APP.md frontmatter, and stores the agent list per app slug. No graph compilation at startup — the GitHub Copilot token is per-user (acquired via Device Flow at login), so ChatCopilot cannot be instantiated at server startup before any user has authenticated.
+- **D-08 (REVISED 2026-04-05):** Per-request routing: the API route reads the app's declared agent list from AppRegistry metadata and passes `agents[]` in the arq job payload. The worker's `OrchestratorHandler` builds a per-request `SubAgentRegistry` filtered to those agents, then calls `build_orchestrator_graph()` for that request. RouterNode sees only that app's agents as candidates (satisfies APP-03).
+- **D-09:** The existing single-registry global graph (used by SuperChat today) is replaced by the per-app agent list lookup. If an app slug is unknown, return 404.
 
 ### App-Scoped Chat UI
 
@@ -106,7 +106,7 @@ Creating new agents, modifying existing agents, or changing the routing algorith
 
 - APP.md follows exact same YAML frontmatter + markdown body convention as AGENT.md — developers already know this pattern
 - App cards replace the existing "Chat" and "SuperChat" cards entirely — these become first-class apps defined in `apps/` folder
-- Per-app compiled graphs at startup (not runtime filtering) — clean isolation with no RouterNode changes needed
+- Metadata-only AppRegistry at startup; per-request OrchestratorHandler builds filtered SubAgentRegistry from job payload agents list — avoids startup-time ChatCopilot instantiation before user token exists
 
 </specifics>
 
