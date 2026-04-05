@@ -36,7 +36,6 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
-  const [selectedGemId, setSelectedGemId] = useState<string | null>(null);
 
   const {
     canvasApp,
@@ -70,7 +69,6 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     selectedModel,
     setMessages,
     refreshThreads,
-    gemId: selectedGemId,
     onCanvasResponse: (app) => setCanvasApp(app),
   });
 
@@ -158,8 +156,6 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
               messages={messages}
               isThinking={isThinking}
               onSend={handleSend}
-              selectedGemId={selectedGemId}
-              onSelectGem={setSelectedGemId}
             />
             {canvasApp && (
               <CanvasPane

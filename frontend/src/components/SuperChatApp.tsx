@@ -138,7 +138,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
-  const [selectedGemId, setSelectedGemId] = useState<string | null>(null);
   const dragStartX = useRef<number | null>(null);
   const dragStartWidth = useRef<number>(SIDEBAR_DEFAULT);
 
@@ -160,7 +159,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     selectedMode: 'super',
     agents: visibleSelectedAgents,
     appId: appId || undefined,
-    gemId: selectedGemId,
     onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
@@ -259,8 +257,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               messages={messages}
               isThinking={isThinking}
               onSend={handleSend}
-              selectedGemId={selectedGemId}
-              onSelectGem={setSelectedGemId}
             />
           )}
         </div>

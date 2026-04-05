@@ -16,15 +16,12 @@ import {
   TypingIndicator,
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
-import { GemSelector } from './GemSelector';
 import type { ChatMessage } from '../types';
 
 interface MessageAreaProps {
   messages: ChatMessage[];
   isThinking: boolean;
   onSend: (text: string) => void;
-  selectedGemId?: string | null;
-  onSelectGem?: (gemId: string | null) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -93,7 +90,7 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
-export function MessageArea({ messages, isThinking, onSend, selectedGemId, onSelectGem }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageListRef = useRef<{ scrollToBottom: (behavior: 'auto' | 'smooth') => void }>(null);
@@ -127,16 +124,7 @@ export function MessageArea({ messages, isThinking, onSend, selectedGemId, onSel
   };
 
   return (
-    // Outer wrapper: allows GemSelector to sit above the chatscope ChatContainer.
-    // GemSelector must be OUTSIDE cs-chat-container to avoid chatscope style interference.
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
-      {/* GemSelector — above the chat input bar, outside chatscope ChatContainer (W-2) */}
-      {onSelectGem && (
-        <GemSelector
-          selectedGemId={selectedGemId ?? null}
-          onSelectGem={onSelectGem}
-        />
-      )}
     {/* cs-chat-container: gives flex-grow:1 and flex-direction:column from chatscope CSS.
         height:initial overrides the default height:100% so the textarea row can sit below. */}
     <div className="cs-chat-container" style={{ height: 'initial', flex: 1, minHeight: 0 }}>
