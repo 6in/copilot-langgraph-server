@@ -78,4 +78,43 @@ export interface ChatRequest {
   mode?: 'simple' | 'super';
   agents?: string[];
   app_id?: string;
+  gem_id?: string | null;  // Phase 15: Gem association for thread creation
+}
+
+// --- Phase 15: Gem + Canvas types ---
+
+export interface GemInfo {
+  gem_id: string;
+  name: string;
+  system_prompt: string;
+  type: 'default' | 'canvas';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GemCreate {
+  name: string;
+  system_prompt: string;
+  type: 'default' | 'canvas';
+}
+
+export interface CanvasAppInfo {
+  app_id: string;
+  thread_id: string | null;
+  name: string;
+  html: string;
+  source: 'canvas' | 'upload' | 'builtin';
+  deployed: boolean;
+  deployed_at: string | null;
+  created_at: string;
+}
+
+export interface CanvasDeployResponse {
+  url: string;
+}
+
+export interface CanvasResult {
+  type: 'canvas';
+  app_id: string;
+  html: string;
 }

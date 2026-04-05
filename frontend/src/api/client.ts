@@ -22,6 +22,10 @@ import type {
   ChatMessage,
   ThreadMessagesResponse,
   ChatRequest,
+  GemInfo,
+  GemCreate,
+  CanvasAppInfo,
+  CanvasDeployResponse,
 } from '../types';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -70,8 +74,12 @@ export const listThreads = (appId?: string) =>
     `${API_BASE}/api/threads${appId ? `?app_id=${encodeURIComponent(appId)}` : ''}`
   );
 
-export const createThread = () =>
-  apiFetch<{ thread_id: string; label: string }>(`${API_BASE}/api/threads`, { method: 'POST' });
+export const createThread = (gemId?: string | null) =>
+  apiFetch<{ thread_id: string; label: string }>(`${API_BASE}/api/threads`, {
+    method: 'POST',
+    headers: gemId ? { 'Content-Type': 'application/json' } : undefined,
+    body: gemId ? JSON.stringify({ gem_id: gemId }) : undefined,
+  });
 
 export const deleteThread = async (threadId: string): Promise<void> => {
   const resp = await fetch(`${API_BASE}/api/threads/${encodeURIComponent(threadId)}`, {
@@ -111,3 +119,52 @@ export const getAgents = () =>
 // Apps
 export const getApps = () =>
   apiFetch<AppDefinition[]>(`${API_BASE}/api/apps`);
+
+// --- Phase 15: Gems API ---
+
+export const listGems = () =>
+  apiFetch<GemInfo[]>(`${API_BASE}/api/gems`);
+
+export const createGemApi = (data: GemCreate) =>
+  apiFetch<GemInfo>(`${API_BASE}/api/gems`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const updateGemApi = (gemId: string, data: Partial<GemCreate>) =>
+  apiFetch<GemInfo>(`${API_BASE}/api/gems/${encodeURIComponent(gemId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const deleteGemApi = async (gemId: string): Promise<void> => {
+  const resp = await fetch(`${API_BASE}/api/gems/${encodeURIComponent(gemId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (resp.status !== 204 && !resp.ok) {
+    throw new Error(`Delete gem failed: ${resp.status}`);
+  }
+};
+
+// --- Phase 15: Canvas API ---
+
+export const getCanvasApp = (appId: string) =>
+  apiFetch<CanvasAppInfo>(`${API_BASE}/api/canvas/apps/${encodeURIComponent(appId)}`);
+
+export const getCanvasAppByThread = (threadId: string) =>
+  apiFetch<CanvasAppInfo[]>(`${API_BASE}/api/canvas/apps?thread_id=${encodeURIComponent(threadId)}`);
+
+export const updateCanvasApp = (appId: string, html: string, name?: string) =>
+  apiFetch<CanvasAppInfo>(`${API_BASE}/api/canvas/apps/${encodeURIComponent(appId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html, ...(name ? { name } : {}) }),
+  });
+
+export const deployCanvasApp = (appId: string) =>
+  apiFetch<CanvasDeployResponse>(`${API_BASE}/api/canvas/apps/${encodeURIComponent(appId)}/deploy`, {
+    method: 'POST',
+  });

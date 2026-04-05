@@ -17,7 +17,7 @@ interface UseThreadsReturn {
   messages: ChatMessage[];
   isLoadingMessages: boolean;
   switchThread: (threadId: string) => Promise<void>;
-  createNewThread: () => Promise<string>;
+  createNewThread: (gemId?: string | null) => Promise<string>;
   removeThread: (threadId: string) => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   refreshThreads: () => Promise<void>;
@@ -56,8 +56,8 @@ export function useThreads(appId?: 'chat' | 'superchat'): UseThreadsReturn {
     }
   }, []);
 
-  const createNewThread = useCallback(async (): Promise<string> => {
-    const { thread_id } = await createThread();
+  const createNewThread = useCallback(async (gemId?: string | null): Promise<string> => {
+    const { thread_id } = await createThread(gemId);
     setActiveThreadId(thread_id);
     setMessages([]);
     // Refresh thread list after a brief delay to let the first message register
