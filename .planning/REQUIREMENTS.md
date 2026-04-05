@@ -54,8 +54,8 @@
 
 - [ ] **FE-01**: GemInfo / GemCreate / CanvasAppInfo の TypeScript 型と API クライアント関数が定義されている
 - [ ] **FE-02**: GemSelector コンポーネントで Gem チップの選択・作成・削除が UI-SPEC に準拠して動作する
-- [ ] **FE-03**: CanvasPane コンポーネントでエディタ/プレビュータブ切り替え・保存・デプロイが動作する
-- [ ] **FE-04**: ChatApp に Canvas ペインが統合され、Canvas Gem レスポンスで右側ペインが自動表示される
+- [x] **FE-03**: CanvasPane コンポーネントでエディタ/プレビュータブ切り替え・保存・デプロイが動作する
+- [x] **FE-04**: ChatApp に Canvas ペインが統合され、Canvas Gem レスポンスで右側ペインが自動表示される
 
 ---
 

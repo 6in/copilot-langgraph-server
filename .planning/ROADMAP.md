@@ -57,7 +57,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
 | 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
 | 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
-| 15. Gem + Canvas | — | 0/4 | Planning | - |
+| 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
 
 ## Shipped Phase Details
 
@@ -201,10 +201,10 @@ Plans:
   3. Canvas ペインでエディタ/プレビューを切り替えて HTML を編集・保存でき、Deploy ボタンで /apps/{app_id}/ に公開できる
   4. HTML アップロードで外部作成のアプリを canvas_apps に登録できる
 **UI hint**: yes
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 15-01-PLAN.md — Backend DB + Pydantic models + Gem CRUD API (GEM-01, GEM-02, GEM-03, CANVAS-01)
-- [ ] 15-02-PLAN.md — Backend Canvas API + Worker extension + Deploy (CANVAS-02, CANVAS-03, CANVAS-04)
-- [ ] 15-03-PLAN.md — Frontend types + hooks + GemSelector (FE-01, FE-02)
-- [ ] 15-04-PLAN.md — Frontend CanvasPane + ChatApp integration + human verification (FE-03, FE-04)
+- [x] 15-01-PLAN.md — Backend DB + Pydantic models + Gem CRUD API (GEM-01, GEM-02, GEM-03, CANVAS-01)
+- [x] 15-02-PLAN.md — Backend Canvas API + Worker extension + Deploy (CANVAS-02, CANVAS-03, CANVAS-04)
+- [x] 15-03-PLAN.md — Frontend types + hooks + GemSelector (FE-01, FE-02)
+- [x] 15-04-PLAN.md — Frontend CanvasPane + ChatApp integration + human verification (FE-03, FE-04)

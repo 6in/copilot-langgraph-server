@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
 status: executing
-stopped_at: Phase 14 UI-SPEC approved
-last_updated: "2026-04-05T01:59:10.022Z"
-last_activity: 2026-04-05 -- Phase 14 execution started
+stopped_at: Completed 15-04-PLAN.md — CanvasPane + ChatApp Canvas integration
+last_updated: "2026-04-05T11:59:03.567Z"
+last_activity: 2026-04-05
 progress:
-  total_phases: 8
-  completed_phases: 7
-  total_plans: 28
-  completed_plans: 26
-  percent: 93
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 32
+  completed_plans: 32
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 14 — application-packages-menu
+**Current focus:** Phase 15 — gem-canvas
 
 ## Current Position
 
-Phase: 14 (application-packages-menu) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 14
-Last activity: 2026-04-05 -- Phase 14 execution started
+Phase: 15 (gem-canvas) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
@@ -84,6 +84,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 12-hybrid-subagentregistry-tool-quality P02 | 2min | 2 tasks | 5 files |
 | Phase 13-scalable-routing P01 | 8min | 2 tasks | 5 files |
 | Phase 13-scalable-routing P02 | 3min | 2 tasks | 3 files |
+| Phase 15-gem-canvas P04 | 0 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -184,6 +185,8 @@ Recent decisions affecting current work:
 - [Phase 13-scalable-routing]: getattr(a, 'keywords', []) not a.keywords — safe for code-type agents lacking keywords attribute
 - [Phase 13-scalable-routing]: Stage 1 routes only on exactly 1 keyword match — 0 or multiple falls to LLM for unambiguous routing
 - [Phase 13-scalable-routing]: stage field in all routing log entries — 'keyword' or 'llm' enables post-hoc routing analysis (D-04, ROUTING-03)
+- [Phase 15-04]: CanvasPane iframe: sandbox=allow-scripts+allow-forms のみ — allow-same-origin は XSS防止のため除外
+- [Phase 15-04]: useChat に gemId/onCanvasResponse を追加し Canvas レスポンス (type=canvas JSON) を検出して CanvasPane を自動表示
 
 ### Roadmap Evolution
 
@@ -194,6 +197,7 @@ Recent decisions affecting current work:
 - Phase 8 added: スーパーエージェントサンプル実装 — OrchestratorGraph + SubAgent + メニュー追加（docs/pre/phase1_spec.md 仕様準拠、別ブランチ作業）
 - Phase 10 added: SuperChat 履歴保存とモード別スレッド分離 — thread_labels に mode カラム追加、GET /api/threads を LEFT JOIN 化、OrchestratorGraph を LangGraph checkpointer 対応にして会話継続性を修正、フロント useThreads をモード別リスト対応に
 - v3.0 roadmap created (2026-04-04): Phases 11–14 — RPCContext, Hybrid Registry + Tool Quality, Scalable Routing, Application Packages
+- Phase 15 added: 現在の仕様をベースに gem/canvas 機能を実装する
 
 ### Pending Todos
 
@@ -233,6 +237,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-04T17:24:27.361Z
-Stopped at: Phase 14 UI-SPEC approved
-Resume file: .planning/phases/14-application-packages-menu/14-UI-SPEC.md
+Last session: 2026-04-05T11:59:03.564Z
+Stopped at: Completed 15-04-PLAN.md — CanvasPane + ChatApp Canvas integration
+Resume file: None
