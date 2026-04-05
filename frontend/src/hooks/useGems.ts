@@ -2,7 +2,7 @@
 // Gem CRUD state management hook.
 
 import { useCallback, useEffect, useState } from 'react';
-import { listGems, createGemApi, deleteGemApi } from '../api/client';
+import { listGems, createGemApi, updateGemApi, deleteGemApi } from '../api/client';
 import type { GemInfo, GemCreate } from '../types';
 
 interface UseGemsReturn {
@@ -10,6 +10,7 @@ interface UseGemsReturn {
   isLoading: boolean;
   error: string | null;
   createGem: (data: GemCreate) => Promise<GemInfo>;
+  updateGem: (gemId: string, data: Partial<GemCreate>) => Promise<GemInfo>;
   deleteGem: (gemId: string) => Promise<void>;
   refreshGems: () => Promise<void>;
 }
@@ -42,10 +43,16 @@ export function useGems(): UseGemsReturn {
     return gem;
   }, []);
 
+  const updateGem = useCallback(async (gemId: string, data: Partial<GemCreate>): Promise<GemInfo> => {
+    const updated = await updateGemApi(gemId, data);
+    setGems((prev) => prev.map((g) => g.gem_id === gemId ? updated : g));
+    return updated;
+  }, []);
+
   const deleteGem = useCallback(async (gemId: string): Promise<void> => {
     await deleteGemApi(gemId);
     setGems((prev) => prev.filter((g) => g.gem_id !== gemId));
   }, []);
 
-  return { gems, isLoading, error, createGem, deleteGem, refreshGems };
+  return { gems, isLoading, error, createGem, updateGem, deleteGem, refreshGems };
 }

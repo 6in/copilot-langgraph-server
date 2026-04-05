@@ -23,7 +23,7 @@ interface UseThreadsReturn {
   refreshThreads: () => Promise<void>;
 }
 
-export function useThreads(appId?: 'chat' | 'superchat'): UseThreadsReturn {
+export function useThreads(appId?: string): UseThreadsReturn {
   const [threads, setThreads] = useState<ThreadInfo[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
