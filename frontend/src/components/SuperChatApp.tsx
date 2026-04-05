@@ -3,6 +3,7 @@
 // Always operates in 'super' mode (no mode toggle).
 // Agent selection: horizontal chip row above input area.
 // Layout mirrors ChatApp: sidebar + chat area.
+// appId scopes threads; appAgents filters displayed agent chips.
 
 import { useCallback, useRef, useState } from 'react';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
@@ -20,6 +21,9 @@ const SIDEBAR_DEFAULT = 240;
 
 interface SuperChatAppProps {
   selectedModel: string;
+  appId: string;
+  appName: string;
+  appAgents?: string[];
 }
 
 interface AgentChipProps {
@@ -104,7 +108,7 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
   );
 }
 
-export function SuperChatApp({ selectedModel }: SuperChatAppProps) {
+export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgents }: SuperChatAppProps) {
   const {
     threads,
     activeThreadId,
@@ -115,9 +119,20 @@ export function SuperChatApp({ selectedModel }: SuperChatAppProps) {
     removeThread,
     setMessages,
     refreshThreads,
-  } = useThreads('superchat');
+  } = useThreads(appId || 'superchat');
 
-  const { agents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
+  // Fetch all agents then filter client-side to the app's declared agents (Option A)
+  const { agents: allAgents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
+
+  // Filter agents to those declared in appAgents (if provided); default select all app agents
+  const filteredAgents = appAgents && appAgents.length > 0
+    ? allAgents.filter((a) => appAgents.includes(a.name))
+    : allAgents;
+
+  // Keep only selectedAgents that are in filteredAgents (avoid stale selection after app change)
+  const visibleSelectedAgents = selectedAgents.filter(
+    (name) => filteredAgents.some((a) => a.name === name)
+  );
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
@@ -128,7 +143,8 @@ export function SuperChatApp({ selectedModel }: SuperChatAppProps) {
     activeThreadId,
     selectedModel,
     selectedMode: 'super',
-    agents: selectedAgents,
+    agents: visibleSelectedAgents,
+    appId: appId || undefined,
     setMessages,
     refreshThreads,
   });
@@ -211,8 +227,8 @@ export function SuperChatApp({ selectedModel }: SuperChatAppProps) {
         {/* Chat area: agent selector + messages */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <AgentSelector
-            agents={agents}
-            selectedAgents={selectedAgents}
+            agents={filteredAgents}
+            selectedAgents={visibleSelectedAgents}
             onToggle={toggleAgent}
             isLoading={agentsLoading}
           />

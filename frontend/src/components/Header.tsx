@@ -13,6 +13,7 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onBackToMenu?: () => void;
+  appName?: string;
 }
 
 // Model list from static/index.html — keep in sync if models change.
@@ -41,7 +42,7 @@ const MODEL_OPTIONS = [
   ]},
 ];
 
-export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onBackToMenu }: HeaderProps) {
+export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onBackToMenu, appName }: HeaderProps) {
   const { authState, performLogout } = useAuth();
   const [user, setUser] = useState<UserInfoResponse | null>(null);
 
@@ -95,6 +96,20 @@ export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onB
         </button>
       )}
       <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Copilot Chat</span>
+      {appName && (
+        <span style={{
+          fontSize: '0.85rem',
+          fontWeight: 400,
+          color: isDark ? '#9090a8' : '#666666',
+          marginLeft: '0.5rem',
+          maxWidth: '160px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          &middot; {appName}
+        </span>
+      )}
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <label htmlFor="model-select" style={{ fontSize: '0.85rem', color: '#ccc' }}>

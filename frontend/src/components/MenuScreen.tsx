@@ -1,11 +1,14 @@
 // frontend/src/components/MenuScreen.tsx
 // Landing/home screen displayed after authentication.
-// Shows feature cards for available app sections.
+// Fetches app list from GET /api/apps and renders one card per app.
 
+import { useEffect, useState } from 'react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
+import { getApps } from '../api/client';
+import type { AppDefinition } from '../types';
 
 interface MenuScreenProps {
-  onNavigate: (screen: string) => void;
+  onNavigate: (app: AppDefinition) => void;
 }
 
 export function MenuScreen({ onNavigate }: MenuScreenProps) {
@@ -17,6 +20,25 @@ export function MenuScreen({ onNavigate }: MenuScreenProps) {
   const textColor = isDark ? '#e0e0e0' : '#333';
   const cardBorder = isDark ? '#3a3a52' : '#ddd';
   const subtitleColor = isDark ? '#a0a0b8' : '#666';
+  const mutedColor = isDark ? '#9090a8' : '#666666';
+
+  const [apps, setApps] = useState<AppDefinition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    getApps()
+      .then((data) => {
+        setApps(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Could not load applications. Please refresh the page.');
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div
@@ -36,7 +58,7 @@ export function MenuScreen({ onNavigate }: MenuScreenProps) {
       <h1
         style={{
           fontSize: '2rem',
-          fontWeight: 700,
+          fontWeight: 600,
           marginBottom: '0.5rem',
           color: textColor,
         }}
@@ -47,43 +69,115 @@ export function MenuScreen({ onNavigate }: MenuScreenProps) {
         style={{
           fontSize: '1rem',
           color: subtitleColor,
-          marginBottom: '2.5rem',
+          marginBottom: error ? '1rem' : '2.5rem',
           textAlign: 'center',
         }}
       >
-        Choose a feature to get started
+        Choose an application to get started
       </p>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-          gap: '1rem',
-          width: '100%',
-          maxWidth: '600px',
-        }}
-      >
-        <FeatureCard
-          icon="💬"
-          title="Chat"
-          description="AI-powered chat with GitHub Copilot"
-          cardBg={cardBg}
-          cardBorder={cardBorder}
-          textColor={textColor}
-          subtitleColor={subtitleColor}
-          onClick={() => onNavigate('chat')}
-        />
-        <FeatureCard
-          icon="&#x26A1;"
-          title="SuperChat"
-          description="Multi-agent orchestration with selectable agents"
-          cardBg={cardBg}
-          cardBorder={cardBorder}
-          textColor={textColor}
-          subtitleColor={subtitleColor}
-          onClick={() => onNavigate('superchat')}
-        />
-      </div>
+      {error && (
+        <div
+          role="alert"
+          style={{
+            background: 'rgba(224,82,82,0.1)',
+            border: '1px solid #e05252',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            color: '#e05252',
+            marginBottom: '2.5rem',
+            width: '100%',
+            maxWidth: '600px',
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div
+          aria-busy="true"
+          aria-label="Loading applications"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '1rem',
+            width: '100%',
+            maxWidth: '600px',
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <SkeletonCard key={i} cardBg={cardBg} />
+          ))}
+        </div>
+      ) : !error && apps.length === 0 ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: mutedColor }}>
+            No applications available
+          </div>
+          <div style={{ fontSize: '0.875rem', color: mutedColor }}>
+            Add an APP.md file to the apps/ directory to define an application.
+          </div>
+        </div>
+      ) : !loading && apps.length > 0 ? (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '1rem',
+            width: '100%',
+            maxWidth: '600px',
+          }}
+        >
+          {apps.map((app) => (
+            <FeatureCard
+              key={app.slug}
+              icon={app.icon}
+              title={app.name}
+              description={app.description}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              textColor={textColor}
+              subtitleColor={subtitleColor}
+              onClick={() => onNavigate(app)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+interface SkeletonCardProps {
+  cardBg: string;
+}
+
+function SkeletonCard({ cardBg }: SkeletonCardProps) {
+  return (
+    <div
+      style={{
+        background: cardBg,
+        borderRadius: '12px',
+        padding: '1.5rem',
+        height: '140px',
+        animation: 'pulse 0.8s ease-in-out infinite',
+      }}
+    >
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -132,7 +226,10 @@ function FeatureCard({
         (e.currentTarget as HTMLButtonElement).style.transform = 'none';
       }}
     >
-      <div style={{ fontSize: '2rem', marginBottom: '0.75rem', lineHeight: 1 }}>
+      <div
+        aria-hidden="true"
+        style={{ fontSize: '2rem', marginBottom: '0.75rem', lineHeight: 1 }}
+      >
         {icon}
       </div>
       <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem' }}>
