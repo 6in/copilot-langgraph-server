@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import agents, apps, auth, chat, health, jobs, me
+from app.api.routes import agents, apps, auth, chat, gems, health, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -121,6 +121,51 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at)"
             )
 
+            # --- Phase 15: Gem + Canvas tables ---
+
+            # gems テーブル（AI ペルソナ管理）
+            await conn.execute(
+                """CREATE TABLE IF NOT EXISTS gems (
+                       gem_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                       github_login  TEXT NOT NULL,
+                       name          TEXT NOT NULL,
+                       system_prompt TEXT NOT NULL DEFAULT '',
+                       type          TEXT NOT NULL DEFAULT 'default',
+                       created_at    TIMESTAMPTZ DEFAULT now(),
+                       updated_at    TIMESTAMPTZ DEFAULT now()
+                   )"""
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS gems_github_login_idx ON gems(github_login)"
+            )
+
+            # threads テーブルへの gem_id カラム追加（gems テーブル作成後に実行 — Pitfall 2）
+            await conn.execute(
+                "ALTER TABLE threads ADD COLUMN IF NOT EXISTS gem_id UUID REFERENCES gems(gem_id) ON DELETE SET NULL"
+            )
+
+            # canvas_apps テーブル（生成 HTML 保存）
+            await conn.execute(
+                """CREATE TABLE IF NOT EXISTS canvas_apps (
+                       app_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                       thread_id    TEXT REFERENCES threads(thread_id) ON DELETE SET NULL,
+                       github_login TEXT NOT NULL,
+                       name         TEXT NOT NULL,
+                       html         TEXT NOT NULL,
+                       source       TEXT NOT NULL DEFAULT 'canvas',
+                       deployed     BOOLEAN NOT NULL DEFAULT FALSE,
+                       deployed_at  TIMESTAMPTZ,
+                       created_at   TIMESTAMPTZ DEFAULT now(),
+                       UNIQUE (thread_id, github_login)
+                   )"""
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS canvas_apps_thread_id_idx ON canvas_apps(thread_id)"
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS canvas_apps_github_login_idx ON canvas_apps(github_login)"
+            )
+
             await conn.commit()
         app.state.graph = build_graph(llm, checkpointer)
         app.state.checkpointer = checkpointer
@@ -195,6 +240,7 @@ app.include_router(me.router)
 app.include_router(agents.router)
 app.include_router(apps.router)
 app.include_router(health.router)
+app.include_router(gems.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.
 # Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).

@@ -108,15 +108,17 @@ async def send_message(
     # app_id is NOT overwritten on conflict — first message determines the application
     label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
     db_uri = request.app.state.db_uri
+    gem_id = body.gem_id  # Phase 15: Gem association (may be None)
     try:
         async with await psycopg.AsyncConnection.connect(db_uri) as conn:
             await conn.execute(
-                """INSERT INTO threads (thread_id, app_id, github_login, label, created_at, updated_at)
-                   VALUES (%s, %s, %s, %s, now(), now())
+                """INSERT INTO threads (thread_id, app_id, github_login, label, gem_id, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s::uuid, now(), now())
                    ON CONFLICT (thread_id)
                    DO UPDATE SET github_login = COALESCE(threads.github_login, EXCLUDED.github_login),
+                                 gem_id = COALESCE(threads.gem_id, EXCLUDED.gem_id),
                                  updated_at = now()""",
-                (body.thread_id, app_id, github_login, label),
+                (body.thread_id, app_id, github_login, label, gem_id),
             )
             await conn.commit()
     except Exception:

@@ -33,6 +33,7 @@ class ChatRequest(BaseModel):
     mode: Literal["simple", "super"] = "simple"
     agents: list[str] | None = None  # Optional list of agent names for super mode filtering
     app_id: str | None = None  # Application identifier (preferred over mode-derived mapping)
+    gem_id: str | None = None  # Phase 15: Gem ID for thread association
 
 
 class ChatResponse(BaseModel):
@@ -99,3 +100,49 @@ class AgentHealthEntry(BaseModel):
     agent_type: str
     status: str  # "HEALTHY" | "DEGRADED" | "FAILED"
     error: str | None = None
+
+
+class GemCreate(BaseModel):
+    """Request body for POST /api/gems."""
+
+    name: str
+    system_prompt: str = ""
+    type: Literal["default", "canvas"] = "default"
+
+
+class GemUpdate(BaseModel):
+    """Request body for PATCH /api/gems/{gem_id}."""
+
+    name: str | None = None
+    system_prompt: str | None = None
+    type: Literal["default", "canvas"] | None = None
+
+
+class GemInfo(BaseModel):
+    """Response model for Gem endpoints."""
+
+    gem_id: str
+    name: str
+    system_prompt: str
+    type: str
+    created_at: str
+    updated_at: str
+
+
+class CanvasAppInfo(BaseModel):
+    """Response model for Canvas App endpoints."""
+
+    app_id: str
+    thread_id: str | None = None
+    name: str
+    html: str
+    source: str
+    deployed: bool
+    deployed_at: str | None = None
+    created_at: str
+
+
+class CanvasDeployResponse(BaseModel):
+    """Response model for POST /api/canvas/apps/{app_id}/deploy."""
+
+    url: str
