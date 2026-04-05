@@ -7,8 +7,10 @@ import { useCallback, useRef, useState } from 'react';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
+import { CanvasPane } from './CanvasPane';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
+import { useCanvas } from '../hooks/useCanvas';
 import { renameThread } from '../api/client';
 
 const SIDEBAR_MIN = 160;
@@ -34,6 +36,19 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [selectedGemId, setSelectedGemId] = useState<string | null>(null);
+
+  const {
+    canvasApp,
+    setCanvasApp,
+    isSaving,
+    isDeploying,
+    deployUrl,
+    deployError,
+    saveCanvas,
+    deployCanvas,
+    dismissCanvas,
+  } = useCanvas();
   const dragStartX = useRef<number | null>(null);
   const dragStartWidth = useRef<number>(SIDEBAR_DEFAULT);
 
@@ -55,6 +70,8 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     selectedModel,
     setMessages,
     refreshThreads,
+    gemId: selectedGemId,
+    onCanvasResponse: (app) => setCanvasApp(app),
   });
 
   const handleSend = async (text: string) => {
@@ -136,11 +153,27 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
             <p>Loading messages...</p>
           </div>
         ) : (
-          <MessageArea
-            messages={messages}
-            isThinking={isThinking}
-            onSend={handleSend}
-          />
+          <>
+            <MessageArea
+              messages={messages}
+              isThinking={isThinking}
+              onSend={handleSend}
+              selectedGemId={selectedGemId}
+              onSelectGem={setSelectedGemId}
+            />
+            {canvasApp && (
+              <CanvasPane
+                canvasApp={canvasApp}
+                isSaving={isSaving}
+                isDeploying={isDeploying}
+                deployUrl={deployUrl}
+                deployError={deployError}
+                onSave={saveCanvas}
+                onDeploy={deployCanvas}
+                onClose={dismissCanvas}
+              />
+            )}
+          </>
         )}
       </MainContainer>
     </div>
