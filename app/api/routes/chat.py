@@ -83,7 +83,11 @@ async def send_message(
 
     # Extract github_login before enqueue_job so it flows into the arq job payload
     # (CONTEXT-01: correlation chain requires user_id at job intake)
-    app_id = "superchat" if body.mode == "super" else "chat"
+    # Prefer explicit app_id from frontend; fall back to mode-derived for backward compat (Pitfall 2 fix)
+    if body.app_id:
+        app_id = body.app_id
+    else:
+        app_id = "superchat" if body.mode == "super" else "chat"
     github_login = payload.get("github_login", "unknown")
 
     await arq_redis.enqueue_job(
@@ -97,6 +101,7 @@ async def send_message(
         task_type=task_type,
         agents=body.agents,
         github_login=github_login,
+        app_id=app_id,
     )
 
     # Upsert threads table with app_id and github_login (first writer wins via COALESCE)

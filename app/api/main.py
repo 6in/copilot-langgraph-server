@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import agents, auth, chat, health, jobs, me
+from app.api.routes import agents, apps, auth, chat, health, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -71,6 +71,22 @@ async def lifespan(app: FastAPI):
                        ('superchat', 'SuperChat', true, now())
                    ON CONFLICT DO NOTHING"""
             )
+
+            # 3b. Dynamic seeding from APP.md files (Pitfall 3: FK constraint for new app slugs)
+            # Scans APP_DIR for discovered app slugs and upserts into applications table.
+            import frontmatter as fm
+            app_dir_env = os.getenv("APP_DIR", "./apps")
+            for app_md in Path(app_dir_env).glob("*/APP.md"):
+                slug = app_md.parent.name
+                try:
+                    post = fm.load(str(app_md))
+                    display_name = post.metadata.get("name", slug)
+                    await conn.execute(
+                        "INSERT INTO applications (app_id, display_name) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                        (slug, str(display_name)),
+                    )
+                except Exception:
+                    pass  # Malformed APP.md — skip, not fatal at startup
 
             # 4. Thread metadata (replaces thread_labels)
             await conn.execute(
@@ -177,6 +193,7 @@ app.include_router(chat.router)
 app.include_router(jobs.router)
 app.include_router(me.router)
 app.include_router(agents.router)
+app.include_router(apps.router)
 app.include_router(health.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.

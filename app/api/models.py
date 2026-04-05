@@ -15,6 +15,16 @@ class AgentInfo(BaseModel):
     description: str
 
 
+class AppInfo(BaseModel):
+    """Application package metadata returned by GET /api/apps (APP-02)."""
+
+    slug: str
+    name: str
+    description: str
+    icon: str
+    agents: list[str]
+
+
 class ChatRequest(BaseModel):
     message: str
     thread_id: str
@@ -22,6 +32,7 @@ class ChatRequest(BaseModel):
     task_type: str = "langgraph"
     mode: Literal["simple", "super"] = "simple"
     agents: list[str] | None = None  # Optional list of agent names for super mode filtering
+    app_id: str | None = None  # Application identifier (preferred over mode-derived mapping)
 
 
 class ChatResponse(BaseModel):

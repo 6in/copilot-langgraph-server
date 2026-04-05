@@ -1,6 +1,7 @@
 """OrchestratorGraph task handler — routes user input through SubAgent routing."""
 import os
 import logging
+from pathlib import Path
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -14,6 +15,7 @@ from app.orchestrator.state import AgentState
 logger = logging.getLogger(__name__)
 
 AGENT_DIR = os.getenv("AGENT_DIR", "./agents")
+APP_DIR = os.getenv("APP_DIR", "./apps")
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 
 
@@ -31,6 +33,8 @@ class OrchestratorHandler(TaskHandler):
         job_store = ctx["job_store"]
         notifier = build_notifier(reply_to, job_store)
 
+        # Read app_id from job payload; fall back to "superchat" for backward compat (D-08 REVISED)
+        app_id: str = job.get("app_id", "superchat")
         registry = SubAgentRegistry(AGENT_DIR, github_token)
         agents_filter: list[str] | None = job.get("agents")
         try:
@@ -41,6 +45,21 @@ class OrchestratorHandler(TaskHandler):
                     f"No agents found in AGENT_DIR={AGENT_DIR}. "
                     "Check that agents/ directory exists and contains AGENT.md files."
                 )
+
+            # If no explicit agents_filter from UI chips, derive from APP.md agents list (D-08 REVISED)
+            # This allows app-scoped agent filtering without requiring the frontend to pass chips
+            if not agents_filter and app_id:
+                import frontmatter as fm
+                app_md = Path(os.getenv("APP_DIR", APP_DIR)) / app_id / "APP.md"
+                if app_md.exists():
+                    try:
+                        post = fm.load(str(app_md))
+                        agents_filter = post.metadata.get("agents") or None
+                    except Exception as e:
+                        logger.warning(
+                            "OrchestratorHandler: failed to load APP.md for app_id=%s: %s",
+                            app_id, e,
+                        )
 
             # Filter registry to only requested agents (when agents[] provided)
             # None means "all agents" (simple mode or legacy clients)
@@ -61,7 +80,7 @@ class OrchestratorHandler(TaskHandler):
             # through every node and log entry (CONTEXT-01, CONTEXT-04)
             context = RPCContext.from_http(
                 user_id=github_login,
-                app_id="superchat",
+                app_id=app_id,
                 thread_id=thread_id,
             )
 

@@ -30,6 +30,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
       - AGENT_DIR=/app/agents
       - MENU_DIR=/app/menus
+      - APP_DIR=/app/apps
     ports:
       - "8000:8000"
     volumes:
@@ -50,6 +51,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
       - AGENT_DIR=/app/agents
       - MENU_DIR=/app/menus
+      - APP_DIR=/app/apps
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
