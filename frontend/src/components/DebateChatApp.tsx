@@ -10,9 +10,10 @@ import { MessageArea } from './MessageArea';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
+import { useGems } from '../hooks/useGems';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { renameThread } from '../api/client';
-import type { AgentInfo } from '../types';
+import type { AgentInfo, GemInfo } from '../types';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -32,25 +33,26 @@ interface DebateChatAppProps {
   selectedModel: string;
 }
 
-// ---- AgentChip (討論参加者選択用チェックボックス風チップ) ----
+// ---- SelectableChip (汎用チェックボックス風チップ) ----
 
-interface AgentCheckChipProps {
-  agent: AgentInfo;
+interface SelectableChipProps {
+  id: string;
+  label: string;
+  description?: string;
   selected: boolean;
-  onToggle: (name: string) => void;
+  onToggle: (id: string) => void;
+  isDark: boolean;
 }
 
-function AgentCheckChip({ agent, selected, onToggle }: AgentCheckChipProps) {
-  const theme = useCurrentTheme();
-  const isDark = theme === 'dark';
+function SelectableChip({ id, label, description, selected, onToggle, isDark }: SelectableChipProps) {
   const accentColor = isDark ? '#7c6ff7' : '#0366d6';
 
   return (
     <button
       role="checkbox"
       aria-checked={selected}
-      onClick={() => onToggle(agent.name)}
-      title={agent.description}
+      onClick={() => onToggle(id)}
+      title={description}
       style={{
         padding: '4px 12px',
         borderRadius: '16px',
@@ -65,7 +67,7 @@ function AgentCheckChip({ agent, selected, onToggle }: AgentCheckChipProps) {
         flexShrink: 0,
       }}
     >
-      {agent.name}
+      {label}
     </button>
   );
 }
@@ -74,52 +76,77 @@ function AgentCheckChip({ agent, selected, onToggle }: AgentCheckChipProps) {
 
 interface ParticipantChecklistProps {
   agents: AgentInfo[];
-  selectedParticipants: string[];
-  onToggle: (name: string) => void;
+  gems: GemInfo[];
+  selectedIds: string[];  // agent名 or "gem:<gem_id>"
+  onToggle: (id: string) => void;
   isLoading: boolean;
   isDark: boolean;
 }
 
 function ParticipantChecklist({
   agents,
-  selectedParticipants,
+  gems,
+  selectedIds,
   onToggle,
   isLoading,
   isDark,
 }: ParticipantChecklistProps) {
-  const selectedSet = new Set(selectedParticipants);
+  const selectedSet = new Set(selectedIds);
   const textColor = isDark ? '#e8e8f0' : '#333';
   const mutedColor = isDark ? '#9090a8' : '#aaa';
   const warningColor = '#f0a500';
+  const sectionLabelStyle = { fontSize: '0.75rem', color: mutedColor, marginBottom: '6px', marginTop: '8px' };
 
   return (
     <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
       <legend
         id="participants-legend"
-        style={{
-          fontSize: '20px',
-          fontWeight: 600,
-          color: textColor,
-          marginBottom: '12px',
-          padding: 0,
-        }}
+        style={{ fontSize: '20px', fontWeight: 600, color: textColor, marginBottom: '12px', padding: 0 }}
       >
         参加者
       </legend>
       {isLoading ? (
         <span style={{ fontSize: '0.78rem', color: mutedColor }}>Loading...</span>
-      ) : agents.length === 0 ? (
-        <span style={{ fontSize: '0.78rem', color: warningColor }}>No agents found</span>
+      ) : agents.length === 0 && gems.length === 0 ? (
+        <span style={{ fontSize: '0.78rem', color: warningColor }}>エージェント・Gem が見つかりません</span>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {agents.map((agent) => (
-            <AgentCheckChip
-              key={agent.name}
-              agent={agent}
-              selected={selectedSet.has(agent.name)}
-              onToggle={onToggle}
-            />
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {agents.length > 0 && (
+            <>
+              <div style={sectionLabelStyle}>エージェント</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                {agents.map((agent) => (
+                  <SelectableChip
+                    key={agent.name}
+                    id={agent.name}
+                    label={agent.name}
+                    description={agent.description}
+                    selected={selectedSet.has(agent.name)}
+                    onToggle={onToggle}
+                    isDark={isDark}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {gems.length > 0 && (
+            <>
+              <div style={sectionLabelStyle}>Gem</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {gems.map((gem) => (
+                  <SelectableChip
+                    key={gem.gem_id}
+                    id={`gem:${gem.gem_id}`}
+                    label={gem.name}
+                    description={gem.description}
+                    selected={selectedSet.has(`gem:${gem.gem_id}`)}
+                    onToggle={onToggle}
+                    isDark={isDark}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </fieldset>
@@ -314,8 +341,9 @@ interface DebateConfigPanelProps {
 
 function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
   const { agents, isLoading: agentsLoading } = useAgents();
+  const { gems } = useGems();
   const [pattern, setPattern] = useState<DebatePattern>('debate');
-  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [maxTurns, setMaxTurns] = useState(3);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -326,25 +354,22 @@ function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
   const accentColor = isDark ? '#7c6ff7' : '#0366d6';
   const screenBg = isDark ? '#1e1e2e' : '#f5f5f5';
 
-  const handleToggleParticipant = (name: string) => {
-    setSelectedParticipants((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+  const handleToggleParticipant = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id]
     );
     setValidationError(null);
   };
 
   const handleStart = () => {
-    if (selectedParticipants.length === 0) {
+    if (selectedIds.length === 0) {
       setValidationError('参加者を1名以上選択してください');
       return;
     }
     setIsSubmitting(true);
-    onStart({
-      pattern,
-      participants: selectedParticipants,
-      gemIds: [],
-      maxTurns,
-    });
+    const participants = selectedIds.filter((id) => !id.startsWith('gem:'));
+    const gemIds = selectedIds.filter((id) => id.startsWith('gem:')).map((id) => id.slice(4));
+    onStart({ pattern, participants, gemIds, maxTurns });
   };
 
   return (
@@ -390,7 +415,8 @@ function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
         {/* セクション2: 参加者選択 */}
         <ParticipantChecklist
           agents={agents}
-          selectedParticipants={selectedParticipants}
+          gems={gems}
+          selectedIds={selectedIds}
           onToggle={handleToggleParticipant}
           isLoading={agentsLoading}
           isDark={isDark}
