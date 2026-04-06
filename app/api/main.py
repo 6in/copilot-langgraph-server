@@ -147,6 +147,11 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE gems ADD COLUMN IF NOT EXISTS knowledge TEXT NOT NULL DEFAULT ''"
             )
 
+            # Gem 公開共有: is_public フラグ
+            await conn.execute(
+                "ALTER TABLE gems ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false"
+            )
+
             # threads テーブルへの gem_id カラム追加（gems テーブル作成後に実行 — Pitfall 2）
             await conn.execute(
                 "ALTER TABLE threads ADD COLUMN IF NOT EXISTS gem_id UUID REFERENCES gems(gem_id) ON DELETE SET NULL"
