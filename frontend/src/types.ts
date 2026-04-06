@@ -79,6 +79,7 @@ export interface ChatRequest {
   agents?: string[];
   app_id?: string;
   gem_id?: string | null;  // Phase 15: Gem association for thread creation
+  gem_ids?: string[];      // Phase 16: SuperChat 招待 Gem ID リスト
 }
 
 // --- Phase 15: Gem + Canvas types ---
