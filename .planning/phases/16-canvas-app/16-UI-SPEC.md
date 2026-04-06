@@ -46,11 +46,11 @@ Declared values (must be multiples of 4):
 Exceptions:
 - Drag handle divider: width 4px (spec contract value; note: existing GemChatApp.tsx uses 5px — implementation MUST update to 4px to align with the 4-multiple scale)
 - Header bar height: 48px (existing pattern — GemChatApp.tsx, CanvasPane.tsx)
-- Sidebar collapse width: 40px (existing pattern — ThreadSidebar)
+- Sidebar collapse width: 32px (existing pattern — ThreadSidebar; updated from 40px to align with standard spacing scale)
 - Sidebar default width: 240px, min 160px, max 480px (existing constants from GemChatApp.tsx)
 - CanvasPane minimum width: 320px (existing — CanvasPane.tsx)
 - CanvasPane default width: 40% of available space (existing — CanvasPane.tsx)
-- Tab bar button height: 36px (existing — CanvasPane.tsx)
+- Tab bar button height: 32px (existing — CanvasPane.tsx; updated from 36px to align with standard spacing scale)
 - Touch target minimum: 48px (height) for all interactive controls (48px is within Apple HIG 44pt tolerance; replaces earlier 44px note)
 
 ---
@@ -88,7 +88,7 @@ Light / dark theme tokens are already defined in `frontend/src/theme.css` and in
 | Destructive | `#e05252` | `#e05252` | Destructive actions only |
 
 Accent `#7c6ff7` reserved for:
-- Primary CTA buttons (background): "新しいチャットを開始", "チャット開始", "Deploy"
+- Primary CTA buttons (background): "新しいチャットを開始", "チャット開始", "Deploy App"
 - Active tab underline border in CanvasPane tab bar
 - focus-visible outline (`outline: 2px solid #7c6ff7`)
 - Inline edit input focus border
@@ -114,6 +114,8 @@ Layout:
 - Section 1: "Deployed Apps" — card grid, `GET /api/canvas/apps?deployed=true`
 - Section 2: "New Chat" CTA button
 
+Focal point: "+ 新しいチャットを開始" CTA button (empty state) / Deployed Apps card grid (populated state)
+
 Deployed app card (CanvasAppCard):
 - Same card shell as GemsScreen: `borderRadius: '12px'`, `padding: '24px'`, `border: 1px solid cardBorder`
 - Shows: app name (16px, weight 600), deploy URL link (14px, accent color), "Open Chat" button (primary style)
@@ -121,7 +123,7 @@ Deployed app card (CanvasAppCard):
 
 Empty state (no deployed apps):
 - Heading: "まだデプロイ済みアプリがありません" (16px, weight 600, muted color)
-- Body: "チャットで HTML アプリを生成して Deploy ボタンを押すとここに表示されます" (14px, muted)
+- Body: "チャットで HTML アプリを生成して Deploy App ボタンを押すとここに表示されます" (14px, muted)
 
 ### CanvasChatApp (new — `frontend/src/components/CanvasChatApp.tsx`)
 
@@ -205,19 +207,19 @@ CanvasPane placeholder (null state):
 | CanvasScreen primary CTA | + 新しいチャットを開始 |
 | CanvasScreen section label (deployed) | Deployed Apps |
 | CanvasScreen empty state heading | まだデプロイ済みアプリがありません |
-| CanvasScreen empty state body | チャットで HTML アプリを生成して Deploy ボタンを押すとここに表示されます |
+| CanvasScreen empty state body | チャットで HTML アプリを生成して Deploy App ボタンを押すとここに表示されます |
 | CanvasScreen load error | Canvas アプリの読み込みに失敗しました。ページを更新してください。 |
 | CanvasChatApp header title | 🎨 Canvas |
 | CanvasChatApp back button | ← Back |
 | CanvasChatApp CanvasPane placeholder heading | アプリがここに表示されます |
 | CanvasChatApp CanvasPane placeholder body | チャットで HTML アプリを生成してください |
 | CanvasChatApp deployed app card CTA | チャットを開く |
-| CanvasPane deploy button (idle) | Deploy |
+| CanvasPane deploy button (idle) | Deploy App |
 | CanvasPane deploy button (in-progress) | Deploying... |
 | CanvasPane save button (idle) | Save Changes |
 | CanvasPane save button (in-progress) | Saving... |
 | CanvasPane deploy error | Deploy failed. Please try again. |
-| CanvasScreen deployed app open link | Open app |
+| CanvasScreen deployed app open link | Open App |
 
 Destructive actions in this phase: none. Canvas App deletion is out of scope for Phase 16.
 
