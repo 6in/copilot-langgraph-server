@@ -107,6 +107,8 @@ class GemCreate(BaseModel):
 
     name: str
     system_prompt: str = ""
+    description: str = ""    # Todo 6: Gem の説明文
+    knowledge: str = ""      # Todo 7: ナレッジ（system_prompt に結合される）
     type: Literal["default", "canvas"] = "default"
 
 
@@ -115,6 +117,8 @@ class GemUpdate(BaseModel):
 
     name: str | None = None
     system_prompt: str | None = None
+    description: str | None = None   # Todo 6
+    knowledge: str | None = None     # Todo 7
     type: Literal["default", "canvas"] | None = None
 
 
@@ -124,6 +128,8 @@ class GemInfo(BaseModel):
     gem_id: str
     name: str
     system_prompt: str
+    description: str          # Todo 6: Gem カードに表示する説明文
+    knowledge: str            # Todo 7: ナレッジ（フロントエンドの編集フォームに表示）
     type: str
     created_at: str
     updated_at: str
