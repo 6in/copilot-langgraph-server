@@ -257,3 +257,32 @@ Plans:
 - [x] 16-01-PLAN.md — バックエンド: GemSubAgent クラス実装 + OrchestratorHandler gem_ids 統合 (GEM-SUB-01, GEM-SUB-02)
 - [x] 16-02-PLAN.md — API + フロントエンド: ChatRequest gem_ids + useGems + GemSelector + SuperChatApp + useChat (GEM-SUB-03, GEM-SUB-04)
 - [x] 16-03-PLAN.md — テスト: GemSubAgent ユニットテスト + OrchestratorHandler gem_ids 統合テスト (GEM-SUB-01〜04)
+
+### Phase 17: マルチエージェント討論チャット — ターン制マルチエージェント会話プラットフォーム
+
+**Goal:** 複数の Gem / SubAgent をターン制で会話させる新アプリ「討論チャット」を実装する。ユーザーが会話パターン（討論・パネル・チェーン）と参加エージェントを選択し、お題を投稿すると、指定ターン数でエージェント同士が順番に発言する。討論終了後にユーザーが延長を承認できる。
+
+**Depends on:** Phase 16
+
+**背景・設計方針:**
+- 現在の OrchestratorGraph はルーターが 1 つ選んで終わりの線形構造。このフェーズでは複数エージェントを「回す」新しいグラフトポロジーを導入する
+- 新アプリ `DebateChatApp` として SuperChat とは独立して実装する（グラフ構造が根本的に異なるため）
+- ターン制: 各エージェントが会話履歴全体を見たうえで順番に発言する
+- 指定ターン数で強制終了 + 人間延長承認
+
+**Requirements:**
+- DEBATE-01: ターン制マルチエージェントグラフ — 参加エージェントリスト × ターン数で構成される LangGraph グラフ。各ノードが前のメッセージ全体を見て発言する
+- DEBATE-02: 会話パターン選択 — 討論（A→B→A→B→...→統合）、パネル（並列→統合）、チェーン（A→B→C）の 3 パターン
+- DEBATE-03: ターン数制御 — 指定ターン数で自動終了。終了後に人間が延長承認できる
+- DEBATE-04: DebateChatApp フロントエンド — パターン選択 + 参加エージェント選択 + チャット UI。各エージェントの発言が順に表示される
+- DEBATE-05: 新 task_type "debate" + DebateHandler — arq worker に登録する新ハンドラー
+
+**Success Criteria** (what must be TRUE):
+1. ユーザーが討論パターンを選択し、2 つ以上の Gem/SubAgent を選んでお題を投げると、指定ターン数分エージェントが順番に発言する
+2. ターン終了後に「延長しますか？」という確認が表示され、ユーザーが承認すると追加ターンが実行される
+3. 各エージェントの発言がチャット UI に「エージェント名: 発言内容」として順次表示される
+4. Gem のみ、SubAgent のみ、混在のいずれの組み合わせでも動作する
+
+**UI hint**: yes
+
+**Plans:** 0 plans
