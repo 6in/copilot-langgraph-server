@@ -59,7 +59,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 14. Application Packages + Menu | v3.0 | 2/2 | Complete | 2026-04-06 |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
 | 15.1. Gem UX 強化 | — | 3/3 | Complete | 2026-04-06 |
-| 16. SuperChat × Gem 招待 | — | 0/TBD | Planned | - |
+| 16. SuperChat × Gem 招待 | — | 0/3 | Planned | - |
 
 ## Shipped Phase Details
 
@@ -241,11 +241,9 @@ Plans:
 
 **Requirements:**
 - GEM-SUB-01: `GemSubAgent` クラス — Gem の `system_prompt`/`knowledge` を受け取り、BaseChatModel を直接呼び出す SubAgent 互換ラッパー
-- GEM-SUB-02: `GemSubAgentRegistry` — DB から公開 Gem + ユーザー所有 Gem を取得し、OrchestratorGraph に登録する動的レジストリ
-- GEM-SUB-03: OrchestratorHandler 拡張 — `gem_ids`（招待 Gem リスト）をジョブパラメータで受け取り、GemSubAgent を既存 SubAgent と混在させてルーターに渡す
-- GEM-SUB-04: ルーター拡張 — Gem の `description` をルーティング用 AGENT.md description の代替として使用（2-stage ルーターとの互換）
-- GEM-SUB-05: API 拡張 — `POST /api/chat` の `agents` フィールドを `gem_id:xxx` プレフィックスで Gem 指定に対応（既存 agents フィールドとの後方互換）
-- GEM-SUB-06: フロントエンド — SuperChat の新規スレッド作成時に「Gem を招待」マルチセレクタ UI を追加（My Gems + Shared Gems から選択）
+- GEM-SUB-02: OrchestratorHandler 拡張 — `gem_ids`（招待 Gem リスト）をジョブパラメータで受け取り、GemSubAgent を既存 SubAgent と混在させてルーターに渡す
+- GEM-SUB-03: API 拡張 — `POST /api/chat` に `gem_ids` 独立フィールドを追加（型安全、後方互換）
+- GEM-SUB-04: フロントエンド — SuperChat に GemSelector コンポーネント + useGems フックを追加
 
 **Success Criteria** (what must be TRUE):
 1. ユーザーが SuperChat で「コードレビュー Bot」Gem と `code-reviewer` SubAgent を同時に招待し、それぞれが独自の回答を返してオーケストレーターが統合する
@@ -253,4 +251,9 @@ Plans:
 3. 招待なしの通常 SuperChat は既存動作のまま変わらない（後方互換）
 4. 公開 Gem（`is_public = true`）は全ユーザーの SuperChat 招待候補に自動的に表示される
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — バックエンド: GemSubAgent クラス実装 + OrchestratorHandler gem_ids 統合 (GEM-SUB-01, GEM-SUB-02)
+- [ ] 16-02-PLAN.md — API + フロントエンド: ChatRequest gem_ids + useGems + GemSelector + SuperChatApp + useChat (GEM-SUB-03, GEM-SUB-04)
+- [ ] 16-03-PLAN.md — テスト: GemSubAgent ユニットテスト + OrchestratorHandler gem_ids 統合テスト (GEM-SUB-01〜04)
