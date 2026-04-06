@@ -103,6 +103,9 @@ class DebateHandler(TaskHandler):
                             github_token=github_token,
                         )
                         registry.agents[gem_name] = gem_agent
+                        # Gem 名を participants に追加して討論グラフに参加させる
+                        if gem_name not in participants:
+                            participants.append(gem_name)
                 except Exception as e:
                     logger.warning("DebateHandler: gem fetch failed: %s", e)
 
