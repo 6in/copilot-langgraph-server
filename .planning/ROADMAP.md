@@ -59,6 +59,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
 | 15.1. Gem UX 強化 | — | 0/3 | Pending | - |
+| 16. SuperChat × Gem 招待 | — | 0/TBD | Planned | - |
 
 ## Shipped Phase Details
 
@@ -226,3 +227,30 @@ Plans:
 - [ ] 15.1-01-PLAN.md — バックエンド: description/knowledge カラム追加（DB ALTER TABLE + API models + routes + LangGraph handler）(Todo-6, Todo-7)
 - [ ] 15.1-02-PLAN.md — フロントエンド: types.ts 更新 + GemsScreen description/knowledge フォーム対応・カード表示切り替え (Todo-6, Todo-7)
 - [ ] 15.1-03-PLAN.md — E2E 確認チェックポイント: 全画面フロー・description/knowledge チャット動作確認 (D-01〜D-21, Todo-6, Todo-7, Todo-8)
+
+### Phase 16: SuperChat × Gem 招待 — Gem をプロンプトエージェントとして OrchestratorGraph に統合
+
+**Goal:** SuperChat のオーケストレーターが、`./agents/`（ツールエージェント）と Gem（プロンプトエージェント）の両方をルーティング候補として扱えるようにする。ユーザーは SuperChat チャット開始時に招待する Gem を選択でき、OrchestratorGraph が動的に GemSubAgent ラッパーを生成して通常の SubAgent と同じインターフェースで処理する。
+
+**Depends on:** Phase 15.1, Phase 14
+
+**背景・設計方針:**
+- `./agents/` SubAgent: Python コード + ツール呼び出し可能（検索・計算・外部 API 連携）
+- Gem: `system_prompt` + `knowledge` のみ（ノーコードで作成、ペルソナ・専門知識の切り替えに特化）
+- 両者を同一ルーターで扱うため、Gem を「動的生成される軽量 SubAgent」としてラップする
+
+**Requirements:**
+- GEM-SUB-01: `GemSubAgent` クラス — Gem の `system_prompt`/`knowledge` を受け取り、BaseChatModel を直接呼び出す SubAgent 互換ラッパー
+- GEM-SUB-02: `GemSubAgentRegistry` — DB から公開 Gem + ユーザー所有 Gem を取得し、OrchestratorGraph に登録する動的レジストリ
+- GEM-SUB-03: OrchestratorHandler 拡張 — `gem_ids`（招待 Gem リスト）をジョブパラメータで受け取り、GemSubAgent を既存 SubAgent と混在させてルーターに渡す
+- GEM-SUB-04: ルーター拡張 — Gem の `description` をルーティング用 AGENT.md description の代替として使用（2-stage ルーターとの互換）
+- GEM-SUB-05: API 拡張 — `POST /api/chat` の `agents` フィールドを `gem_id:xxx` プレフィックスで Gem 指定に対応（既存 agents フィールドとの後方互換）
+- GEM-SUB-06: フロントエンド — SuperChat の新規スレッド作成時に「Gem を招待」マルチセレクタ UI を追加（My Gems + Shared Gems から選択）
+
+**Success Criteria** (what must be TRUE):
+1. ユーザーが SuperChat で「コードレビュー Bot」Gem と `code-reviewer` SubAgent を同時に招待し、それぞれが独自の回答を返してオーケストレーターが統合する
+2. Gem のみ招待した場合（`./agents/` エージェントなし）でも SuperChat が正常に動作し、Gem の `system_prompt` + `knowledge` でペルソナが切り替わる
+3. 招待なしの通常 SuperChat は既存動作のまま変わらない（後方互換）
+4. 公開 Gem（`is_public = true`）は全ユーザーの SuperChat 招待候補に自動的に表示される
+
+**Plans:** TBD
