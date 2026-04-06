@@ -13,9 +13,7 @@ import { CanvasPane } from './CanvasPane';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
-import { useGemSelector } from '../hooks/useGemSelector';
 import { useCanvas } from '../hooks/useCanvas';
-import { GemSelector } from './GemSelector';
 import { renameThread } from '../api/client';
 import type { AgentInfo, CanvasAppInfo } from '../types';
 
@@ -128,9 +126,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
   // Fetch all agents then filter client-side to the app's declared agents (Option A)
   const { agents: allAgents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
 
-  // Fetch Gems for SuperChat invitation (Phase 16, D-14): default all unselected
-  const { gems, selectedGemIds, toggleGem, isLoading: gemsLoading } = useGemSelector();
-
   // Filter agents to those declared in appAgents (if provided); default select all app agents
   const filteredAgents = appAgents && appAgents.length > 0
     ? allAgents.filter((a) => appAgents.includes(a.name))
@@ -164,7 +159,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     selectedMode: 'super',
     agents: visibleSelectedAgents,
     appId: appId || undefined,
-    gemIds: selectedGemIds,  // Phase 16: SuperChat 招待 Gem（D-16）
     onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
@@ -252,12 +246,6 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
             selectedAgents={visibleSelectedAgents}
             onToggle={toggleAgent}
             isLoading={agentsLoading}
-          />
-          <GemSelector
-            gems={gems}
-            selectedGemIds={selectedGemIds}
-            onToggle={toggleGem}
-            isLoading={gemsLoading}
           />
 
           {isLoadingMessages ? (

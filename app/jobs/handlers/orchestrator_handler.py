@@ -3,15 +3,12 @@ import os
 import logging
 from pathlib import Path
 
-import psycopg
-from psycopg.rows import dict_row
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
 from app.orchestrator.agent import SubAgentRegistry
 from app.orchestrator.context import RPCContext
-from app.orchestrator.gem_agent import GemSubAgent
 from app.orchestrator.graph import build_orchestrator_graph
 from app.orchestrator.state import AgentState
 
@@ -78,42 +75,6 @@ class OrchestratorHandler(TaskHandler):
 
             # Extract github_login from job payload; default to "unknown" for legacy jobs
             github_login: str = job.get("github_login", "unknown")
-
-            # D-06: gem_ids を job から読み取る
-            gem_ids: list[str] = job.get("gem_ids") or []
-
-            # D-07: DB から招待 Gem を一括取得（所有者または公開 Gem のみ）
-            if gem_ids:
-                from app.providers.copilot import ChatCopilot
-                gem_llm = ChatCopilot(model="claude-haiku-4-5-20251001", github_token=github_token)
-                try:
-                    async with await psycopg.AsyncConnection.connect(
-                        DB_URI, row_factory=dict_row
-                    ) as conn:
-                        async with conn.cursor() as cur:
-                            await cur.execute(
-                                """SELECT gem_id, name, description, system_prompt, knowledge
-                                   FROM gems
-                                   WHERE gem_id = ANY(%s::uuid[])
-                                     AND (is_public = true OR github_login = %s)""",
-                                (gem_ids, github_login),
-                            )
-                            gem_rows = await cur.fetchall()
-                except Exception as e:
-                    logger.warning("OrchestratorHandler: failed to fetch gems: %s", e)
-                    gem_rows = []
-
-                # D-08: GemSubAgent を生成し registry.agents に直接マージする
-                for row in gem_rows:
-                    gem_agent = GemSubAgent(
-                        name=row["name"],
-                        description=row["description"] or f"Gem: {row['name']}",
-                        system_prompt=row["system_prompt"] or "",
-                        knowledge=row["knowledge"] or "",
-                        llm=gem_llm,
-                    )
-                    registry.agents[gem_agent.name] = gem_agent
-                    logger.info("[registry] merged gem agent: %s", gem_agent.name)
 
             # Construct RPCContext at job intake — correlation_id generated here flows
             # through every node and log entry (CONTEXT-01, CONTEXT-04)

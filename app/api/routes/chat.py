@@ -104,7 +104,6 @@ async def send_message(
         agents=body.agents,
         github_login=github_login,
         app_id=app_id,
-        gem_ids=body.gem_ids,  # Phase 16: SuperChat 招待 Gem ID リスト（D-11）
     )
 
     # Upsert threads table with app_id and github_login (first writer wins via COALESCE)

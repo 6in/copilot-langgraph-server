@@ -34,7 +34,6 @@ class ChatRequest(BaseModel):
     agents: list[str] | None = None  # Optional list of agent names for super mode filtering
     app_id: str | None = None  # Application identifier (preferred over mode-derived mapping)
     gem_id: str | None = None  # Phase 15: Gem ID for thread association
-    gem_ids: list[str] | None = None  # Phase 16: SuperChat に招待する Gem ID リスト
 
 
 class ChatResponse(BaseModel):

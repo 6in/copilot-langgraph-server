@@ -14,7 +14,6 @@ interface UseChatOptions {
   agents?: string[];
   appId?: string;
   gemId?: string | null;           // Phase 15: Gem ID for chat request payload
-  gemIds?: string[];               // Phase 16: SuperChat 招待 Gem ID リスト（D-16）
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
@@ -47,7 +46,6 @@ export function useChat({
   agents,
   appId,
   gemId,
-  gemIds,
   setMessages,
   refreshThreads,
   onCanvasResponse,
@@ -80,8 +78,6 @@ export function useChat({
         ...(appId ? { app_id: appId } : {}),
         // Phase 15: Pass gem_id when a Gem is selected
         ...(gemId ? { gem_id: gemId } : {}),
-        // Phase 16: Pass gem_ids for SuperChat Gem invitation (D-16)
-        ...(gemIds && gemIds.length > 0 ? { gem_ids: gemIds } : {}),
       });
 
       // Helper: handle result raw string (Canvas or plain text)
@@ -160,7 +156,7 @@ export function useChat({
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse]);
+  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, isThinking, setMessages, refreshThreads, onCanvasResponse]);
 
   return { isThinking, sendMessage };
 }

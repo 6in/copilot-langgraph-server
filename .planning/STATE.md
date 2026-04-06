@@ -1,35 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: Debate Chat Platform
-status: planning
-stopped_at: v3.0 milestone complete
-last_updated: "2026-04-06T08:00:00.000Z"
-last_activity: 2026-04-06
+milestone: v3.0
+milestone_name: Agent Platform Phases
+status: phase_complete
+stopped_at: Phase 15.1 complete — ブラウザ E2E 承認済み
+last_updated: "2026-04-06T02:30:00.000Z"
+last_activity: 2026-04-06 -- Phase 15.1 completed (all 3 plans verified)
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 35
+  completed_plans: 35
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-06 after v3.0 milestone)
+See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
-**Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v4.0 計画中 — Phase 17 マルチエージェント討論チャット
+**Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
+**Current focus:** Phase 15.1 — gem-canvas-gem-ux
 
 ## Current Position
 
-Milestone: v3.0 COMPLETE (2026-04-06)
-Next: v4.0 — Phase 17 (DebateChatApp) — 未着手
-Status: Planning next milestone
+Phase: 15.1 (gem-canvas-gem-ux) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 15.1
+Last activity: 2026-04-06 -- Phase 15.1 execution started
 
-Progress: [██████████] 100% (v3.0 全フェーズ完了)
+Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
 ## Performance Metrics
 
@@ -84,9 +85,6 @@ Progress: [██████████] 100% (v3.0 全フェーズ完了)
 | Phase 13-scalable-routing P01 | 8min | 2 tasks | 5 files |
 | Phase 13-scalable-routing P02 | 3min | 2 tasks | 3 files |
 | Phase 15-gem-canvas P04 | 0 | 3 tasks | 4 files |
-| Phase 16-superchat-gem-gem-orchestratorgraph P01 | 10 | 2 tasks | 2 files |
-| Phase 16-superchat-gem-gem-orchestratorgraph P02 | 15m | 2 tasks | 7 files |
-| Phase 16 P03 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -189,9 +187,6 @@ Recent decisions affecting current work:
 - [Phase 13-scalable-routing]: stage field in all routing log entries — 'keyword' or 'llm' enables post-hoc routing analysis (D-04, ROUTING-03)
 - [Phase 15-04]: CanvasPane iframe: sandbox=allow-scripts+allow-forms のみ — allow-same-origin は XSS防止のため除外
 - [Phase 15-04]: useChat に gemId/onCanvasResponse を追加し Canvas レスポンス (type=canvas JSON) を検出して CanvasPane を自動表示
-- [Phase 16-superchat-gem-gem-orchestratorgraph]: GemSubAgent は SubAgent を継承しない独立クラスとして実装（D-01）
-- [Phase 16-superchat-gem-gem-orchestratorgraph]: gem_ids は OrchestratorHandler の agents_filter 後・RPCContext 前に挿入（D-08）
-- [Phase 16-superchat-gem-gem-orchestratorgraph]: gem_ids を ChatRequest の独立フィールドとして追加（gem_id 単数と共存）、useGemSelector を既存 useGems CRUD フックとの命名衝突を避けて新規作成
 
 ### Roadmap Evolution
 
@@ -244,6 +239,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-06T06:03:27.337Z
-Stopped at: Completed 16-03-PLAN.md
-Resume file: None
+Last session: 2026-04-05T13:02:42.615Z
+Stopped at: Phase 15.1 UI-SPEC approved
+Resume file: .planning/phases/15.1-gem-canvas-gem-ux/15.1-UI-SPEC.md
