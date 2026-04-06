@@ -79,6 +79,12 @@ export interface ChatRequest {
   agents?: string[];
   app_id?: string;
   gem_id?: string | null;  // Phase 15: Gem association for thread creation
+  gem_ids?: string[];
+  // Phase 17: 討論チャット
+  participants?: string[];
+  pattern?: string;        // "debate" | "panel" | "chain"
+  max_turns?: number;
+  current_turn?: number;
 }
 
 // --- Phase 15: Gem + Canvas types ---
