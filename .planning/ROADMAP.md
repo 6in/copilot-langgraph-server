@@ -37,7 +37,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 - [x] **Phase 11: RPCContext Integration** — RPCContext unified into AgentState, all nodes access context via state["context"], correlation_id flows through routing and audit logs (completed 2026-04-04)
 - [x] **Phase 12: Hybrid SubAgentRegistry + Tool Quality** — Folder-type and code-type agent auto-loading, HEALTHY/DEGRADED/FAILED status management, INPUT_SCHEMA standard + CI lint (completed 2026-04-04)
 - [x] **Phase 13: Scalable Routing** — 2-stage router (keyword pre-filter + LLM), AGENT.md description convention enforced, structured routing logs with correlation_id (completed 2026-04-04)
-- [ ] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
+- [x] **Phase 14: Application Packages + Menu** — App definition files declare agent subsets, menu screen launches app-specific chat, agents shared across apps
 
 ## Progress
 
@@ -56,9 +56,9 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 11. RPCContext Integration | v3.0 | 4/4 | Complete    | 2026-04-04 |
 | 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete    | 2026-04-04 |
 | 13. Scalable Routing | v3.0 | 2/2 | Complete    | 2026-04-04 |
-| 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
+| 14. Application Packages + Menu | v3.0 | 2/2 | Complete | 2026-04-06 |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
-| 15.1. Gem UX 強化 | — | 0/3 | Pending | - |
+| 15.1. Gem UX 強化 | — | 3/3 | Complete | 2026-04-06 |
 | 16. SuperChat × Gem 招待 | — | 0/TBD | Planned | - |
 
 ## Shipped Phase Details
