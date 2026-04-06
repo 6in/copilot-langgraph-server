@@ -11,7 +11,9 @@ Endpoints:
 """
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+JST = timezone(timedelta(hours=9))
 
 import jwt
 import psycopg
@@ -106,7 +108,7 @@ async def send_message(
 
     # Upsert threads table with app_id and github_login (first writer wins via COALESCE)
     # app_id is NOT overwritten on conflict — first message determines the application
-    label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    label = f"Chat {datetime.now(tz=JST).strftime('%Y-%m-%d %H:%M')}"
     db_uri = request.app.state.db_uri
     gem_id = body.gem_id  # Phase 15: Gem association (may be None)
     try:
@@ -181,7 +183,7 @@ async def create_thread(payload: dict = Depends(get_jwt_payload)):
     JWT protection ensures only authenticated users can create threads.
     """
     thread_id = str(uuid.uuid4())
-    label = f"Chat {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    label = f"Chat {datetime.now(tz=JST).strftime('%Y-%m-%d %H:%M')}"
     return {"thread_id": thread_id, "label": label}
 
 
