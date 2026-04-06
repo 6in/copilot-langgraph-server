@@ -337,6 +337,7 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
     """Get all messages for a specific thread.
 
     JWT-protected. Uses graph.aget_state() to retrieve the full message list from the checkpoint.
+    Debate threads (app_id='debate') use DebateState schema to recover per-agent turns.
     """
     graph = request.app.state.graph
     config = {"configurable": {"thread_id": thread_id}}
@@ -348,7 +349,45 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
             for msg in state.values["messages"]:
                 role = "user" if isinstance(msg, HumanMessage) else "ai"
                 messages.append({"role": role, "content": msg.content})
-            return {"messages": messages, "thread_id": thread_id}
+            if messages:
+                return {"messages": messages, "thread_id": thread_id}
+    except Exception:
+        pass
+
+    # Fallback: debate threads store state under DebateState schema.
+    # Build a minimal graph with the same schema to read the checkpoint.
+    try:
+        db_uri = request.app.state.db_uri
+        async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT app_id FROM threads WHERE thread_id = %s", (thread_id,)
+                )
+                row = await cur.fetchone()
+
+        if row and row[0] == "debate":
+            from app.orchestrator.debate_graph import DebateState
+            from langgraph.graph import StateGraph as _SG
+            from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+            async with AsyncPostgresSaver.from_conn_string(db_uri) as ckpt:
+                minimal = _SG(DebateState)
+                minimal.add_node("_r", lambda s: s)
+                minimal.set_entry_point("_r")
+                compiled = minimal.compile(checkpointer=ckpt)
+                debate_state = await compiled.aget_state(config)
+
+            if debate_state and debate_state.values:
+                debate_msgs = debate_state.values.get("messages", [])
+                messages = []
+                for msg in debate_msgs:
+                    role = "user" if isinstance(msg, HumanMessage) else "ai"
+                    entry: dict = {"role": role, "content": msg.content}
+                    sender = getattr(msg, "name", None)
+                    if sender:
+                        entry["senderName"] = sender
+                    messages.append(entry)
+                return {"messages": messages, "thread_id": thread_id}
     except Exception:
         pass
 

@@ -144,25 +144,29 @@ class DebateHandler(TaskHandler):
 
                 config = {"configurable": {"thread_id": thread_id}}
 
-                # astream で各ターンをリアルタイム通知
-                seen_message_count = 0
-                final_state = None
+                # astream で各ターンをリアルタイム通知しつつ turns リストを直接蓄積する。
+                # aget_state は PostgreSQL チェックポインタからの逆シリアライズで
+                # AIMessage 型が失われる場合があるため使用しない。
+                all_turns: list[dict] = []
+                final_turn = current_turn
                 async for state_chunk in graph.astream(initial, config=config):
-                    final_state = state_chunk
-                    # state_chunk は {node_name: state_dict} の形式
+                    # state_chunk は {node_name: state_delta} の形式 (stream_mode="updates" デフォルト)
                     for node_name, node_state in state_chunk.items():
+                        if not isinstance(node_state, dict):
+                            continue
                         new_messages = node_state.get("messages", [])
+                        if not isinstance(new_messages, list):
+                            continue
                         for msg in new_messages:
                             if isinstance(msg, AIMessage):
                                 name = msg.name or node_name
+                                all_turns.append({"name": name, "content": msg.content})
                                 await notifier.send_turn(name, msg.content)
+                        # dispatcher がターンカウンターを更新する
+                        if "turn" in node_state:
+                            final_turn = node_state["turn"]
 
-                # 最終状態を取得（checkpointer から）
-                result = await graph.aget_state(config)
-                final_messages = result.values.get("messages", []) if result else []
-                final_turn = result.values.get("turn", max_turns) if result else max_turns
-
-            turns = _build_debate_turns(final_messages)
+            turns = all_turns
             summary_text = turns[-1]["content"] if turns else ""
             result_payload = json.dumps({
                 "type": "debate_result",

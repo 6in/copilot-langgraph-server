@@ -170,12 +170,15 @@ export function useChat({
 
       // 3. Open SSE stream for real-time completion notification
       const es = streamJob(job_id);
+      // SSE で表示済みのターン数を追跡（done 時の重複防止）
+      let streamedTurnCount = 0;
 
       es.onmessage = async (e: MessageEvent) => {
         try {
           const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string } };
           if (event.status === 'message' && event.turn) {
             // リアルタイムで各エージェントの発言を表示
+            streamedTurnCount++;
             setMessages((prev) => [...prev, {
               role: 'ai' as const,
               content: event.turn!.content,
@@ -183,13 +186,20 @@ export function useChat({
             }]);
           } else if (event.status === 'done') {
             es.close();
-            // done 時は turns 付き debate_result で重複しないよう、
-            // turns が既にストリームで表示済みの場合はスキップ
             const result = await getJob(job_id);
             if (result.result) {
               const parsed = (() => { try { return JSON.parse(result.result); } catch { return null; } })();
               if (parsed?.type === 'debate_result') {
-                // ターンはストリームで表示済み — onDebateResult コールバックのみ実行
+                // SSE で未表示のターンを result から補完（ストリーム失敗時のフォールバック）
+                const allTurns: DebateTurn[] = parsed.turns ?? [];
+                if (allTurns.length > streamedTurnCount) {
+                  const remaining = allTurns.slice(streamedTurnCount);
+                  setMessages((prev) => [...prev, ...remaining.map((t) => ({
+                    role: 'ai' as const,
+                    content: t.content,
+                    senderName: t.name,
+                  }))]);
+                }
                 if (onDebateResult) {
                   onDebateResult({
                     debate_text: parsed.debate_text,
