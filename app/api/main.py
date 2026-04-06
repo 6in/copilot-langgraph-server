@@ -139,6 +139,14 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS gems_github_login_idx ON gems(github_login)"
             )
 
+            # Phase 15.1: Gem description / knowledge カラム追加（idempotent）
+            await conn.execute(
+                "ALTER TABLE gems ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''"
+            )
+            await conn.execute(
+                "ALTER TABLE gems ADD COLUMN IF NOT EXISTS knowledge TEXT NOT NULL DEFAULT ''"
+            )
+
             # threads テーブルへの gem_id カラム追加（gems テーブル作成後に実行 — Pitfall 2）
             await conn.execute(
                 "ALTER TABLE threads ADD COLUMN IF NOT EXISTS gem_id UUID REFERENCES gems(gem_id) ON DELETE SET NULL"

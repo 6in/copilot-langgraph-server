@@ -57,6 +57,8 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
   const [editingGemId, setEditingGemId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPrompt, setEditPrompt] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editKnowledge, setEditKnowledge] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
 
   // Inline delete confirmation state
@@ -67,6 +69,8 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createPrompt, setCreatePrompt] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createKnowledge, setCreateKnowledge] = useState('');
   const [createType, setCreateType] = useState<'default' | 'canvas'>('default');
   const [creating, setCreating] = useState(false);
 
@@ -81,6 +85,8 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setEditingGemId(gem.gem_id);
     setEditName(gem.name);
     setEditPrompt(gem.system_prompt);
+    setEditDescription(gem.description);
+    setEditKnowledge(gem.knowledge);
     setConfirmDeleteId(null);
     setFormError(null);
     // autoFocus is handled via the autoFocus attribute on the input
@@ -90,16 +96,25 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setEditingGemId(null);
     setEditName('');
     setEditPrompt('');
+    setEditDescription('');
+    setEditKnowledge('');
   };
 
   const handleSave = async (gemId: string) => {
     setSavingId(gemId);
     setFormError(null);
     try {
-      await updateGem(gemId, { name: editName, system_prompt: editPrompt });
+      await updateGem(gemId, {
+        name: editName,
+        system_prompt: editPrompt,
+        description: editDescription,
+        knowledge: editKnowledge,
+      });
       setEditingGemId(null);
       setEditName('');
       setEditPrompt('');
+      setEditDescription('');
+      setEditKnowledge('');
     } catch {
       setFormError('保存に失敗しました。もう一度お試しください。');
     } finally {
@@ -130,6 +145,8 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setShowCreateForm(true);
     setCreateName('');
     setCreatePrompt('');
+    setCreateDescription('');
+    setCreateKnowledge('');
     setCreateType('default');
     setFormError(null);
   };
@@ -138,6 +155,8 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setShowCreateForm(false);
     setCreateName('');
     setCreatePrompt('');
+    setCreateDescription('');
+    setCreateKnowledge('');
     setCreateType('default');
   };
 
@@ -145,10 +164,18 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setCreating(true);
     setFormError(null);
     try {
-      await createGem({ name: createName, system_prompt: createPrompt, type: createType });
+      await createGem({
+        name: createName,
+        system_prompt: createPrompt,
+        description: createDescription,
+        knowledge: createKnowledge,
+        type: createType,
+      });
       setShowCreateForm(false);
       setCreateName('');
       setCreatePrompt('');
+      setCreateDescription('');
+      setCreateKnowledge('');
       setCreateType('default');
     } catch {
       setFormError('Gem の作成に失敗しました。もう一度お試しください。');
@@ -342,7 +369,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                       style={inputStyle}
                     />
                   </div>
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '12px' }}>
                     <label
                       style={{
                         display: 'block',
@@ -360,6 +387,54 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                       maxLength={4000}
                       rows={4}
                       placeholder="このペルソナの役割・口調・制約を記述してください"
+                      style={{ ...inputStyle, resize: 'vertical' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: textColor,
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Description
+                      <span style={{ fontWeight: 400, color: subtitleColor, marginLeft: '4px' }}>
+                        （カード表示に使用）
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      maxLength={200}
+                      placeholder="例: コードレビューを行う AI ペルソナ"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: textColor,
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Knowledge
+                      <span style={{ fontWeight: 400, color: subtitleColor, marginLeft: '4px' }}>
+                        （システムプロンプトに追加される知識）
+                      </span>
+                    </label>
+                    <textarea
+                      value={editKnowledge}
+                      onChange={(e) => setEditKnowledge(e.target.value)}
+                      maxLength={8000}
+                      rows={3}
+                      placeholder="ドメイン固有の知識・ルール・参照情報を記述してください"
                       style={{ ...inputStyle, resize: 'vertical' }}
                     />
                   </div>
@@ -438,8 +513,10 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                       lineHeight: 1.5,
                     }}
                   >
-                    {gem.system_prompt.slice(0, 50)}
-                    {gem.system_prompt.length > 50 ? '…' : ''}
+                    {gem.description
+                      ? gem.description.slice(0, 80) + (gem.description.length > 80 ? '…' : '')
+                      : <span style={{ fontStyle: 'italic', opacity: 0.6 }}>説明なし</span>
+                    }
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
@@ -528,6 +605,54 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                 maxLength={4000}
                 rows={4}
                 placeholder="このペルソナの役割・口調・制約を記述してください"
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: textColor,
+                  marginBottom: '4px',
+                }}
+              >
+                Description
+                <span style={{ fontWeight: 400, color: subtitleColor, marginLeft: '4px' }}>
+                  （カード表示に使用）
+                </span>
+              </label>
+              <input
+                type="text"
+                value={createDescription}
+                onChange={(e) => setCreateDescription(e.target.value)}
+                maxLength={200}
+                placeholder="例: コードレビューを行う AI ペルソナ"
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: textColor,
+                  marginBottom: '4px',
+                }}
+              >
+                Knowledge
+                <span style={{ fontWeight: 400, color: subtitleColor, marginLeft: '4px' }}>
+                  （システムプロンプトに追加される知識）
+                </span>
+              </label>
+              <textarea
+                value={createKnowledge}
+                onChange={(e) => setCreateKnowledge(e.target.value)}
+                maxLength={8000}
+                rows={3}
+                placeholder="ドメイン固有の知識・ルール・参照情報を記述してください"
                 style={{ ...inputStyle, resize: 'vertical' }}
               />
             </div>

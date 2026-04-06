@@ -93,7 +93,8 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
 export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messageListRef = useRef<{ scrollToBottom: (behavior: 'auto' | 'smooth') => void }>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messageListRef = useRef<any>(null);
 
   useEffect(() => {
     messageListRef.current?.scrollToBottom('auto');

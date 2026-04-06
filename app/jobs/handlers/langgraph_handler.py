@@ -21,13 +21,13 @@ def extract_html(text: str) -> str:
     return m.group(1).strip() if m else text
 
 
-async def _get_gem_info(thread_id: str, db_uri: str) -> tuple[str | None, str | None, str | None, str | None]:
-    """thread_id から gem_id, gem_type, gem_name, system_prompt を取得する。"""
+async def _get_gem_info(thread_id: str, db_uri: str) -> tuple[str | None, str | None, str | None, str | None, str | None]:
+    """thread_id から gem_id, gem_type, gem_name, system_prompt, knowledge を取得する。"""
     try:
         async with await psycopg.AsyncConnection.connect(db_uri) as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    """SELECT g.gem_id, g.type, g.name, g.system_prompt
+                    """SELECT g.gem_id, g.type, g.name, g.system_prompt, g.knowledge
                        FROM threads t
                        LEFT JOIN gems g ON t.gem_id = g.gem_id
                        WHERE t.thread_id = %s""",
@@ -35,10 +35,10 @@ async def _get_gem_info(thread_id: str, db_uri: str) -> tuple[str | None, str | 
                 )
                 row = await cur.fetchone()
                 if row and row[0] is not None:
-                    return str(row[0]), row[1], row[2], row[3]
+                    return str(row[0]), row[1], row[2], row[3], row[4] or ""
     except Exception:
         pass
-    return None, None, None, None
+    return None, None, None, None, None
 
 
 class LangGraphHandler(TaskHandler):
@@ -65,7 +65,13 @@ class LangGraphHandler(TaskHandler):
                 await notifier.progress("thinking")
 
                 # Gem 情報を取得し、SystemMessage を注入する（Canvas Gem 対応）
-                gem_id, gem_type, gem_name, system_prompt = await _get_gem_info(thread_id, DB_URI)
+                gem_id, gem_type, gem_name, system_prompt, knowledge = await _get_gem_info(thread_id, DB_URI)
+
+                # knowledge が空でなければ system_prompt に結合（Todo 7）
+                if system_prompt and knowledge:
+                    system_prompt = system_prompt + "\n\n## 知識\n" + knowledge
+                elif knowledge and not system_prompt:
+                    system_prompt = "## 知識\n" + knowledge
 
                 # メッセージリストを構築（SystemMessage があれば先頭に追加）
                 messages_input: list = []

@@ -27,6 +27,8 @@ def _row_to_gem(row: dict) -> GemInfo:
         gem_id=str(row["gem_id"]),
         name=row["name"],
         system_prompt=row["system_prompt"],
+        description=row.get("description", ""),
+        knowledge=row.get("knowledge", ""),
         type=row["type"],
         created_at=row["created_at"].isoformat() if row["created_at"] else "",
         updated_at=row["updated_at"].isoformat() if row["updated_at"] else "",
@@ -50,10 +52,10 @@ async def create_gem(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """INSERT INTO gems (github_login, name, system_prompt, type)
-                   VALUES (%s, %s, %s, %s)
-                   RETURNING gem_id, name, system_prompt, type, created_at, updated_at""",
-                (github_login, body.name, body.system_prompt, body.type),
+                """INSERT INTO gems (github_login, name, system_prompt, description, knowledge, type)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   RETURNING gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at""",
+                (github_login, body.name, body.system_prompt, body.description, body.knowledge, body.type),
             )
             row = await cur.fetchone()
         await conn.commit()
@@ -77,7 +79,7 @@ async def list_gems(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """SELECT gem_id, name, system_prompt, type, created_at, updated_at
+                """SELECT gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at
                    FROM gems
                    WHERE github_login = %s
                    ORDER BY created_at DESC""",
@@ -105,7 +107,7 @@ async def get_gem(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """SELECT gem_id, name, system_prompt, type, created_at, updated_at
+                """SELECT gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at
                    FROM gems
                    WHERE gem_id = %s::uuid AND github_login = %s""",
                 (gem_id, github_login),
@@ -140,7 +142,7 @@ async def update_gem(
         raise HTTPException(status_code=422, detail="No fields to update")
 
     # Build SET clause with hardcoded column names — values are parameterized (T-15-02)
-    allowed_columns = {"name", "system_prompt", "type"}
+    allowed_columns = {"name", "system_prompt", "description", "knowledge", "type"}
     set_clause = ", ".join(f"{k} = %s" for k in fields if k in allowed_columns)
     values = [v for k, v in fields.items() if k in allowed_columns]
 
@@ -153,7 +155,7 @@ async def update_gem(
                 f"""UPDATE gems
                     SET {set_clause}, updated_at = now()
                     WHERE gem_id = %s::uuid AND github_login = %s
-                    RETURNING gem_id, name, system_prompt, type, created_at, updated_at""",
+                    RETURNING gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at""",
                 (*values, gem_id, github_login),
             )
             row = await cur.fetchone()
