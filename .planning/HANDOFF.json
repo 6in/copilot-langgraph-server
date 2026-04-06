@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-06T09:51:31.567Z",
+  "phase": "17",
+  "phase_name": "debate-chat",
+  "phase_dir": ".planning/phases/17-debate-chat",
+  "plan": 3,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Wave 1: DebateGraph コア TDD 実装", "status": "done", "commit": "8f8cc5c"},
+    {"id": 2, "name": "Wave 2: DebateHandler + API 拡張", "status": "done", "commit": "f1ef4e3"},
+    {"id": 3, "name": "Wave 3 Task 1: DebateChatApp + useChat 拡張 + types", "status": "done", "commit": "e8f32e2"},
+    {"id": 4, "name": "Wave 3 Task 2: App.tsx + MenuScreen ナビゲーション統合", "status": "done", "commit": "6456374"}
+  ],
+  "remaining_tasks": [
+    {"id": 5, "name": "Wave 3 Task 3: 討論チャット機能の手動検証 (approved 待ち)", "status": "awaiting_verification"}
+  ],
+  "blockers": [
+    {
+      "description": "討論ターンのリアルタイムストリーミング未確認 — Redis リストポーリング方式に修正済みだが動作未検証",
+      "type": "human_action",
+      "workaround": "docker compose up --build -d 後に討論チャットで動作確認"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "討論チャットの動作検証 — 各エージェントの発言がリアルタイムで表示されることを確認",
+      "context": "Plan 17-03 Task 3 のチェックポイント: 11ステップの検証後 approved と入力",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {"decision": "Redis リストポーリング方式でクロスプロセスストリーミング", "rationale": "Pub/Sub は get_message が非ブロッキングで即 None を返すため信頼性なし。RPUSH + LRANGE ポーリングの方がシンプルで確実", "phase": "17"},
+    {"decision": "AIMessage に name フィールドを付与", "rationale": "各エージェントの発言者を特定するため。aggregator は name='aggregator'", "phase": "17"},
+    {"decision": "Gem を討論参加者として選択可能に", "rationale": "DebateConfigPanel に useGems() を追加し gem: プレフィックスで識別", "phase": "17"},
+    {"decision": "Gem 名を participants リストに追加", "rationale": "DebateHandler で Gem を registry に追加後、participants にも追記しないとグラフに渡らない", "phase": "17"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "docker compose up --build -d 後にブラウザで討論チャットを検証。各エージェントの発言がリアルタイム表示されることを確認し 'approved' と入力",
+  "context_notes": "Plan 17-03 は SUMMARY.md 作成済みだが Task 3 (手動検証) のチェックポイントが未承認。ストリーミング機能を後から複数回修正した（Pub/Sub → Redis リストポーリング）。フロントエンド側の useChat.ts で SSE message イベントを受けて個別バブルに展開するロジック実装済み。"
+}
