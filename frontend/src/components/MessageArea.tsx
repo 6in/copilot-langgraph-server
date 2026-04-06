@@ -13,7 +13,6 @@ import type { KeyboardEvent } from 'react';
 import {
   MessageList,
   Message,
-  TypingIndicator,
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
 import type { ChatMessage } from '../types';
@@ -101,7 +100,7 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
 
   useEffect(() => {
     messageListRef.current?.scrollToBottom('auto');
-  }, [messages]);
+  }, [messages, isThinking]);
 
   const handleSend = () => {
     const text = inputValue.trim();
@@ -135,9 +134,6 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
       {/* typingIndicator is a PROP, not a JSX child — per 07-RESEARCH.md Pitfall section */}
       <MessageList
         ref={messageListRef}
-        typingIndicator={
-          isThinking ? <TypingIndicator content="Copilot is thinking..." /> : undefined
-        }
       >
         {messages.length === 0 && !isThinking && (
           <MessageList.Content style={{
@@ -203,6 +199,21 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
             </Message>
           );
         })}
+
+        {/* Inline typing indicator — rendered below the last message in the scroll flow */}
+        {isThinking && (
+          <Message
+            model={{ direction: 'incoming', position: 'single', type: 'custom' }}
+          >
+            <Message.CustomContent>
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center', padding: '2px 0' }}>
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </div>
+            </Message.CustomContent>
+          </Message>
+        )}
       </MessageList>
 
       {/* Custom textarea input — replaces chatscope MessageInput for multi-line support */}

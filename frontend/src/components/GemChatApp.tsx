@@ -106,7 +106,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
   }, [sidebarWidth]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Gem ヘッダーバー (UI-SPEC.md 3b) */}
       <div
         style={{

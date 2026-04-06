@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { getMe } from '../api/client';
+import { ConfirmModal } from './ConfirmModal';
 import type { UserInfoResponse } from '../types';
 
 interface HeaderProps {
@@ -45,6 +46,7 @@ const MODEL_OPTIONS = [
 export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onBackToMenu, appName }: HeaderProps) {
   const { authState, performLogout } = useAuth();
   const [user, setUser] = useState<UserInfoResponse | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     if (authState === 'authenticated') {
@@ -56,10 +58,8 @@ export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onB
     }
   }, [authState]);
 
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      await performLogout();
-    }
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
   };
 
   const isDark = theme === 'dark';
@@ -183,6 +183,17 @@ export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onB
           {isDark ? '☀️' : '🌙'}
         </button>
       </div>
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        message="ログアウトしますか？"
+        confirmLabel="ログアウト"
+        isDark={isDark}
+        onConfirm={async () => {
+          setShowLogoutConfirm(false);
+          await performLogout();
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </header>
   );
 }

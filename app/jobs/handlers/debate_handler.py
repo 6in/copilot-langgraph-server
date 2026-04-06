@@ -62,9 +62,10 @@ class DebateHandler(TaskHandler):
         job_store = ctx["job_store"]
         notifier = build_notifier(reply_to, job_store)
 
-        # バリデーション: participants が 2 名未満
-        if len(participants) < 2:
-            error_msg = f"Error: participants must have at least 2 agents, got {len(participants)}"
+        # バリデーション: participants + gem_ids の合計が 2 名未満
+        # gem_ids はこの後マージされるため、合計数でチェックする
+        if len(participants) + len(gem_ids) < 2:
+            error_msg = f"Error: participants must have at least 2 agents total (agents + gems), got {len(participants) + len(gem_ids)}"
             await job_store.save_result(job_id, error_msg)
             await notifier.done()
             return {"job_id": job_id, "status": "done"}

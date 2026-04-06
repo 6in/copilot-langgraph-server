@@ -26,6 +26,7 @@ interface DebateConfig {
   pattern: DebatePattern;
   participants: string[];
   gemIds: string[];
+  gemNames: string[];
   maxTurns: number;
 }
 
@@ -362,14 +363,17 @@ function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
   };
 
   const handleStart = () => {
-    if (selectedIds.length === 0) {
-      setValidationError('参加者を1名以上選択してください');
+    if (selectedIds.length < 2) {
+      setValidationError('参加者を2名以上選択してください');
       return;
     }
     setIsSubmitting(true);
     const participants = selectedIds.filter((id) => !id.startsWith('gem:'));
     const gemIds = selectedIds.filter((id) => id.startsWith('gem:')).map((id) => id.slice(4));
-    onStart({ pattern, participants, gemIds, maxTurns });
+    const gemNames = gems
+      .filter((g) => gemIds.includes(g.gem_id))
+      .map((g) => g.name);
+    onStart({ pattern, participants, gemIds, gemNames, maxTurns });
   };
 
   return (
@@ -692,7 +696,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
             >
               参加者:
             </span>
-            {config.participants.map((name) => (
+            {[...config.participants, ...config.gemNames].map((name) => (
               <span
                 key={name}
                 style={{
