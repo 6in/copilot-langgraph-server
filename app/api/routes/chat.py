@@ -104,6 +104,12 @@ async def send_message(
         agents=body.agents,
         github_login=github_login,
         app_id=app_id,
+        gem_ids=body.gem_ids,
+        # Phase 17: 討論チャット
+        participants=body.participants,
+        pattern=body.pattern,
+        max_turns=body.max_turns,
+        current_turn=body.current_turn,
     )
 
     # Upsert threads table with app_id and github_login (first writer wins via COALESCE)

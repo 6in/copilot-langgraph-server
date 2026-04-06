@@ -17,6 +17,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
 from app.jobs.handlers.base import TaskHandler
+from app.jobs.handlers.debate_handler import DebateHandler
 from app.jobs.handlers.langgraph_handler import LangGraphHandler
 from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 from app.jobs.job_store import JobStore
@@ -28,6 +29,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 TASK_HANDLERS: dict[str, TaskHandler] = {
     "langgraph": LangGraphHandler(),
     "orchestrator": OrchestratorHandler(),
+    "debate": DebateHandler(),  # Phase 17: 討論チャット
 }
 
 
@@ -62,6 +64,12 @@ async def process_chat(
     agents: list[str] | None = None,
     github_login: str = "unknown",
     app_id: str | None = None,
+    gem_ids: list[str] | None = None,
+    # Phase 17: 討論チャット
+    participants: list[str] | None = None,
+    pattern: str = "debate",
+    max_turns: int = 3,
+    current_turn: int = 0,
 ) -> dict:
     """arq job function: route to the appropriate handler by task_type.
 
@@ -89,6 +97,12 @@ async def process_chat(
         "agents": agents,
         "github_login": github_login,
         "app_id": app_id,
+        "gem_ids": gem_ids,
+        # Phase 17
+        "participants": participants,
+        "pattern": pattern,
+        "max_turns": max_turns,
+        "current_turn": current_turn,
     }
     return await handler.handle(ctx, job)
 

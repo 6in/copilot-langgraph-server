@@ -34,6 +34,12 @@ class ChatRequest(BaseModel):
     agents: list[str] | None = None  # Optional list of agent names for super mode filtering
     app_id: str | None = None  # Application identifier (preferred over mode-derived mapping)
     gem_id: str | None = None  # Phase 15: Gem ID for thread association
+    gem_ids: list[str] | None = None  # Phase 16: Gem IDs for SuperChat sub-agents
+    # Phase 17: 討論チャット用フィールド
+    participants: list[str] | None = None  # 討論参加者エージェント名リスト
+    pattern: str = "debate"                # "debate" | "panel" | "chain"
+    max_turns: int = 3                     # 討論ターン数
+    current_turn: int = 0                  # 再エンキュー時に前回の終了ターンを渡す
 
 
 class ChatResponse(BaseModel):
