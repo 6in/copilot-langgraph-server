@@ -184,6 +184,17 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
               }}
             >
               <Message.CustomContent>
+                {msg.senderName && (
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#7c6ff7',
+                    marginBottom: '4px',
+                    letterSpacing: '0.02em',
+                  }}>
+                    {msg.senderName}
+                  </div>
+                )}
                 <MarkdownMessage content={msg.content} />
               </Message.CustomContent>
               <Message.Footer>

@@ -7,9 +7,14 @@ import { postChat, getJob, streamJob } from '../api/client';
 import type { CanvasAppInfo, CanvasResult, ChatMessage } from '../types';
 
 // Phase 17: 討論チャット結果
+interface DebateTurn {
+  name: string;
+  content: string;
+}
 interface DebateResult {
   type: 'debate_result';
   debate_text: string;
+  turns?: DebateTurn[];
   final_turn: number;
   max_turns: number;
   is_complete: boolean;
@@ -33,7 +38,7 @@ interface UseChatOptions {
   pattern?: string;
   maxTurns?: number;
   currentTurn?: number;
-  onDebateResult?: (result: { debate_text: string; final_turn: number; max_turns: number; is_complete: boolean }) => void;
+  onDebateResult?: (result: { debate_text: string; turns?: DebateTurn[]; final_turn: number; max_turns: number; is_complete: boolean }) => void;
 }
 
 interface UseChatReturn {
@@ -129,10 +134,22 @@ export function useChat({
             created_at: new Date().toISOString(),
           });
         } else if (debate && onDebateResult) {
-          // Phase 17: debate_result — show debate text in chat + notify parent
-          setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+          // Phase 17: debate_result — 各エージェントの発言を個別バブルで表示
+          if (debate.turns && debate.turns.length > 0) {
+            setMessages((prev) => [
+              ...prev,
+              ...debate.turns!.map((t) => ({
+                role: 'ai' as const,
+                content: t.content,
+                senderName: t.name,
+              })),
+            ]);
+          } else {
+            setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+          }
           onDebateResult({
             debate_text: debate.debate_text,
+            turns: debate.turns,
             final_turn: debate.final_turn,
             max_turns: debate.max_turns,
             is_complete: debate.is_complete,

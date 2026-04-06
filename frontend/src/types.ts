@@ -50,6 +50,7 @@ export interface UserInfoResponse {
 export interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
+  senderName?: string;  // Phase 17: 討論エージェント名表示用
 }
 
 export interface ThreadMessagesResponse {

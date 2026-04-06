@@ -94,7 +94,14 @@ def _make_dispatch_node(agents_map: dict, participants: list[str]):
         output = result.get("output", "")
         new_messages = result.get("messages", [])
         if not new_messages:
-            new_messages = [AIMessage(content=output)]
+            new_messages = [AIMessage(content=output, name=name)]
+        else:
+            # name が未設定のメッセージに発言者名を付与
+            new_messages = [
+                AIMessage(content=m.content if hasattr(m, "content") else str(m), name=name)
+                if isinstance(m, AIMessage) and not m.name else m
+                for m in new_messages
+            ]
 
         next_idx = (idx + 1) % len(participants)
         new_turn = state["turn"] + 1
@@ -117,7 +124,13 @@ def _make_chain_node(name: str, agent):
         output = result.get("output", "")
         new_messages = result.get("messages", [])
         if not new_messages:
-            new_messages = [AIMessage(content=output)]
+            new_messages = [AIMessage(content=output, name=name)]
+        else:
+            new_messages = [
+                AIMessage(content=m.content if hasattr(m, "content") else str(m), name=name)
+                if isinstance(m, AIMessage) and not m.name else m
+                for m in new_messages
+            ]
 
         return {
             "messages": new_messages,
@@ -130,17 +143,19 @@ def _make_chain_node(name: str, agent):
 def _make_aggregator_node(llm: BaseChatModel):
     """統合ノード — 全発言を読んで要約を生成"""
     async def aggregator_node(state: DebateState) -> dict:
-        # 直近の AI メッセージを収集して要約プロンプトを構築
-        ai_contents = [
-            m.content for m in state["messages"] if isinstance(m, AIMessage)
-        ]
+        # 発言者名付きで各メッセージを整形してプロンプトに渡す
+        ai_parts = []
+        for m in state["messages"]:
+            if isinstance(m, AIMessage):
+                speaker = m.name or "Agent"
+                ai_parts.append(f"【{speaker}】\n{m.content}")
         summary_prompt = (
             "以下のエージェントたちの発言を読んで、議論の要点を日本語でまとめてください。\n\n"
-            + "\n\n".join(ai_contents)
+            + "\n\n".join(ai_parts)
         )
         response = await llm.ainvoke([HumanMessage(content=summary_prompt)])
         return {
-            "messages": [AIMessage(content=response.content)],
+            "messages": [AIMessage(content=response.content, name="aggregator")],
         }
 
     return aggregator_node

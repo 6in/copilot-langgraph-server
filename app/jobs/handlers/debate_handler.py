@@ -28,16 +28,13 @@ DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:543
 _ALLOWED_PATTERNS = frozenset({"debate", "panel", "chain"})
 
 
-def _format_debate_result(messages: list) -> str:
-    """討論結果のメッセージリストをテキストに整形する。
-
-    最後の AIMessage を結果として返す。なければすべての AI 発言を結合する。
-    """
-    ai_messages = [m for m in messages if isinstance(m, AIMessage)]
-    if not ai_messages:
-        return ""
-    # aggregator の出力 (最後の AI メッセージ) が要約
-    return ai_messages[-1].content
+def _build_debate_turns(messages: list) -> list[dict]:
+    """AIMessage リストを {name, content} の発言リストに変換する。"""
+    return [
+        {"name": m.name or "Agent", "content": m.content}
+        for m in messages
+        if isinstance(m, AIMessage)
+    ]
 
 
 class DebateHandler(TaskHandler):
@@ -148,10 +145,13 @@ class DebateHandler(TaskHandler):
                 config = {"configurable": {"thread_id": thread_id}}
                 result = await graph.ainvoke(initial, config=config)
 
-            final_text = _format_debate_result(result["messages"])
+            turns = _build_debate_turns(result["messages"])
+            # aggregator (最後の発言) を要約テキストとしても保持
+            summary_text = turns[-1]["content"] if turns else ""
             result_payload = json.dumps({
                 "type": "debate_result",
-                "debate_text": final_text,
+                "debate_text": summary_text,
+                "turns": turns,
                 "final_turn": result["turn"],
                 "max_turns": max_turns,
                 "is_complete": True,
