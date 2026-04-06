@@ -156,29 +156,35 @@ async def stream_job(job_id: str, request: Request):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # Still in progress — drain queue for real-time events (message / done)
+    # Still in progress — subscribe to Redis Pub/Sub for cross-process real-time events
     async def generator():
         import asyncio
-        queue = job_store.register_sse(job_id)
+        redis = job_store.redis
+        pubsub = redis.pubsub()
+        await pubsub.subscribe(f"job:{job_id}:events")
         try:
             while True:
                 if await request.is_disconnected():
                     break
                 try:
-                    event = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    raw = await asyncio.wait_for(pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0), timeout=1.5)
                 except asyncio.TimeoutError:
-                    # Keep connection alive; also fall back to Redis check
+                    raw = None
+                if raw is None:
+                    # Keep-alive: fall back to Redis key check
                     result = await job_store.get(job_id)
                     if result and result.get("status") == "done":
                         yield f"data: {json.dumps({'status': 'done'})}\n\n"
                         break
                     yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
                     continue
+                event = json.loads(raw["data"])
                 yield f"data: {json.dumps(event)}\n\n"
                 if event.get("status") == "done":
                     break
         finally:
-            job_store.unregister_sse(job_id)
+            await pubsub.unsubscribe(f"job:{job_id}:events")
+            await pubsub.aclose()
 
     return StreamingResponse(
         generator(),

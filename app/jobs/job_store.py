@@ -31,9 +31,12 @@ class JobStore:
         )
 
     async def notify(self, job_id: str, status: str, **extra) -> None:
-        """Put a status event onto the SSE queue if one is registered."""
+        """Publish a status event to Redis Pub/Sub (cross-process safe) and local queue."""
+        event = {"status": status, **extra}
+        # Redis Pub/Sub: worker と API が別プロセスでも届く
+        await self.redis.publish(f"job:{job_id}:events", json.dumps(event))
+        # 同一プロセスの queue にも投入（テスト・同期ユースケース用）
         if job_id in self.queues:
-            event = {"status": status, **extra}
             await self.queues[job_id].put(event)
 
     async def get(self, job_id: str) -> Optional[dict]:
