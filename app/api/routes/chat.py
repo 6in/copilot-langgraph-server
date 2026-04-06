@@ -156,18 +156,29 @@ async def stream_job(job_id: str, request: Request):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    # Still in progress — poll Redis until done (cross-process safe)
+    # Still in progress — drain queue for real-time events (message / done)
     async def generator():
         import asyncio
-        while True:
-            if await request.is_disconnected():
-                break
-            result = await job_store.get(job_id)
-            if result and result.get("status") == "done":
-                yield f"data: {json.dumps({'status': 'done'})}\n\n"
-                break
-            yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
-            await asyncio.sleep(1)
+        queue = job_store.register_sse(job_id)
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    # Keep connection alive; also fall back to Redis check
+                    result = await job_store.get(job_id)
+                    if result and result.get("status") == "done":
+                        yield f"data: {json.dumps({'status': 'done'})}\n\n"
+                        break
+                    yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
+                    continue
+                yield f"data: {json.dumps(event)}\n\n"
+                if event.get("status") == "done":
+                    break
+        finally:
+            job_store.unregister_sse(job_id)
 
     return StreamingResponse(
         generator(),

@@ -173,12 +173,35 @@ export function useChat({
 
       es.onmessage = async (e: MessageEvent) => {
         try {
-          const { status } = JSON.parse(e.data as string) as { status: string };
-          if (status === 'done') {
+          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string } };
+          if (event.status === 'message' && event.turn) {
+            // リアルタイムで各エージェントの発言を表示
+            setMessages((prev) => [...prev, {
+              role: 'ai' as const,
+              content: event.turn!.content,
+              senderName: event.turn!.name,
+            }]);
+          } else if (event.status === 'done') {
             es.close();
+            // done 時は turns 付き debate_result で重複しないよう、
+            // turns が既にストリームで表示済みの場合はスキップ
             const result = await getJob(job_id);
             if (result.result) {
-              handleResult(result.result);
+              const parsed = (() => { try { return JSON.parse(result.result); } catch { return null; } })();
+              if (parsed?.type === 'debate_result') {
+                // ターンはストリームで表示済み — onDebateResult コールバックのみ実行
+                if (onDebateResult) {
+                  onDebateResult({
+                    debate_text: parsed.debate_text,
+                    turns: parsed.turns,
+                    final_turn: parsed.final_turn,
+                    max_turns: parsed.max_turns,
+                    is_complete: parsed.is_complete,
+                  });
+                }
+              } else {
+                handleResult(result.result);
+              }
             }
             setIsThinking(false);
             await refreshThreads?.();

@@ -143,16 +143,32 @@ class DebateHandler(TaskHandler):
                 }
 
                 config = {"configurable": {"thread_id": thread_id}}
-                result = await graph.ainvoke(initial, config=config)
 
-            turns = _build_debate_turns(result["messages"])
-            # aggregator (最後の発言) を要約テキストとしても保持
+                # astream で各ターンをリアルタイム通知
+                seen_message_count = 0
+                final_state = None
+                async for state_chunk in graph.astream(initial, config=config):
+                    final_state = state_chunk
+                    # state_chunk は {node_name: state_dict} の形式
+                    for node_name, node_state in state_chunk.items():
+                        new_messages = node_state.get("messages", [])
+                        for msg in new_messages:
+                            if isinstance(msg, AIMessage):
+                                name = msg.name or node_name
+                                await notifier.send_turn(name, msg.content)
+
+                # 最終状態を取得（checkpointer から）
+                result = await graph.aget_state(config)
+                final_messages = result.values.get("messages", []) if result else []
+                final_turn = result.values.get("turn", max_turns) if result else max_turns
+
+            turns = _build_debate_turns(final_messages)
             summary_text = turns[-1]["content"] if turns else ""
             result_payload = json.dumps({
                 "type": "debate_result",
                 "debate_text": summary_text,
                 "turns": turns,
-                "final_turn": result["turn"],
+                "final_turn": final_turn,
                 "max_turns": max_turns,
                 "is_complete": True,
             })

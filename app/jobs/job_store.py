@@ -30,10 +30,11 @@ class JobStore:
             ex=3600,
         )
 
-    async def notify(self, job_id: str, status: str) -> None:
+    async def notify(self, job_id: str, status: str, **extra) -> None:
         """Put a status event onto the SSE queue if one is registered."""
         if job_id in self.queues:
-            await self.queues[job_id].put({"status": status})
+            event = {"status": status, **extra}
+            await self.queues[job_id].put(event)
 
     async def get(self, job_id: str) -> Optional[dict]:
         """Retrieve the stored job result from Redis, or None if not found."""
