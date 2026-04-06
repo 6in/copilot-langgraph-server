@@ -59,10 +59,68 @@
 
 ---
 
+---
+
+## Milestone: v3.0 — Agent Platform
+
+**Shipped:** 2026-04-06
+**Phases:** 7 (11, 12, 13, 14, 15, 15.1, 16) | **Plans:** 38 | **Duration:** 3 days (2026-04-04 → 2026-04-06)
+**Stats:** 161 files changed · ~10,148 Python LOC · ~4,344 TS LOC
+
+### What Was Built
+
+- **RPCContext** — frozen dataclass + `_keep_first` reducer で AgentState に不変コンテキストを統合、correlation_id でリクエスト横断追跡
+- **ハイブリッド SubAgentRegistry** — フォルダ型/コード型エージェント自動発見、HEALTHY/DEGRADED/FAILED ヘルス管理、GET /health/agents
+- **INPUT_SCHEMA 標準化** — ツールスクリプトの型安全インターフェース、ScriptBackend 事前バリデーション、CI lint 強制
+- **2段ルーティング** — keywords 前段フィルタ + LLM fallback、stage フィールド付き構造化ルーティングログ
+- **アプリケーションパッケージ + メニュー** — APP.md定義 → AppRegistry → 動的MenuScreen → appIdでスレッド/エージェント分離
+- **Gem + Canvas** — Gem CRUD API (所有権チェック)、Canvas HTML生成・デプロイ、GemSelector/CanvasPane UI
+- **Gem UX強化** — description/knowledge フィールド、GemsScreen ハブ、GemChatApp専用チャット
+- **SuperChat × Gem招待** — GemSubAgent動的ラッパー、OrchestratorHandler gem_ids統合、人手UATで「じゃんけんGem」動作確認済み
+
+### What Worked
+
+- **GSD yolo + coarse モード** — 確認ゲートを最小化し、Phase 11–16 を 3 日間で完走できた。計画品質が高いフェーズでは yolo モードが最適
+- **GemSubAgent 独立クラス設計** — SubAgent を継承しないシンプルな合成で OrchestratorGraph との統合コストを最小化
+- **`if gem_ids:` ガード** — 後方互換を一行で保証するシンプルな分岐。後からテストも書きやすい
+- **worker.py への gem_ids 追加（UAT でバグ発見）** — process_chat() シグネチャ追加漏れを UAT で発見し即修正。人手 UAT がバグネットとして有効に機能した
+- **SUMMARY.md ワンライナーの一貫性** — Phases 13-14 は高品質なワンライナー。MILESTONES.md の自動生成品質に直結するため、ワンライナー記入を習慣化すべき
+
+### What Was Inefficient
+
+- **多くの SUMMARY.md で `One-liner:` プレースホルダーが残留** — gsd-tools の自動抽出がプレースホルダー文字列をそのまま取得してしまい、MILESTONES.md の key accomplishments が汚染された。Plan 完了時にワンライナー記入を必須チェックに組み込む必要がある
+- **REQUIREMENTS.md のチェックボックス未更新** — 全フェーズ完了後も APP-01〜04、GEM-01〜03、CANVAS-01〜04、FE-01〜02 の checkboxes が `[ ]` のまま。Phase 完了時に REQUIREMENTS.md を自動または手動で更新するルールが必要
+- **Phase 15.1 のフェーズ番号体系** — 小数点フェーズ（15.1）は ROADMAP の progress テーブルで milestone 列が `—` になりやすい。小数フェーズも明示的にマイルストーン紐付けする
+
+### Patterns Established
+
+- **`from_http()` ファクトリ** — HTTP リクエストから RPCContext を構築する一元化パターン。worker が生の HTTP ヘッダーを持たないため、chat.py で抽出して arq ジョブペイロードに埋め込む
+- **`getattr(a, 'keywords', [])` safe access** — コード型エージェントに keywords 属性がない場合の安全なアクセスパターン。SubAgent 継承階層が混在する場面で有効
+- **GemSubAgent.close() no-op** — Gem はリソースを持たないため close() は何もしない。インターフェース準拠のための最小実装パターン
+- **描画確認の人手 UAT** — `docker compose up` + ブラウザ目視確認をチェックポイントに含める設計が有効。GemSelector の描画・E2E フローなどは自動化コストが高い
+
+### Key Lessons
+
+1. **SUMMARY.md のワンライナーを完了条件に含める。** `One-liner:` プレースホルダーが残ると MILESTONES.md の自動生成が汚染される。Plan 完了時の必須フィールドとして扱う。
+2. **小数フェーズ（X.Y）も milestone 列を明示する。** Progress テーブルで `—` にならないよう、フェーズ追加時に必ず milestone を記入する。
+3. **REQUIREMENTS.md は Phase 完了と同時に更新する。** フェーズが完了したら対応する `[ ]` を `[x]` にする。milestone 完了時にまとめて更新するとギャップが生じやすい。
+4. **人手 UAT でフロントエンドの描画・E2E を確認する設計は正しい。** 自動化困難な UI 確認を人手 UAT に明示的に委譲し、VERIFICATION.md に記録する流れが実効的だった。
+5. **GemSubAgent のような軽量ラッパーは SubAgent を継承しないほうが良い。** 合成（protocol互換の独立クラス）のほうが実装が単純で、テストも書きやすい。
+
+### Cost Observations
+
+- Model mix: balanced profile (Sonnet 4.6)
+- Sessions: ~6 sessions across 3 days
+- Notable: Phase 11–16 を 3 日で完走。GSD yolo + coarse + Phase間の依存関係が明確な設計が効いた
+
+---
+
 ## Cross-Milestone Trends
 
-| Milestone | Phases | Plans | Duration | Tests at Ship | Tech Debt Items |
-|-----------|--------|-------|----------|---------------|-----------------|
-| v1.0 | 6 | 17 | 2 days | 71 | ~10 (1 CI blocker, rest minor) |
+| Milestone | Phases | Plans | Duration | Python LOC | TS LOC | Tech Debt Items |
+|-----------|--------|-------|----------|------------|--------|-----------------|
+| v1.0 | 6 | 17 | 2 days | ~4,935 | — | ~10 (1 CI blocker) |
+| v2.0 | 4 | ~20 | 2 days | ~6,500 | ~1,200 | ~5 |
+| v3.0 | 7 | 38 | 3 days | ~10,148 | ~4,344 | ~5 |
 
-*More data needed for trends. Update after v2.0.*
+**Trend:** 各マイルストーンで機能密度と LOC が着実に増加。3 日間での大規模フェーズ完走は yolo モード + GSD 計画品質の組み合わせが効いている。SUMMARY.md ワンライナーの品質向上が次の課題。
