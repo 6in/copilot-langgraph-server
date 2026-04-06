@@ -44,14 +44,14 @@ Declared values (must be multiples of 4):
 | 3xl | 64px | Not used in this phase |
 
 Exceptions:
-- Drag handle divider: width 5px (existing pattern from GemChatApp.tsx)
+- Drag handle divider: width 4px (spec contract value; note: existing GemChatApp.tsx uses 5px — implementation MUST update to 4px to align with the 4-multiple scale)
 - Header bar height: 48px (existing pattern — GemChatApp.tsx, CanvasPane.tsx)
 - Sidebar collapse width: 40px (existing pattern — ThreadSidebar)
 - Sidebar default width: 240px, min 160px, max 480px (existing constants from GemChatApp.tsx)
 - CanvasPane minimum width: 320px (existing — CanvasPane.tsx)
 - CanvasPane default width: 40% of available space (existing — CanvasPane.tsx)
 - Tab bar button height: 36px (existing — CanvasPane.tsx)
-- Touch target minimum: 44px (height) for all interactive controls
+- Touch target minimum: 48px (height) for all interactive controls (48px is within Apple HIG 44pt tolerance; replaces earlier 44px note)
 
 ---
 
@@ -65,8 +65,9 @@ Exceptions:
 | Heading | 32px (2rem) | 600 | 1.2 |
 
 Notes (from codebase scan):
-- Section labels (uppercase): 12px (0.75rem), weight 700, letter-spacing 0.08em (existing GemsScreen.tsx pattern)
+- Section labels (uppercase): 14px (0.875rem), weight 600, letter-spacing 0.08em, text-transform uppercase (consolidated from GemsScreen.tsx 12px/700 pattern — weight 700 replaced with 600 to stay within 2-weight limit; 12px size merged into 14px Label tier)
 - Code editor monospace: 'Courier New', Courier, monospace at 13px (existing CanvasPane.tsx — do not change)
+- Permitted weights in this phase: 400 (regular) and 600 (semibold) only — weight 700 is NOT used
 - All sizes above are what the existing components use; new components in this phase MUST match
 
 ---
@@ -140,7 +141,7 @@ CanvasPane integration:
 - When `canvasApp` is null: show placeholder panel (see empty state below)
 - When `canvasApp` is set: render existing `<CanvasPane>` component with full props
 - CanvasPane width: 40% of available space (same as Phase 15, no change)
-- Drag handle between MessageArea and CanvasPane: same 5px pattern as GemChatApp sidebar handle
+- Drag handle between MessageArea and CanvasPane: 4px wide (see Spacing Scale exceptions)
 
 CanvasPane placeholder (null state):
 - `minWidth: '320px'`, `width: '40%'`, same border and background as CanvasPane
@@ -164,7 +165,7 @@ CanvasPane placeholder (null state):
 
 ### Drag-to-resize (CanvasChatApp — left/right pane)
 
-- Drag handle: 5px wide, `cursor: 'col-resize'`
+- Drag handle: 4px wide, `cursor: 'col-resize'`
 - Hover: `background: '#b0c4d8'` (same as GemChatApp sidebar divider)
 - Default: transparent
 - Min/max constraints for CanvasPane: min 320px, no explicit max (inherited from 40% initial)
