@@ -22,6 +22,8 @@ interface MessageAreaProps {
   messages: ChatMessage[];
   isThinking: boolean;
   onSend: (text: string) => void;
+  disabled?: boolean;       // Phase 17: 外部から入力を無効化（討論終了・延長待ち）
+  placeholder?: string;     // Phase 17: カスタムプレースホルダー
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -90,9 +92,10 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
-export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, onSend, disabled = false, placeholder }: MessageAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isInputDisabled = isThinking || disabled;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messageListRef = useRef<any>(null);
 
@@ -102,7 +105,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
 
   const handleSend = () => {
     const text = inputValue.trim();
-    if (!text || isThinking) return;
+    if (!text || isInputDisabled) return;
     onSend(text);
     setInputValue('');
     if (textareaRef.current) {
@@ -181,6 +184,17 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
               }}
             >
               <Message.CustomContent>
+                {msg.senderName && (
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#7c6ff7',
+                    marginBottom: '4px',
+                    letterSpacing: '0.02em',
+                  }}>
+                    {msg.senderName}
+                  </div>
+                )}
                 <MarkdownMessage content={msg.content} />
               </Message.CustomContent>
               <Message.Footer>
@@ -214,8 +228,8 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onInput={handleInput}
-            placeholder="Ask Copilot anything... (Ctrl+Enter to send)"
-            disabled={isThinking}
+            placeholder={placeholder ?? 'Ask Copilot anything... (Ctrl+Enter to send)'}
+            disabled={isInputDisabled}
             rows={1}
             className="chat-textarea"
             style={{
@@ -234,7 +248,7 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
           />
           <button
             onClick={handleSend}
-            disabled={!inputValue.trim() || isThinking}
+            disabled={!inputValue.trim() || isInputDisabled}
             className="chat-send-btn"
             style={{
               padding: '0.5rem 1rem',
@@ -243,8 +257,8 @@ export function MessageArea({ messages, isThinking, onSend }: MessageAreaProps) 
               background: '#0366d6',
               color: '#fff',
               fontWeight: 'bold',
-              cursor: inputValue.trim() && !isThinking ? 'pointer' : 'not-allowed',
-              opacity: inputValue.trim() && !isThinking ? 1 : 0.5,
+              cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
+              opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.5,
               fontSize: '0.9rem',
               flexShrink: 0,
               alignSelf: 'flex-end',

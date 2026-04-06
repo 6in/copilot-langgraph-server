@@ -10,9 +10,10 @@ import type { AppDefinition } from '../types';
 interface MenuScreenProps {
   onNavigate: (app: AppDefinition) => void;
   onOpenGems: () => void;
+  onOpenDebate: () => void;  // Phase 17
 }
 
-export function MenuScreen({ onNavigate, onOpenGems }: MenuScreenProps) {
+export function MenuScreen({ onNavigate, onOpenGems, onOpenDebate }: MenuScreenProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -115,6 +116,17 @@ export function MenuScreen({ onNavigate, onOpenGems }: MenuScreenProps) {
           textColor={textColor}
           subtitleColor={subtitleColor}
           onClick={onOpenGems}
+        />
+        {/* Phase 17: 討論チャットカード */}
+        <FeatureCard
+          icon="💬"
+          title="討論チャット"
+          description="複数のエージェントがターン制で議論する"
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          subtitleColor={subtitleColor}
+          onClick={onOpenDebate}
         />
       </div>
 

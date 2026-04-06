@@ -30,10 +30,22 @@ class JobStore:
             ex=3600,
         )
 
-    async def notify(self, job_id: str, status: str) -> None:
+    async def notify(self, job_id: str, status: str, **extra) -> None:
         """Put a status event onto the SSE queue if one is registered."""
         if job_id in self.queues:
-            await self.queues[job_id].put({"status": status})
+            event = {"status": status, **extra}
+            await self.queues[job_id].put(event)
+
+    async def push_turn(self, job_id: str, name: str, content: str) -> None:
+        """Append a debate turn to a Redis list (cross-process safe, polled by SSE)."""
+        import json as _json
+        await self.redis.rpush(f"job:{job_id}:turns", _json.dumps({"name": name, "content": content}))
+        await self.redis.expire(f"job:{job_id}:turns", 3600)
+
+    async def get_turns(self, job_id: str, since: int = 0) -> list[dict]:
+        """Return debate turns from index `since` onward."""
+        raws = await self.redis.lrange(f"job:{job_id}:turns", since, -1)
+        return [json.loads(r) for r in raws]
 
     async def get(self, job_id: str) -> Optional[dict]:
         """Retrieve the stored job result from Redis, or None if not found."""

@@ -67,8 +67,9 @@ async def lifespan(app: FastAPI):
             # 3. Seed known applications (idempotent)
             await conn.execute(
                 """INSERT INTO applications (app_id, display_name, enabled, created_at) VALUES
-                       ('chat',      'Chat',      true, now()),
-                       ('superchat', 'SuperChat', true, now())
+                       ('chat',      'Chat',        true, now()),
+                       ('superchat', 'SuperChat',   true, now()),
+                       ('debate',    'Debate Chat', true, now())
                    ON CONFLICT DO NOTHING"""
             )
 

@@ -6,6 +6,20 @@ import { useCallback, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
 import type { CanvasAppInfo, CanvasResult, ChatMessage } from '../types';
 
+// Phase 17: 討論チャット結果
+interface DebateTurn {
+  name: string;
+  content: string;
+}
+interface DebateResult {
+  type: 'debate_result';
+  debate_text: string;
+  turns?: DebateTurn[];
+  final_turn: number;
+  max_turns: number;
+  is_complete: boolean;
+}
+
 interface UseChatOptions {
   activeThreadId: string | null;
   selectedModel: string;
@@ -14,10 +28,17 @@ interface UseChatOptions {
   agents?: string[];
   appId?: string;
   gemId?: string | null;           // Phase 15: Gem ID for chat request payload
+  gemIds?: string[];
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   _onThreadCreated?: (threadId: string) => void;
   refreshThreads?: () => Promise<void>;
   onCanvasResponse?: (app: CanvasAppInfo) => void;  // Phase 15: Canvas response callback
+  // Phase 17: 討論チャット
+  participants?: string[];
+  pattern?: string;
+  maxTurns?: number;
+  currentTurn?: number;
+  onDebateResult?: (result: { debate_text: string; turns?: DebateTurn[]; final_turn: number; max_turns: number; is_complete: boolean }) => void;
 }
 
 interface UseChatReturn {
@@ -25,17 +46,20 @@ interface UseChatReturn {
   sendMessage: (text: string, threadId?: string) => Promise<void>;
 }
 
-// Phase 15: Parse job result — detect Canvas JSON payload vs plain text.
-function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null } {
+// Phase 15/17: Parse job result — detect Canvas / debate_result JSON payload vs plain text.
+function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null; debate: DebateResult | null } {
   try {
     const parsed = JSON.parse(raw);
     if (parsed && parsed.type === 'canvas') {
-      return { text: raw, canvas: parsed as CanvasResult };
+      return { text: raw, canvas: parsed as CanvasResult, debate: null };
+    }
+    if (parsed && parsed.type === 'debate_result') {
+      return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult };
     }
   } catch {
     // plain text — not JSON
   }
-  return { text: raw, canvas: null };
+  return { text: raw, canvas: null, debate: null };
 }
 
 export function useChat({
@@ -46,9 +70,15 @@ export function useChat({
   agents,
   appId,
   gemId,
+  gemIds,
   setMessages,
   refreshThreads,
   onCanvasResponse,
+  participants,
+  pattern,
+  maxTurns,
+  currentTurn,
+  onDebateResult,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
 
@@ -78,11 +108,18 @@ export function useChat({
         ...(appId ? { app_id: appId } : {}),
         // Phase 15: Pass gem_id when a Gem is selected
         ...(gemId ? { gem_id: gemId } : {}),
+        // Phase 15: Pass gem_ids when multiple Gems are selected
+        ...(gemIds && gemIds.length > 0 ? { gem_ids: gemIds } : {}),
+        // Phase 17: 討論チャットフィールド
+        ...(participants && participants.length > 0 ? { participants } : {}),
+        ...(pattern ? { pattern } : {}),
+        ...(maxTurns !== undefined ? { max_turns: maxTurns } : {}),
+        ...(currentTurn !== undefined ? { current_turn: currentTurn } : {}),
       });
 
-      // Helper: handle result raw string (Canvas or plain text)
+      // Helper: handle result raw string (Canvas / debate_result / plain text)
       const handleResult = (raw: string) => {
-        const { text: resultText, canvas } = parseJobResult(raw);
+        const { text: resultText, canvas, debate } = parseJobResult(raw);
         if (canvas && onCanvasResponse) {
           // Canvas response: show raw text in chat + open Canvas pane
           setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
@@ -95,6 +132,27 @@ export function useChat({
             deployed: false,
             deployed_at: null,
             created_at: new Date().toISOString(),
+          });
+        } else if (debate && onDebateResult) {
+          // Phase 17: debate_result — 各エージェントの発言を個別バブルで表示
+          if (debate.turns && debate.turns.length > 0) {
+            setMessages((prev) => [
+              ...prev,
+              ...debate.turns!.map((t) => ({
+                role: 'ai' as const,
+                content: t.content,
+                senderName: t.name,
+              })),
+            ]);
+          } else {
+            setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+          }
+          onDebateResult({
+            debate_text: debate.debate_text,
+            turns: debate.turns,
+            final_turn: debate.final_turn,
+            max_turns: debate.max_turns,
+            is_complete: debate.is_complete,
           });
         } else {
           setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
@@ -112,15 +170,48 @@ export function useChat({
 
       // 3. Open SSE stream for real-time completion notification
       const es = streamJob(job_id);
+      // SSE で表示済みのターン数を追跡（done 時の重複防止）
+      let streamedTurnCount = 0;
 
       es.onmessage = async (e: MessageEvent) => {
         try {
-          const { status } = JSON.parse(e.data as string) as { status: string };
-          if (status === 'done') {
+          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string } };
+          if (event.status === 'message' && event.turn) {
+            // リアルタイムで各エージェントの発言を表示
+            streamedTurnCount++;
+            setMessages((prev) => [...prev, {
+              role: 'ai' as const,
+              content: event.turn!.content,
+              senderName: event.turn!.name,
+            }]);
+          } else if (event.status === 'done') {
             es.close();
             const result = await getJob(job_id);
             if (result.result) {
-              handleResult(result.result);
+              const parsed = (() => { try { return JSON.parse(result.result); } catch { return null; } })();
+              if (parsed?.type === 'debate_result') {
+                // SSE で未表示のターンを result から補完（ストリーム失敗時のフォールバック）
+                const allTurns: DebateTurn[] = parsed.turns ?? [];
+                if (allTurns.length > streamedTurnCount) {
+                  const remaining = allTurns.slice(streamedTurnCount);
+                  setMessages((prev) => [...prev, ...remaining.map((t) => ({
+                    role: 'ai' as const,
+                    content: t.content,
+                    senderName: t.name,
+                  }))]);
+                }
+                if (onDebateResult) {
+                  onDebateResult({
+                    debate_text: parsed.debate_text,
+                    turns: parsed.turns,
+                    final_turn: parsed.final_turn,
+                    max_turns: parsed.max_turns,
+                    is_complete: parsed.is_complete,
+                  });
+                }
+              } else {
+                handleResult(result.result);
+              }
             }
             setIsThinking(false);
             await refreshThreads?.();
@@ -156,7 +247,7 @@ export function useChat({
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, isThinking, setMessages, refreshThreads, onCanvasResponse]);
+  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
 
   return { isThinking, sendMessage };
 }

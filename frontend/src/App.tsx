@@ -1,7 +1,7 @@
 // frontend/src/App.tsx
 // Root component: AuthProvider + auth gate.
 // AuthPanel shown when unauthenticated/expired.
-// 4-screen navigation: menu | superchat | gems | gemchat
+// 5-screen navigation: menu | superchat | gems | gemchat | debate
 
 import { useState } from 'react';
 import { AuthContext, useAuthProvider } from './hooks/useAuth';
@@ -11,11 +11,12 @@ import { SuperChatApp } from './components/SuperChatApp';
 import { MenuScreen } from './components/MenuScreen';
 import { GemsScreen } from './components/GemsScreen';
 import { GemChatApp } from './components/GemChatApp';
+import { DebateChatApp } from './components/DebateChatApp';
 import { useTheme } from './hooks/useTheme';
 import { ThemeContext } from './contexts/ThemeContext';
 import type { AppDefinition, GemInfo } from './types';
 
-type Screen = 'menu' | 'superchat' | 'gems' | 'gemchat';
+type Screen = 'menu' | 'superchat' | 'gems' | 'gemchat' | 'debate';
 
 export function App() {
   const authValue = useAuthProvider();
@@ -39,6 +40,9 @@ export function App() {
   };
 
   const handleOpenGems = () => { setCurrentScreen('gems'); };
+
+  const handleOpenDebate = () => { setCurrentScreen('debate'); };
+  const handleBackFromDebate = () => { setCurrentScreen('menu'); };
 
   const handleSelectGem = (gem: GemInfo) => {
     setActiveGem(gem);
@@ -66,7 +70,7 @@ export function App() {
                   theme={theme}
                   onToggleTheme={toggleTheme}
                 />
-                <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} />
+                <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} onOpenDebate={handleOpenDebate} />
               </>
             )}
             {currentScreen === 'superchat' && (
@@ -113,6 +117,20 @@ export function App() {
                   selectedModel={selectedModel}
                   onBack={handleBackFromGemChat}
                 />
+              </>
+            )}
+            {/* Phase 17: 討論チャット画面 */}
+            {currentScreen === 'debate' && (
+              <>
+                <Header
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                  onBackToMenu={handleBackFromDebate}
+                  appName="討論チャット"
+                />
+                <DebateChatApp selectedModel={selectedModel} />
               </>
             )}
           </div>
