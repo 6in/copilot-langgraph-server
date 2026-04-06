@@ -6,6 +6,8 @@
 
 import { useState, useRef } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
+import { useCurrentTheme } from '../contexts/ThemeContext';
+import { ConfirmModal } from './ConfirmModal';
 import type { ThreadInfo } from '../types';
 
 interface ThreadSidebarProps {
@@ -31,9 +33,13 @@ export function ThreadSidebar({
   onToggleCollapse,
   width,
 }: ThreadSidebarProps) {
+  const theme = useCurrentTheme();
+  const isDark = theme === 'dark';
+
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const cancelledRef = useRef<boolean>(false);
 
   const filtered = filter.trim()
@@ -258,9 +264,7 @@ export function ThreadSidebar({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm('Delete this conversation?')) {
-                      onDeleteThread(thread.thread_id);
-                    }
+                    setDeleteTargetId(thread.thread_id);
                   }}
                   className="sidebar-thread-delete-btn"
                   style={{
@@ -282,6 +286,17 @@ export function ThreadSidebar({
           ))}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        message="このスレッドを削除しますか？"
+        confirmLabel="削除"
+        isDark={isDark}
+        onConfirm={() => {
+          if (deleteTargetId) onDeleteThread(deleteTargetId);
+          setDeleteTargetId(null);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </Sidebar>
   );
 }

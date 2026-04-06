@@ -14,6 +14,7 @@ import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
 import { useCanvas } from '../hooks/useCanvas';
+import { useCurrentTheme } from '../contexts/ThemeContext';
 import { renameThread } from '../api/client';
 import type { AgentInfo, CanvasAppInfo } from '../types';
 
@@ -32,9 +33,11 @@ interface AgentChipProps {
   agent: AgentInfo;
   selected: boolean;
   onToggle: (name: string) => void;
+  isDark: boolean;
 }
 
-function AgentChip({ agent, selected, onToggle }: AgentChipProps) {
+function AgentChip({ agent, selected, onToggle, isDark }: AgentChipProps) {
+  const accentColor = isDark ? '#7c6ff7' : '#0366d6';
   return (
     <button
       onClick={() => onToggle(agent.name)}
@@ -42,9 +45,9 @@ function AgentChip({ agent, selected, onToggle }: AgentChipProps) {
       style={{
         padding: '4px 12px',
         borderRadius: '16px',
-        border: `1px solid ${selected ? '#0366d6' : '#d1dbe3'}`,
-        background: selected ? '#0366d6' : 'transparent',
-        color: selected ? '#fff' : '#555',
+        border: `1px solid ${selected ? accentColor : (isDark ? '#3a3a52' : '#d1dbe3')}`,
+        background: selected ? accentColor : 'transparent',
+        color: selected ? '#fff' : (isDark ? '#e8e8f0' : '#555'),
         fontSize: '0.82rem',
         fontWeight: selected ? 600 : 400,
         cursor: 'pointer',
@@ -63,9 +66,10 @@ interface AgentSelectorProps {
   selectedAgents: string[];
   onToggle: (name: string) => void;
   isLoading: boolean;
+  isDark: boolean;
 }
 
-function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSelectorProps) {
+function AgentSelector({ agents, selectedAgents, onToggle, isLoading, isDark }: AgentSelectorProps) {
   const selectedSet = new Set(selectedAgents);
   return (
     <div
@@ -74,8 +78,8 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
         alignItems: 'center',
         gap: '6px',
         padding: '6px 12px',
-        borderBottom: '1px solid #d1dbe3',
-        background: '#f8f9fa',
+        borderBottom: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
+        background: isDark ? '#2a2a3e' : '#f8f9fa',
         overflowX: 'auto',
         flexShrink: 0,
         minHeight: '38px',
@@ -84,7 +88,7 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
       <span
         style={{
           fontSize: '0.78rem',
-          color: '#777',
+          color: isDark ? '#9090a8' : '#777',
           whiteSpace: 'nowrap',
           flexShrink: 0,
           marginRight: '4px',
@@ -93,7 +97,7 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
         Agents:
       </span>
       {isLoading ? (
-        <span style={{ fontSize: '0.78rem', color: '#aaa' }}>Loading...</span>
+        <span style={{ fontSize: '0.78rem', color: isDark ? '#9090a8' : '#aaa' }}>Loading...</span>
       ) : agents.length === 0 ? (
         <span style={{ fontSize: '0.78rem', color: '#f0a500' }}>No agents found</span>
       ) : (
@@ -103,6 +107,7 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
             agent={agent}
             selected={selectedSet.has(agent.name)}
             onToggle={onToggle}
+            isDark={isDark}
           />
         ))
       )}
@@ -111,6 +116,9 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading }: AgentSel
 }
 
 export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgents }: SuperChatAppProps) {
+  const theme = useCurrentTheme();
+  const isDark = theme === 'dark';
+
   const {
     threads,
     activeThreadId,
@@ -246,6 +254,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
             selectedAgents={visibleSelectedAgents}
             onToggle={toggleAgent}
             isLoading={agentsLoading}
+            isDark={isDark}
           />
 
           {isLoadingMessages ? (

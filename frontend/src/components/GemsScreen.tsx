@@ -79,6 +79,9 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
   // Error state for form operations
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Incremental search filter
+  const [filterText, setFilterText] = useState('');
+
   // Refs for autoFocus after form expansion
   const editNameRef = useRef<HTMLInputElement>(null);
   const createNameRef = useRef<HTMLInputElement>(null);
@@ -194,6 +197,15 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     }
   };
 
+  const normalizedFilter = filterText.trim().toLowerCase();
+  const filteredGems = normalizedFilter
+    ? gems.filter(
+        (g) =>
+          g.name.toLowerCase().includes(normalizedFilter) ||
+          g.description?.toLowerCase().includes(normalizedFilter)
+      )
+    : gems;
+
   const inputStyle: React.CSSProperties = {
     border: '1px solid #d1dbe3',
     borderRadius: '6px',
@@ -270,7 +282,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '16px',
-            marginBottom: '32px',
+            marginBottom: '16px',
           }}
         >
           <button
@@ -299,6 +311,47 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
           </h1>
         </div>
 
+        {/* インクリメンタルサーチ */}
+        <div style={{ position: 'relative', marginBottom: '24px' }}>
+          <input
+            type="search"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="Gem を検索..."
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '8px 36px 8px 12px',
+              border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
+              borderRadius: '8px',
+              background: isDark ? '#1e1e2e' : '#fff',
+              color: textColor,
+              fontSize: '0.875rem',
+            }}
+          />
+          {filterText && (
+            <button
+              onClick={() => setFilterText('')}
+              aria-label="検索をクリア"
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: subtitleColor,
+                fontSize: '1rem',
+                lineHeight: 1,
+                padding: '2px',
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         {/* フェッチエラー */}
         {error && !isLoading && (
           <div role="alert" style={errorAlertStyle}>
@@ -323,7 +376,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
         )}
 
         {/* 空状態 */}
-        {!isLoading && !error && gems.length === 0 && !showCreateForm && (
+        {!isLoading && !error && filteredGems.length === 0 && !showCreateForm && (
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
             <div style={{ fontWeight: 600, color: textColor, fontSize: '1rem' }}>
               Gems がありません
@@ -341,7 +394,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
         )}
 
         {/* My Gems セクション */}
-        {!isLoading && gems.some((g) => g.is_owner) && (
+        {!isLoading && filteredGems.some((g) => g.is_owner) && (
           <div
             style={{
               fontSize: '0.75rem',
@@ -357,7 +410,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
         )}
 
         {!isLoading &&
-          gems.filter((g) => g.is_owner).map((gem) => (
+          filteredGems.filter((g) => g.is_owner).map((gem) => (
             <div
               key={gem.gem_id}
               style={{
@@ -596,7 +649,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
           ))}
 
         {/* Shared Gems セクション */}
-        {!isLoading && gems.some((g) => !g.is_owner && g.is_public) && (
+        {!isLoading && filteredGems.some((g) => !g.is_owner && g.is_public) && (
           <>
             <div
               style={{
@@ -611,7 +664,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
             >
               Shared Gems
             </div>
-            {gems.filter((g) => !g.is_owner && g.is_public).map((gem) => (
+            {filteredGems.filter((g) => !g.is_owner && g.is_public).map((gem) => (
               <div
                 key={gem.gem_id}
                 style={{
