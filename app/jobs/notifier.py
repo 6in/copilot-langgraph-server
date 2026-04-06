@@ -25,7 +25,7 @@ class WebNotifier(BaseNotifier):
         await self.job_store.notify(self.job_id, status)
 
     async def send_turn(self, name: str, content: str) -> None:
-        await self.job_store.notify(self.job_id, "message", turn={"name": name, "content": content})
+        await self.job_store.push_turn(self.job_id, name, content)
 
     async def done(self) -> None:
         await self.job_store.notify(self.job_id, "done")

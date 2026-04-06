@@ -31,13 +31,21 @@ class JobStore:
         )
 
     async def notify(self, job_id: str, status: str, **extra) -> None:
-        """Publish a status event to Redis Pub/Sub (cross-process safe) and local queue."""
-        event = {"status": status, **extra}
-        # Redis Pub/Sub: worker と API が別プロセスでも届く
-        await self.redis.publish(f"job:{job_id}:events", json.dumps(event))
-        # 同一プロセスの queue にも投入（テスト・同期ユースケース用）
+        """Put a status event onto the SSE queue if one is registered."""
         if job_id in self.queues:
+            event = {"status": status, **extra}
             await self.queues[job_id].put(event)
+
+    async def push_turn(self, job_id: str, name: str, content: str) -> None:
+        """Append a debate turn to a Redis list (cross-process safe, polled by SSE)."""
+        import json as _json
+        await self.redis.rpush(f"job:{job_id}:turns", _json.dumps({"name": name, "content": content}))
+        await self.redis.expire(f"job:{job_id}:turns", 3600)
+
+    async def get_turns(self, job_id: str, since: int = 0) -> list[dict]:
+        """Return debate turns from index `since` onward."""
+        raws = await self.redis.lrange(f"job:{job_id}:turns", since, -1)
+        return [json.loads(r) for r in raws]
 
     async def get(self, job_id: str) -> Optional[dict]:
         """Retrieve the stored job result from Redis, or None if not found."""
