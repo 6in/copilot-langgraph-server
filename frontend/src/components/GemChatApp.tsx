@@ -63,11 +63,12 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     await refreshThreads();
   };
 
-  // D-16: gem_id を useChat に渡す
+  // D-16: gem_id を useChat に渡す。appId も合わせて渡し、threads.app_id を 'gem-{id}' で統一する（Todo 8）
   const { isThinking, sendMessage } = useChat({
     activeThreadId,
     selectedModel,
     gemId: gem.gem_id,
+    appId: `gem-${gem.gem_id}`,
     setMessages,
     refreshThreads,
   });
