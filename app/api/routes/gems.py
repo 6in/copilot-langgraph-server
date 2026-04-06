@@ -21,7 +21,7 @@ from app.api.routes.chat import get_jwt_payload
 router = APIRouter(prefix="/api", tags=["gems"])
 
 
-def _row_to_gem(row: dict) -> GemInfo:
+def _row_to_gem(row: dict, current_login: str) -> GemInfo:
     """Convert a psycopg dict_row result to a GemInfo response model."""
     return GemInfo(
         gem_id=str(row["gem_id"]),
@@ -30,6 +30,8 @@ def _row_to_gem(row: dict) -> GemInfo:
         description=row.get("description", ""),
         knowledge=row.get("knowledge", ""),
         type=row["type"],
+        is_public=row.get("is_public", False),
+        is_owner=row["github_login"] == current_login,
         created_at=row["created_at"].isoformat() if row["created_at"] else "",
         updated_at=row["updated_at"].isoformat() if row["updated_at"] else "",
     )
@@ -52,15 +54,15 @@ async def create_gem(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """INSERT INTO gems (github_login, name, system_prompt, description, knowledge, type)
-                   VALUES (%s, %s, %s, %s, %s, %s)
-                   RETURNING gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at""",
-                (github_login, body.name, body.system_prompt, body.description, body.knowledge, body.type),
+                """INSERT INTO gems (github_login, name, system_prompt, description, knowledge, type, is_public)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   RETURNING gem_id, github_login, name, system_prompt, description, knowledge, type, is_public, created_at, updated_at""",
+                (github_login, body.name, body.system_prompt, body.description, body.knowledge, body.type, body.is_public),
             )
             row = await cur.fetchone()
         await conn.commit()
 
-    return _row_to_gem(row)
+    return _row_to_gem(row, github_login)
 
 
 @router.get("/gems", response_model=list[GemInfo])
@@ -79,15 +81,15 @@ async def list_gems(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """SELECT gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at
+                """SELECT gem_id, github_login, name, system_prompt, description, knowledge, type, is_public, created_at, updated_at
                    FROM gems
-                   WHERE github_login = %s
-                   ORDER BY created_at DESC""",
-                (github_login,),
+                   WHERE github_login = %s OR is_public = true
+                   ORDER BY (github_login = %s) DESC, created_at DESC""",
+                (github_login, github_login),
             )
             rows = await cur.fetchall()
 
-    return [_row_to_gem(row) for row in rows]
+    return [_row_to_gem(row, github_login) for row in rows]
 
 
 @router.get("/gems/{gem_id}", response_model=GemInfo)
@@ -107,9 +109,9 @@ async def get_gem(
     async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """SELECT gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at
+                """SELECT gem_id, github_login, name, system_prompt, description, knowledge, type, is_public, created_at, updated_at
                    FROM gems
-                   WHERE gem_id = %s::uuid AND github_login = %s""",
+                   WHERE gem_id = %s::uuid AND (github_login = %s OR is_public = true)""",
                 (gem_id, github_login),
             )
             row = await cur.fetchone()
@@ -117,7 +119,7 @@ async def get_gem(
     if row is None:
         raise HTTPException(status_code=404, detail="Gem not found")
 
-    return _row_to_gem(row)
+    return _row_to_gem(row, github_login)
 
 
 @router.patch("/gems/{gem_id}", response_model=GemInfo)
@@ -142,7 +144,7 @@ async def update_gem(
         raise HTTPException(status_code=422, detail="No fields to update")
 
     # Build SET clause with hardcoded column names — values are parameterized (T-15-02)
-    allowed_columns = {"name", "system_prompt", "description", "knowledge", "type"}
+    allowed_columns = {"name", "system_prompt", "description", "knowledge", "type", "is_public"}
     set_clause = ", ".join(f"{k} = %s" for k in fields if k in allowed_columns)
     values = [v for k, v in fields.items() if k in allowed_columns]
 
@@ -155,7 +157,7 @@ async def update_gem(
                 f"""UPDATE gems
                     SET {set_clause}, updated_at = now()
                     WHERE gem_id = %s::uuid AND github_login = %s
-                    RETURNING gem_id, name, system_prompt, description, knowledge, type, created_at, updated_at""",
+                    RETURNING gem_id, github_login, name, system_prompt, description, knowledge, type, is_public, created_at, updated_at""",
                 (*values, gem_id, github_login),
             )
             row = await cur.fetchone()
@@ -164,7 +166,7 @@ async def update_gem(
     if row is None:
         raise HTTPException(status_code=404, detail="Gem not found")
 
-    return _row_to_gem(row)
+    return _row_to_gem(row, github_login)
 
 
 @router.delete("/gems/{gem_id}", status_code=204)

@@ -90,6 +90,8 @@ export interface GemInfo {
   description: string;   // Todo 6: Gem カードに表示する説明文
   knowledge: string;     // Todo 7: ナレッジ（system_prompt に結合される）
   type: 'default' | 'canvas';
+  is_public: boolean;    // 公開共有フラグ
+  is_owner: boolean;     // リクエストユーザーが所有者かどうか
   created_at: string;
   updated_at: string;
 }
@@ -100,6 +102,7 @@ export interface GemCreate {
   description: string;   // Todo 6
   knowledge: string;     // Todo 7
   type: 'default' | 'canvas';
+  is_public: boolean;    // 公開共有フラグ
 }
 
 export interface CanvasAppInfo {

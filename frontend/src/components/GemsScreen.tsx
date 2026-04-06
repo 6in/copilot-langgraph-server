@@ -59,6 +59,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
   const [editPrompt, setEditPrompt] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editKnowledge, setEditKnowledge] = useState('');
+  const [editIsPublic, setEditIsPublic] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   // Inline delete confirmation state
@@ -72,6 +73,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
   const [createDescription, setCreateDescription] = useState('');
   const [createKnowledge, setCreateKnowledge] = useState('');
   const [createType, setCreateType] = useState<'default' | 'canvas'>('default');
+  const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
 
   // Error state for form operations
@@ -87,6 +89,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setEditPrompt(gem.system_prompt);
     setEditDescription(gem.description);
     setEditKnowledge(gem.knowledge);
+    setEditIsPublic(gem.is_public);
     setConfirmDeleteId(null);
     setFormError(null);
     // autoFocus is handled via the autoFocus attribute on the input
@@ -98,6 +101,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setEditPrompt('');
     setEditDescription('');
     setEditKnowledge('');
+    setEditIsPublic(false);
   };
 
   const handleSave = async (gemId: string) => {
@@ -109,12 +113,14 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
         system_prompt: editPrompt,
         description: editDescription,
         knowledge: editKnowledge,
+        is_public: editIsPublic,
       });
       setEditingGemId(null);
       setEditName('');
       setEditPrompt('');
       setEditDescription('');
       setEditKnowledge('');
+      setEditIsPublic(false);
     } catch {
       setFormError('保存に失敗しました。もう一度お試しください。');
     } finally {
@@ -148,6 +154,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setCreateDescription('');
     setCreateKnowledge('');
     setCreateType('default');
+    setCreateIsPublic(false);
     setFormError(null);
   };
 
@@ -158,6 +165,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
     setCreateDescription('');
     setCreateKnowledge('');
     setCreateType('default');
+    setCreateIsPublic(false);
   };
 
   const handleCreate = async () => {
@@ -170,6 +178,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
         description: createDescription,
         knowledge: createKnowledge,
         type: createType,
+        is_public: createIsPublic,
       });
       setShowCreateForm(false);
       setCreateName('');
@@ -177,6 +186,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
       setCreateDescription('');
       setCreateKnowledge('');
       setCreateType('default');
+      setCreateIsPublic(false);
     } catch {
       setFormError('Gem の作成に失敗しました。もう一度お試しください。');
     } finally {
@@ -330,9 +340,24 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
           </div>
         )}
 
-        {/* Gem カード一覧 */}
+        {/* My Gems セクション */}
+        {!isLoading && gems.some((g) => g.is_owner) && (
+          <div
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: subtitleColor,
+              marginBottom: '12px',
+            }}
+          >
+            My Gems
+          </div>
+        )}
+
         {!isLoading &&
-          gems.map((gem) => (
+          gems.filter((g) => g.is_owner).map((gem) => (
             <div
               key={gem.gem_id}
               style={{
@@ -414,7 +439,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                       style={inputStyle}
                     />
                   </div>
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '12px' }}>
                     <label
                       style={{
                         display: 'block',
@@ -437,6 +462,29 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                       placeholder="ドメイン固有の知識・ルール・参照情報を記述してください"
                       style={{ ...inputStyle, resize: 'vertical' }}
                     />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: textColor,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editIsPublic}
+                        onChange={(e) => setEditIsPublic(e.target.checked)}
+                      />
+                      全ユーザーに公開する
+                      <span style={{ fontWeight: 400, color: subtitleColor }}>
+                        （Shared Gems セクションに表示）
+                      </span>
+                    </label>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -493,17 +541,26 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                   </button>
                 </div>
               ) : (
-                /* 通常表示: Gem 名 + prompt 冒頭 + アクションボタン */
+                /* 通常表示: Gem 名 + 説明 + アクションボタン */
                 <div>
-                  <div
-                    style={{
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      color: textColor,
-                      marginBottom: '6px',
-                    }}
-                  >
-                    {gem.name}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: textColor }}>
+                      {gem.name}
+                    </div>
+                    {gem.is_public && (
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          color: '#7c6ff7',
+                          border: '1px solid #7c6ff7',
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                        }}
+                      >
+                        公開中
+                      </span>
+                    )}
                   </div>
                   <div
                     style={{
@@ -519,29 +576,77 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                     }
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => onSelectGem(gem)}
-                      style={primaryBtnStyle}
-                    >
+                    <button onClick={() => onSelectGem(gem)} style={primaryBtnStyle}>
                       チャット開始
                     </button>
-                    <button
-                      onClick={() => handleEdit(gem)}
-                      style={secondaryBtnStyle}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteConfirm(gem.gem_id)}
-                      style={destructiveBtnStyle}
-                    >
-                      Delete
-                    </button>
+                    {gem.is_owner && (
+                      <>
+                        <button onClick={() => handleEdit(gem)} style={secondaryBtnStyle}>
+                          Edit
+                        </button>
+                        <button onClick={() => handleDeleteConfirm(gem.gem_id)} style={destructiveBtnStyle}>
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
             </div>
           ))}
+
+        {/* Shared Gems セクション */}
+        {!isLoading && gems.some((g) => !g.is_owner && g.is_public) && (
+          <>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: subtitleColor,
+                marginTop: '8px',
+                marginBottom: '12px',
+              }}
+            >
+              Shared Gems
+            </div>
+            {gems.filter((g) => !g.is_owner && g.is_public).map((gem) => (
+              <div
+                key={gem.gem_id}
+                style={{
+                  background: cardBg,
+                  border: `1px solid ${cardBorder}`,
+                  borderRadius: '12px',
+                  padding: '24px',
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: textColor }}>
+                    {gem.name}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.875rem',
+                    color: subtitleColor,
+                    marginBottom: '16px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {gem.description
+                    ? gem.description.slice(0, 80) + (gem.description.length > 80 ? '…' : '')
+                    : <span style={{ fontStyle: 'italic', opacity: 0.6 }}>説明なし</span>
+                  }
+                </div>
+                <button onClick={() => onSelectGem(gem)} style={primaryBtnStyle}>
+                  チャット開始
+                </button>
+              </div>
+            ))}
+          </>
+        )}
 
         {/* 新規作成フォーム */}
         {showCreateForm && (
@@ -676,6 +781,29 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
                 <option value="default">default</option>
                 <option value="canvas">canvas</option>
               </select>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: textColor,
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={createIsPublic}
+                  onChange={(e) => setCreateIsPublic(e.target.checked)}
+                />
+                全ユーザーに公開する
+                <span style={{ fontWeight: 400, color: subtitleColor }}>
+                  （Shared Gems セクションに表示）
+                </span>
+              </label>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
