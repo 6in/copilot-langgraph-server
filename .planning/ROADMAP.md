@@ -59,7 +59,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 14. Application Packages + Menu | v3.0 | 2/2 | Complete | 2026-04-06 |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
 | 15.1. Gem UX 強化 | — | 3/3 | Complete | 2026-04-06 |
-| 16. SuperChat × Gem 招待 | — | 1/3 | In Progress|  |
+| 16. SuperChat × Gem 招待 | — | 2/3 | In Progress|  |
 
 ## Shipped Phase Details
 
@@ -251,9 +251,9 @@ Plans:
 3. 招待なしの通常 SuperChat は既存動作のまま変わらない（後方互換）
 4. 公開 Gem（`is_public = true`）は全ユーザーの SuperChat 招待候補に自動的に表示される
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 16-01-PLAN.md — バックエンド: GemSubAgent クラス実装 + OrchestratorHandler gem_ids 統合 (GEM-SUB-01, GEM-SUB-02)
-- [ ] 16-02-PLAN.md — API + フロントエンド: ChatRequest gem_ids + useGems + GemSelector + SuperChatApp + useChat (GEM-SUB-03, GEM-SUB-04)
+- [x] 16-02-PLAN.md — API + フロントエンド: ChatRequest gem_ids + useGems + GemSelector + SuperChatApp + useChat (GEM-SUB-03, GEM-SUB-04)
 - [ ] 16-03-PLAN.md — テスト: GemSubAgent ユニットテスト + OrchestratorHandler gem_ids 統合テスト (GEM-SUB-01〜04)

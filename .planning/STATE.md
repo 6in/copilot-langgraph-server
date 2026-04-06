@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
 status: executing
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-04-06T05:54:13.341Z"
+stopped_at: Completed 16-superchat-gem-gem-orchestratorgraph-02-PLAN.md
+last_updated: "2026-04-06T05:59:16.463Z"
 last_activity: 2026-04-06
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 38
-  completed_plans: 39
+  completed_plans: 40
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 ## Current Position
 
 Phase: 15.1 (gem-canvas-gem-ux) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-06
 
@@ -86,6 +86,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 13-scalable-routing P02 | 3min | 2 tasks | 3 files |
 | Phase 15-gem-canvas P04 | 0 | 3 tasks | 4 files |
 | Phase 16-superchat-gem-gem-orchestratorgraph P01 | 10 | 2 tasks | 2 files |
+| Phase 16-superchat-gem-gem-orchestratorgraph P02 | 15m | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,7 @@ Recent decisions affecting current work:
 - [Phase 15-04]: useChat に gemId/onCanvasResponse を追加し Canvas レスポンス (type=canvas JSON) を検出して CanvasPane を自動表示
 - [Phase 16-superchat-gem-gem-orchestratorgraph]: GemSubAgent は SubAgent を継承しない独立クラスとして実装（D-01）
 - [Phase 16-superchat-gem-gem-orchestratorgraph]: gem_ids は OrchestratorHandler の agents_filter 後・RPCContext 前に挿入（D-08）
+- [Phase 16-superchat-gem-gem-orchestratorgraph]: gem_ids を ChatRequest の独立フィールドとして追加（gem_id 単数と共存）、useGemSelector を既存 useGems CRUD フックとの命名衝突を避けて新規作成
 
 ### Roadmap Evolution
 
@@ -242,6 +244,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-04
-Last session: 2026-04-06T05:54:13.338Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-04-06T05:59:16.459Z
+Stopped at: Completed 16-superchat-gem-gem-orchestratorgraph-02-PLAN.md
 Resume file: None
