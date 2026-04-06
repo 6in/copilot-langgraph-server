@@ -5,7 +5,7 @@ milestone_name: Agent Platform Phases
 status: executing
 stopped_at: Phase 15.1 UI-SPEC approved
 last_updated: "2026-04-05T13:24:05.631Z"
-last_activity: 2026-04-05 -- Phase 15.1 execution started
+last_activity: 2026-04-06 - Completed quick task 260406-f9k: langgraph_handler.py の config[configurable] に github_login を追加
 progress:
   total_phases: 10
   completed_phases: 9
@@ -230,6 +230,7 @@ Recent decisions affecting current work:
 | 260403-wlh | Replace ChatAnthropic with ChatCopilot in super-agent-sample: standalone copilot.py, async call chain, updated tests | 2026-04-03 | 9e7933b | [260403-wlh-super-agent-sample-chatanthropic-chatcop](.planning/quick/260403-wlh-super-agent-sample-chatanthropic-chatcop/) |
 | 260403-auth | Integrate CopilotAuthManager into super-agent-sample: standalone auth_manager.py, replace github_token env var with auth_manager= in all ChatCopilot instantiations | 2026-04-03 | 3be4e4c | [260403-auth-super-agent-sample](.planning/quick/260403-auth-super-agent-sample/) |
 | 260404-eoj | SuperChat UI: GET /api/agents endpoint, agents[] POST /api/chat field, OrchestratorHandler agent filtering, SuperChatApp with toggle chip UI | 2026-04-04 | 13c0c19 | [260404-eoj-superchat-ui](.planning/quick/260404-eoj-superchat-ui/) |
+| 260406-f9k | langgraph_handler.py の config[configurable] に github_login を追加して、LangGraph グラフ実行時にユーザー情報が渡るようにする | 2026-04-06 | 504b835 | [260406-f9k-langgraph-handler-py-config-configurable](.planning/quick/260406-f9k-langgraph-handler-py-config-configurable/) |
 
 ### Blockers/Concerns
 
