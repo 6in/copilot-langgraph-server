@@ -59,7 +59,8 @@ class LangGraphHandler(TaskHandler):
         try:
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 graph = build_graph(llm, checkpointer)
-                config = {"configurable": {"thread_id": thread_id}}
+                github_login = job.get("github_login", "unknown")
+                config = {"configurable": {"thread_id": thread_id, "github_login": github_login}}
 
                 await notifier.progress("thinking")
 
@@ -82,7 +83,6 @@ class LangGraphHandler(TaskHandler):
                 if gem_type == "canvas":
                     html = extract_html(final_text)
                     app_id_str: str | None = None
-                    github_login = job.get("github_login", "unknown")
                     try:
                         async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
                             async with conn.cursor() as cur:
