@@ -210,14 +210,19 @@ Plans:
 - [x] 15-03-PLAN.md — Frontend types + hooks + GemSelector (FE-01, FE-02)
 - [x] 15-04-PLAN.md — Frontend CanvasPane + ChatApp integration + human verification (FE-03, FE-04)
 
-### Phase 15.1: Gem UX 強化 — GemsScreen ハブ・GemChatApp・ナビゲーション改善
+### Phase 15.1: Gem UX 強化 — GemsScreen ハブ・GemChatApp・ナビゲーション改善・description/knowledge フィールド追加
 
-**Goal:** Gem 機能を「アプリ」として再設計する。MenuScreen に「Gems」アプリカードを固定追加し、GemsScreen（Gem CRUD 管理ハブ）と GemChatApp（Gem 専用チャット）を新規作成する。既存 ChatApp / SuperChatApp から GemSelector を撤去する。
-**Requirements:** D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21
+**Goal:** Gem 機能を「アプリ」として再設計する。MenuScreen に「Gems」アプリカードを固定追加し、GemsScreen（Gem CRUD 管理ハブ）と GemChatApp（Gem 専用チャット）を新規作成する。既存 ChatApp / SuperChatApp から GemSelector を撤去する。さらに Gem モデルに description（カード表示用説明文）と knowledge（チャット時にシステムプロンプトへ結合するナレッジ）フィールドを追加する。
+
+**Requirements:** D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21, Todo-6, Todo-7, Todo-8
+
 **Depends on:** Phase 15
+
+**Note:** D-01〜D-21（オリジナル Phase 15.1 スコープ）はコードベース上すでに実装済み。このフェーズのプランは Todo 6〜8（description/knowledge フィールド）の追加実装にフォーカスする。
+
 **Plans:** 3 plans
 
 Plans:
-- [ ] 15.1-PLAN-1-hooks-cleanup.md — useGems.updateGem 追加・useThreads 型調整・GemSelector 撤去 (D-11, D-18〜D-21)
-- [ ] 15.1-PLAN-2-gems-screen.md — GemsScreen 新規作成（Gem CRUD ハブ画面）(D-08〜D-12)
-- [ ] 15.1-PLAN-3-navigation-gemchat.md — GemChatApp 新規作成・App.tsx 4画面ナビゲーション・MenuScreen Gems カード追加 (D-01〜D-07, D-13〜D-17)
+- [ ] 15.1-01-PLAN.md — バックエンド: description/knowledge カラム追加（DB ALTER TABLE + API models + routes + LangGraph handler）(Todo-6, Todo-7)
+- [ ] 15.1-02-PLAN.md — フロントエンド: types.ts 更新 + GemsScreen description/knowledge フォーム対応・カード表示切り替え (Todo-6, Todo-7)
+- [ ] 15.1-03-PLAN.md — E2E 確認チェックポイント: 全画面フロー・description/knowledge チャット動作確認 (D-01〜D-21, Todo-6, Todo-7, Todo-8)
