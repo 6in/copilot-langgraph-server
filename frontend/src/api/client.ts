@@ -69,10 +69,14 @@ export const streamJob = (jobId: string): EventSource =>
   new EventSource(`${API_BASE}/api/chat/${encodeURIComponent(jobId)}/stream`);
 
 // Threads
-export const listThreads = (appId?: string) =>
-  apiFetch<ThreadInfo[]>(
-    `${API_BASE}/api/threads${appId ? `?app_id=${encodeURIComponent(appId)}` : ''}`
-  );
+export const listThreads = (appId?: string, gemId?: string) => {
+  const params = new URLSearchParams();
+  // gem_id filter takes precedence — filters by gem association directly (handles legacy app_id='chat' threads too)
+  if (gemId) params.set('gem_id', gemId);
+  else if (appId) params.set('app_id', appId);
+  const qs = params.toString();
+  return apiFetch<ThreadInfo[]>(`${API_BASE}/api/threads${qs ? `?${qs}` : ''}`);
+};
 
 export const createThread = (gemId?: string | null) =>
   apiFetch<{ thread_id: string; label: string }>(`${API_BASE}/api/threads`, {

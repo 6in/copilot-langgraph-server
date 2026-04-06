@@ -31,7 +31,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
   const cardBg = isDark ? '#2a2a3e' : '#ffffff';
   const textColor = isDark ? '#e0e0e0' : '#333333';
 
-  // D-15: Gem 単位のスレッド分離 — gem_id を appId として使用
+  // D-15: Gem 単位のスレッド分離 — gem_id で直接フィルタ（app_id に依存しないため既存スレッドも取得できる）
   const {
     threads,
     activeThreadId,
@@ -42,7 +42,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     removeThread,
     setMessages,
     refreshThreads,
-  } = useThreads(`gem-${gem.gem_id}`);
+  } = useThreads(undefined, gem.gem_id);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);

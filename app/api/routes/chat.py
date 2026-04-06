@@ -186,12 +186,14 @@ async def create_thread(payload: dict = Depends(get_jwt_payload)):
 
 
 @router.get("/threads")
-async def list_threads(request: Request, app_id: str | None = None, payload: dict = Depends(get_jwt_payload)):
+async def list_threads(request: Request, app_id: str | None = None, gem_id: str | None = None, payload: dict = Depends(get_jwt_payload)):
     """List threads owned by the authenticated user, sorted by latest activity.
 
     Filters by github_login from JWT — each user sees only their own threads.
     Uses LEFT JOIN from threads to checkpoints so threads without checkpoints are still visible.
     Optionally filters by app_id (e.g. 'chat' or 'superchat') when provided.
+    Optionally filters by gem_id (UUID) when provided — used by GemChatApp to show only threads for a specific Gem.
+    gem_id takes precedence over app_id when both are provided.
     Sorting uses t.updated_at DESC — checkpoint_id is NULL for new threads (LEFT JOIN), which
     would break sort order if used. updated_at from threads table is always reliable.
     LangGraph's alist() requires a thread_id filter — no 'list all' API; direct SQL used.
@@ -203,7 +205,19 @@ async def list_threads(request: Request, app_id: str | None = None, payload: dic
     try:
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
-                if app_id is not None:
+                if gem_id is not None:
+                    await cur.execute(
+                        """SELECT t.thread_id, t.app_id, t.label, t.updated_at
+                           FROM threads t
+                           LEFT JOIN checkpoints c ON t.thread_id = c.thread_id AND c.checkpoint_ns = ''
+                           WHERE t.github_login = %s
+                             AND t.gem_id = %s::uuid
+                           GROUP BY t.thread_id, t.app_id, t.label, t.updated_at
+                           ORDER BY t.updated_at DESC
+                           LIMIT 50""",
+                        (github_login, gem_id),
+                    )
+                elif app_id is not None:
                     await cur.execute(
                         """SELECT t.thread_id, t.app_id, t.label, t.updated_at
                            FROM threads t

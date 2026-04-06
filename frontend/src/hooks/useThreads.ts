@@ -23,7 +23,7 @@ interface UseThreadsReturn {
   refreshThreads: () => Promise<void>;
 }
 
-export function useThreads(appId?: string): UseThreadsReturn {
+export function useThreads(appId?: string, gemId?: string): UseThreadsReturn {
   const [threads, setThreads] = useState<ThreadInfo[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -31,12 +31,12 @@ export function useThreads(appId?: string): UseThreadsReturn {
 
   const refreshThreads = useCallback(async () => {
     try {
-      const data = await listThreads(appId);
+      const data = await listThreads(appId, gemId);
       setThreads(data);
     } catch {
       // DB may not be reachable if no messages have been sent yet
     }
-  }, [appId]);
+  }, [appId, gemId]);
 
   // Load threads on mount
   useEffect(() => {
