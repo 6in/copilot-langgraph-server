@@ -87,6 +87,8 @@ export interface GemInfo {
   gem_id: string;
   name: string;
   system_prompt: string;
+  description: string;   // Todo 6: Gem カードに表示する説明文
+  knowledge: string;     // Todo 7: ナレッジ（system_prompt に結合される）
   type: 'default' | 'canvas';
   created_at: string;
   updated_at: string;
@@ -95,6 +97,8 @@ export interface GemInfo {
 export interface GemCreate {
   name: string;
   system_prompt: string;
+  description: string;   // Todo 6
+  knowledge: string;     // Todo 7
   type: 'default' | 'canvas';
 }
 
