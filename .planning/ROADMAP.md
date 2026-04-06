@@ -69,7 +69,7 @@ See [v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md) for full phase details.
 | 15. Gem + Canvas | v3.0 | 4/4 | Complete | 2026-04-05 |
 | 15.1. Gem UX 強化 | v3.0 | 3/3 | Complete | 2026-04-06 |
 | 16. SuperChat × Gem 招待 | v3.0 | 3/3 | Complete | 2026-04-06 |
-| 17. マルチエージェント討論チャット | v4.0 | 0/0 | Not started | — |
+| 17. マルチエージェント討論チャット | v4.0 | 0/3 | In progress | — |
 
 ## Phase Details
 
@@ -94,4 +94,9 @@ See [v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md) for full phase details.
 
 **UI hint**: yes
 
-**Plans:** 0 plans (not started)
+**Plans:** 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — DebateGraph コア TDD (DebateState + build_debate_graph + 3 パターン + 再エンキュー)
+- [ ] 17-02-PLAN.md — DebateHandler + API 拡張 (ChatRequest/process_chat/enqueue_job)
+- [ ] 17-03-PLAN.md — DebateChatApp フロントエンド (設定パネル + チャット + 延長 + MenuScreen 統合)
