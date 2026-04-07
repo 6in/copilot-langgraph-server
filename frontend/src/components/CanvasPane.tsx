@@ -32,6 +32,9 @@ export function CanvasPane({
   const [activeTab, setActiveTab] = useState<TabId>('editor');
   const [htmlContent, setHtmlContent] = useState(canvasApp.html);
 
+  // VITE_APP_BASE is baked in at build time (e.g. '/orochi'); strip trailing slash.
+  const appBase = (import.meta.env.VITE_APP_BASE as string ?? '').replace(/\/$/, '');
+
   // Sync htmlContent when canvasApp.html changes (e.g. after save)
   useEffect(() => {
     setHtmlContent(canvasApp.html);
@@ -164,7 +167,7 @@ export function CanvasPane({
           {deployUrl && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <a
-                href={deployUrl}
+                href={appBase + deployUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ fontSize: '0.75rem', color: '#666666' }}
@@ -172,7 +175,7 @@ export function CanvasPane({
                 Open app
               </a>
               <button
-                onClick={() => navigator.clipboard.writeText(window.location.origin + deployUrl)}
+                onClick={() => navigator.clipboard.writeText(window.location.origin + appBase + deployUrl)}
                 style={{
                   background: 'none',
                   border: '1px solid #d1dbe3',
