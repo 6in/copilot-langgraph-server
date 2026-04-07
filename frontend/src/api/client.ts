@@ -172,3 +172,15 @@ export const deployCanvasApp = (appId: string) =>
   apiFetch<CanvasDeployResponse>(`${API_BASE}/api/canvas/apps/${encodeURIComponent(appId)}/deploy`, {
     method: 'POST',
   });
+
+// --- Phase 16: Canvas App API ---
+
+export const listCanvasApps = (deployed?: boolean): Promise<CanvasAppInfo[]> => {
+  const params = new URLSearchParams();
+  if (deployed !== undefined) params.set('deployed', String(deployed));
+  const qs = params.toString();
+  return apiFetch<CanvasAppInfo[]>(`${API_BASE}/api/canvas/apps${qs ? `?${qs}` : ''}`);
+};
+
+export const getCanvasGemId = (): Promise<{ gem_id: string }> =>
+  apiFetch<{ gem_id: string }>(`${API_BASE}/api/canvas/gem`);

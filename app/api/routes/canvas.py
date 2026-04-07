@@ -87,14 +87,12 @@ async def upload_app(
 async def list_or_get_by_thread(
     request: Request,
     thread_id: str | None = None,
-    deployed: bool | None = None,
     payload: dict = Depends(get_jwt_payload),
 ) -> list[CanvasAppInfo]:
     """Get canvas apps for the authenticated user (CANVAS-02).
 
     If thread_id is provided: returns the most recent app for that thread.
     Otherwise: returns up to 20 most recent apps for the user.
-    Optional deployed filter: ?deployed=true returns only deployed apps (Phase 16).
     Ownership is enforced by github_login from JWT.
     """
     github_login = payload.get("github_login", "unknown")
@@ -112,15 +110,14 @@ async def list_or_get_by_thread(
                     (thread_id, github_login),
                 )
             else:
-                query = """SELECT app_id, thread_id, name, html, source, deployed, deployed_at, created_at
-                           FROM canvas_apps
-                           WHERE github_login = %s"""
-                params: list = [github_login]
-                if deployed is not None:
-                    query += " AND deployed = %s"
-                    params.append(deployed)
-                query += " ORDER BY created_at DESC LIMIT 20"
-                await cur.execute(query, params)
+                await cur.execute(
+                    """SELECT app_id, thread_id, name, html, source, deployed, deployed_at, created_at
+                       FROM canvas_apps
+                       WHERE github_login = %s
+                       ORDER BY created_at DESC
+                       LIMIT 20""",
+                    (github_login,),
+                )
             rows = await cur.fetchall()
 
     return [_row_to_canvas_app(row) for row in rows]
@@ -238,18 +235,6 @@ async def deploy_app(
         await conn.commit()
 
     return CanvasDeployResponse(url=f"/apps/{row['app_id']}/")
-
-
-@router.get("/gem", response_model=dict)
-async def get_canvas_gem_id(
-    request: Request,
-    payload: dict = Depends(get_jwt_payload),
-) -> dict:
-    """Canvas 専用 Gem の gem_id を返す (Phase 16).
-
-    gem_id は UUID — 秘密情報ではないが JWT 保護で一貫性を保つ (T-16-01)。
-    """
-    return {"gem_id": str(request.app.state.canvas_gem_id)}
 
 
 @router.get("/apps/{app_id}/source")
