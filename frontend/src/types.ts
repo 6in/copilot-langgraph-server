@@ -116,6 +116,7 @@ export interface CanvasAppInfo {
   app_id: string;
   thread_id: string | null;
   name: string;
+  thread_label: string | null;
   html: string;
   source: 'canvas' | 'upload' | 'builtin';
   deployed: boolean;

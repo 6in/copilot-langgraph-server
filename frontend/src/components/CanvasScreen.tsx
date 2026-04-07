@@ -66,7 +66,7 @@ function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAp
       onClick={onClick}
     >
       <div style={{ fontSize: '1rem', fontWeight: 600, color: textColor, marginBottom: '8px' }}>
-        {app.name}
+        {app.thread_label ?? app.name}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
         <button

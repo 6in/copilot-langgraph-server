@@ -46,6 +46,7 @@ def _row_to_canvas_app(row: dict) -> CanvasAppInfo:
         app_id=str(row["app_id"]),
         thread_id=row["thread_id"],
         name=row["name"],
+        thread_label=row.get("thread_label"),
         html=row["html"],
         source=row["source"],
         deployed=row["deployed"],
@@ -116,22 +117,26 @@ async def list_or_get_by_thread(
         async with conn.cursor() as cur:
             if thread_id is not None:
                 await cur.execute(
-                    """SELECT app_id, thread_id, name, html, source, deployed, deployed_at, created_at
-                       FROM canvas_apps
-                       WHERE thread_id = %s AND github_login = %s
-                       ORDER BY created_at DESC
+                    """SELECT ca.app_id, ca.thread_id, ca.name, t.label AS thread_label,
+                              ca.html, ca.source, ca.deployed, ca.deployed_at, ca.created_at
+                       FROM canvas_apps ca
+                       LEFT JOIN threads t ON ca.thread_id = t.thread_id
+                       WHERE ca.thread_id = %s AND ca.github_login = %s
+                       ORDER BY ca.created_at DESC
                        LIMIT 1""",
                     (thread_id, github_login),
                 )
             else:
-                query = """SELECT app_id, thread_id, name, html, source, deployed, deployed_at, created_at
-                           FROM canvas_apps
-                           WHERE github_login = %s"""
+                query = """SELECT ca.app_id, ca.thread_id, ca.name, t.label AS thread_label,
+                                  ca.html, ca.source, ca.deployed, ca.deployed_at, ca.created_at
+                           FROM canvas_apps ca
+                           LEFT JOIN threads t ON ca.thread_id = t.thread_id
+                           WHERE ca.github_login = %s"""
                 params: list = [github_login]
                 if deployed is not None:
-                    query += " AND deployed = %s"
+                    query += " AND ca.deployed = %s"
                     params.append(deployed)
-                query += " ORDER BY created_at DESC LIMIT 20"
+                query += " ORDER BY ca.created_at DESC LIMIT 20"
                 await cur.execute(query, params)
             rows = await cur.fetchall()
 

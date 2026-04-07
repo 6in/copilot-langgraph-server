@@ -151,6 +151,7 @@ class CanvasAppInfo(BaseModel):
     app_id: str
     thread_id: str | None = None
     name: str
+    thread_label: str | None = None
     html: str
     source: str
     deployed: bool
