@@ -233,12 +233,14 @@ async def list_threads(request: Request, app_id: str | None = None, gem_id: str 
                         (github_login, gem_id),
                     )
                 elif app_id is not None:
+                    # gem_id IS NULL を追加: gem専用スレッド（Canvas含む旧app_id='chat'）を除外
                     await cur.execute(
                         """SELECT t.thread_id, t.app_id, t.label, t.updated_at
                            FROM threads t
                            LEFT JOIN checkpoints c ON t.thread_id = c.thread_id AND c.checkpoint_ns = ''
                            WHERE t.github_login = %s
                              AND t.app_id = %s
+                             AND t.gem_id IS NULL
                            GROUP BY t.thread_id, t.app_id, t.label, t.updated_at
                            ORDER BY t.updated_at DESC
                            LIMIT 50""",
