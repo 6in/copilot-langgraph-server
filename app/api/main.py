@@ -264,9 +264,17 @@ app = FastAPI(title="Copilot Chat", lifespan=lifespan, root_path=APP_PREFIX)
 
 # CORS for Vite dev server — must be registered BEFORE include_router calls.
 # Per Pitfall 3 in 07-RESEARCH.md: middleware added after routes may not wrap them.
+# CORS_ORIGINS env var overrides the default dev-only origins for production deployments.
+# Format: JSON array string, e.g. '["https://example.com", "https://other.example.com"]'
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if _cors_origins_env:
+    import json as _json
+    _cors_origins = _json.loads(_cors_origins_env)
+else:
+    _cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
