@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Agent Platform Phases
-status: executing
-stopped_at: Phase 16 UI-SPEC approved
-last_updated: "2026-04-07T00:21:24.631Z"
+status: idle
+stopped_at: Phase 17 complete (DebateChatApp merged to main)
+last_updated: "2026-04-07T00:00:00.000Z"
 last_activity: 2026-04-07
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 39
-  completed_plans: 38
-  percent: 97
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 42
+  completed_plans: 42
+  percent: 100
 ---
 
 # Project State
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 16 — Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ
+**Current focus:** Phase 17 完了 — DebateChatApp (マルチエージェント討論チャット) — main にマージ済み
 
 ## Current Position
 
-Phase: 16 (Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ) — EXECUTING
-Plan: 1 of 4
+Phase: 17 (DebateChatApp — マルチエージェント討論チャット) — COMPLETE
+Plan: 3 of 3
 Milestone: v3.0 COMPLETE (2026-04-06)
 Next: v4.0 — Phase 17 (DebateChatApp) — 未着手
 Status: Executing Phase 16

@@ -240,3 +240,15 @@ Plans:
 - [x] 16-02-PLAN.md — フロントエンド: CanvasChatApp + CanvasScreen + client.ts 拡張
 - [x] 16-03-PLAN.md — フロントエンド: MenuScreen Canvas カード + App.tsx ナビゲーション拡張
 - [x] 16-04-PLAN.md — E2E 検証チェックポイント
+
+### Phase 17: DebateChatApp — マルチエージェント討論チャット
+
+**Goal:** 複数の Gem / SubAgent をターン制で会話させる新アプリ「討論チャット」を実装する。ユーザーが会話パターン（討論・パネル・チェーン）と参加エージェントを選択し、お題を投稿すると、指定ターン数でエージェント同士が順番に発言する。
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14
+**Depends on:** Phase 16
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 17-01-PLAN.md — DebateGraph + DebateState (LangGraph StateGraph, TDD)
+- [x] 17-02-PLAN.md — DebateHandler + API 拡張 (task_type="debate", ChatRequest フィールド追加)
+- [x] 17-03-PLAN.md — DebateChatApp フロントエンド + MenuScreen / App.tsx 統合
