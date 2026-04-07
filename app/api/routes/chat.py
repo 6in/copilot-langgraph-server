@@ -137,7 +137,7 @@ async def send_message(
 
 
 @router.get("/chat/{job_id}/stream")
-async def stream_job(job_id: str, request: Request):
+async def stream_job(job_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """SSE endpoint for real-time job completion notification (ASYNC-04, ASYNC-06).
 
     1. Check if job already done (reload/reconnect case) — return immediate done event
