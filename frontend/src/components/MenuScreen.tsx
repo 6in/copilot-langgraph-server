@@ -11,9 +11,10 @@ interface MenuScreenProps {
   onNavigate: (app: AppDefinition) => void;
   onOpenGems: () => void;
   onOpenDebate: () => void;  // Phase 17
+  onOpenCanvas: () => void;  // Phase 16 (D-05, D-06)
 }
 
-export function MenuScreen({ onNavigate, onOpenGems, onOpenDebate }: MenuScreenProps) {
+export function MenuScreen({ onNavigate, onOpenGems, onOpenDebate, onOpenCanvas }: MenuScreenProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -116,6 +117,17 @@ export function MenuScreen({ onNavigate, onOpenGems, onOpenDebate }: MenuScreenP
           textColor={textColor}
           subtitleColor={subtitleColor}
           onClick={onOpenGems}
+        />
+        {/* Phase 16: Canvas カード（D-05, D-16） */}
+        <FeatureCard
+          icon="🎨"
+          title="Canvas"
+          description="AI チャットで HTML アプリを作成・プレビュー・デプロイ"
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          subtitleColor={subtitleColor}
+          onClick={onOpenCanvas}
         />
         {/* Phase 17: 討論チャットカード */}
         <FeatureCard
