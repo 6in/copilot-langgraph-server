@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>アニメーション ハローワールド</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .container {
+      text-align: center;
+      position: relative;
+    }
+    .hello {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 0.1em;
+      opacity: 0;
+      transform: translateY(40px) scale(0.8);
+      animation: fadeInUp 1.2s cubic-bezier(.68,-0.55,.27,1.55) forwards;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    }
+    .world {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #ffd700;
+      letter-spacing: 0.1em;
+      opacity: 0;
+      transform: translateY(40px) scale(0.8);
+      animation: fadeInUp 1.2s 0.8s cubic-bezier(.68,-0.55,.27,1.55) forwards;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    }
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .sparkle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: radial-gradient(circle, #fff 60%, #ffd700 100%);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.8;
+      animation: sparkle 1.2s linear infinite;
+    }
+    @keyframes sparkle {
+      0% { transform: scale(0.5); opacity: 0.8;}
+      50% { transform: scale(1.2); opacity: 1;}
+      100% { transform: scale(0.5); opacity: 0.8;}
+    }
+    .wave {
+      display: inline-block;
+      animation: wave 1.2s infinite linear;
+      transform-origin: 70% 70%;
+      font-size: 1.2em;
+    }
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg);}
+      20% { transform: rotate(-10deg);}
+      40% { transform: rotate(12deg);}
+      60% { transform: rotate(-8deg);}
+      80% { transform: rotate(8deg);}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hello">
+      ハロー
+      <span class="wave">👋</span>
+    </div>
+    <div class="world">ワールド！</div>
+  </div>
+  <script>
+    // スパークルアニメーション
+    const container = document.querySelector('.container');
+    function randomBetween(a, b) {
+      return a + Math.random() * (b - a);
+    }
+    function createSparkle() {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      const angle = randomBetween(0, 2 * Math.PI);
+      const radius = randomBetween(60, 120);
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      sparkle.style.left = `calc(50% + ${x}px)`;
+      sparkle.style.top = `calc(50% + ${y}px)`;
+      sparkle.style.animationDelay = `${randomBetween(0, 1.2)}s`;
+      container.appendChild(sparkle);
+      setTimeout(() => {
+        sparkle.remove();
+      }, 1200);
+    }
+    setInterval(createSparkle, 180);
+
+    // 文字ごとにバウンドアニメーション
+    function animateBounce(selector, delayStart = 0) {
+      const el = document.querySelector(selector);
+      const text = el.textContent;
+      el.textContent = '';
+      [...text].forEach((char, i) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.style.display = 'inline-block';
+        span.style.opacity = '0';
+        span.style.transform = 'translateY(20px) scale(0.8)';
+        span.style.animation = `bounceIn 0.7s ${delayStart + i * 0.08}s cubic-bezier(.68,-0.55,.27,1.55) forwards`;
+        el.appendChild(span);
+      });
+    }
+    // bounceIn keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes bounceIn {
+        0% { opacity: 0; transform: translateY(20px) scale(0.8);}
+        60% { opacity: 1; transform: translateY(-10px) scale(1.1);}
+        100% { opacity: 1; transform: translateY(0) scale(1);}
+      }
+    `;
+    document.head.appendChild(style);
+
+    setTimeout(() => animateBounce('.hello', 0.2), 400);
+    setTimeout(() => animateBounce('.world', 1.0), 1200);
+  </script>
+</body>
+</html>

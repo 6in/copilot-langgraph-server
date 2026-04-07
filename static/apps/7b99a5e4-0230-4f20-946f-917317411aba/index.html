@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ハロー・ワールド（ダークモード）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #181a1b;
+      --container-bg: #23272a;
+      --text: #f1f1f1;
+      --primary: #4299e1;
+      --primary-hover: #2b6cb0;
+      --accent: #48bb78;
+      --shadow: 0 4px 24px rgba(0,0,0,0.32);
+    }
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: var(--container-bg);
+      padding: 2.5rem 3rem;
+      border-radius: 1.2rem;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    h1 {
+      color: var(--text);
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.7rem 2rem;
+      border-radius: 0.5rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: var(--primary-hover);
+    }
+    .message {
+      margin-top: 1.5rem;
+      font-size: 1.3rem;
+      color: var(--accent);
+      min-height: 2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ハロー・ワールド</h1>
+    <button id="helloBtn">メッセージを表示</button>
+    <div class="message" id="message"></div>
+  </div>
+  <script>
+    document.getElementById('helloBtn').addEventListener('click', function() {
+      document.getElementById('message').textContent = 'こんにちは、世界！';
+    });
+  </script>
+</body>
+</html>
