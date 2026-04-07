@@ -59,7 +59,7 @@ See [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for full phase details.
 | 14. Application Packages + Menu | v3.0 | 0/2 | In progress | - |
 | 15. Gem + Canvas | — | 4/4 | Complete   | 2026-04-05 |
 | 15.1. Gem UX 強化 | — | 0/3 | Pending | - |
-| 16. Canvas App | — | 0/4 | In progress | - |
+| 16. Canvas App | — | 1/4 | In Progress|  |
 
 ## Shipped Phase Details
 
@@ -233,10 +233,10 @@ Plans:
 **Goal:** MenuScreen から直接起動できる独立した Canvas アプリ体験を実装する。CanvasScreen（デプロイ済みアプリ一覧ハブ）と CanvasChatApp（左右分割チャット+Canvas エディタ）を新規作成し、Canvas 専用 Gem を自動登録して AI による HTML 生成・プレビュー・デプロイの完全フローを提供する。
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17
 **Depends on:** Phase 15.1
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
-- [ ] 16-01-PLAN.md — バックエンド API 拡張（deployed フィルタ・Canvas Gem 自動登録・/api/canvas/gem エンドポイント）
+- [x] 16-01-PLAN.md — バックエンド API 拡張（deployed フィルタ・Canvas Gem 自動登録・/api/canvas/gem エンドポイント）
 - [ ] 16-02-PLAN.md — フロントエンド: CanvasChatApp + CanvasScreen + client.ts 拡張
 - [ ] 16-03-PLAN.md — フロントエンド: MenuScreen Canvas カード + App.tsx ナビゲーション拡張
 - [ ] 16-04-PLAN.md — E2E 検証チェックポイント
