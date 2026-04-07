@@ -180,7 +180,33 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS canvas_apps_github_login_idx ON canvas_apps(github_login)"
             )
 
+            # Phase 16: Canvas 専用 Gem の自動登録（冪等 — SELECT → INSERT パターン）
+            # gems テーブルに UNIQUE 制約がないため ON CONFLICT は使えない
+            CANVAS_SYSTEM_PROMPT = (
+                "あなたはシングルファイル HTML アプリを生成する専門家です。\n"
+                "ユーザーのリクエストに対して、必ず完全な HTML を ```html\n...\n``` ブロックで返してください。\n"
+                "外部 CDN を使用してよいですが、HTML は必ず1ファイルで完結させてください。\n"
+                "CSSとJavaScriptはすべて同じHTMLファイルにインラインで含めてください。"
+            )
+            CANVAS_DESCRIPTION = "AI チャットで HTML アプリを生成・プレビュー・デプロイします"
+            cur_gem = await conn.execute(
+                "SELECT gem_id FROM gems WHERE github_login = '_canvas_system_' AND type = 'canvas' LIMIT 1"
+            )
+            existing_gem = await cur_gem.fetchone()
+            if not existing_gem:
+                cur_gem2 = await conn.execute(
+                    """INSERT INTO gems (github_login, name, system_prompt, type, description)
+                       VALUES ('_canvas_system_', 'Canvas App Generator', %s, 'canvas', %s)
+                       RETURNING gem_id""",
+                    (CANVAS_SYSTEM_PROMPT, CANVAS_DESCRIPTION),
+                )
+                new_gem = await cur_gem2.fetchone()
+                canvas_gem_id = str(new_gem[0])
+            else:
+                canvas_gem_id = str(existing_gem[0])
+
             await conn.commit()
+        app.state.canvas_gem_id = canvas_gem_id
         app.state.graph = build_graph(llm, checkpointer)
         app.state.checkpointer = checkpointer
         app.state.auth_manager = auth_manager
