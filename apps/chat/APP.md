@@ -4,6 +4,7 @@ description: AI-powered chat with GitHub Copilot
 icon: "💬"
 agents:
   - general-assistant
+type: chat
 ---
 
 # Chat

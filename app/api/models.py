@@ -23,6 +23,7 @@ class AppInfo(BaseModel):
     description: str
     icon: str
     agents: list[str]
+    type: str = "superchat"
 
 
 class ChatRequest(BaseModel):
