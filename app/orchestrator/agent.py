@@ -114,7 +114,8 @@ class SubAgent:
         response = await self._llm.ainvoke(messages)
         return {
             "output": response.content,
-            "messages": [AIMessage(content=response.content)],
+            "agent_name": self.name,
+            "messages": [AIMessage(content=response.content, name=self.name)],
         }
 
     async def close(self) -> None:

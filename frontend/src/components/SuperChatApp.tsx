@@ -10,11 +10,13 @@ import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
 import { CanvasPane } from './CanvasPane';
+import { GemSelector } from './GemSelector';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
 import { useCanvas } from '../hooks/useCanvas';
 import { useCurrentTheme } from '../contexts/ThemeContext';
+import { agentAccentColor } from '../utils/agentColor';
 import { renameThread } from '../api/client';
 import type { AgentInfo, CanvasAppInfo } from '../types';
 
@@ -37,7 +39,7 @@ interface AgentChipProps {
 }
 
 function AgentChip({ agent, selected, onToggle, isDark }: AgentChipProps) {
-  const accentColor = isDark ? '#7c6ff7' : '#0366d6';
+  const accentColor = agentAccentColor(agent.name);
   return (
     <button
       onClick={() => onToggle(agent.name)}
@@ -144,6 +146,13 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     (name) => filteredAgents.some((a) => a.name === name)
   );
 
+  const [selectedGemIds, setSelectedGemIds] = useState<string[]>([]);
+  const handleToggleGem = (gemId: string) => {
+    setSelectedGemIds((prev) =>
+      prev.includes(gemId) ? prev.filter((id) => id !== gemId) : [...prev, gemId]
+    );
+  };
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const dragStartX = useRef<number | null>(null);
@@ -167,6 +176,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     selectedMode: 'super',
     agents: visibleSelectedAgents,
     appId: appId || undefined,
+    gemIds: selectedGemIds,
     onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
@@ -247,7 +257,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
           />
         )}
 
-        {/* Chat area: agent selector + messages */}
+        {/* Chat area: agent selector + gem selector + messages */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <AgentSelector
             agents={filteredAgents}
@@ -255,6 +265,10 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
             onToggle={toggleAgent}
             isLoading={agentsLoading}
             isDark={isDark}
+          />
+          <GemSelector
+            selectedGemIds={selectedGemIds}
+            onToggleGem={handleToggleGem}
           />
 
           {isLoadingMessages ? (

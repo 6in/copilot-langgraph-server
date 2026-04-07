@@ -104,6 +104,7 @@ async def send_message(
         agents=body.agents,
         github_login=github_login,
         app_id=app_id,
+        gem_id=body.gem_id,
         gem_ids=body.gem_ids,
         # Phase 17: 討論チャット
         participants=body.participants,
@@ -233,12 +234,14 @@ async def list_threads(request: Request, app_id: str | None = None, gem_id: str 
                         (github_login, gem_id),
                     )
                 elif app_id is not None:
+                    # gem_id IS NULL を追加: gem専用スレッド（Canvas含む旧app_id='chat'）を除外
                     await cur.execute(
                         """SELECT t.thread_id, t.app_id, t.label, t.updated_at
                            FROM threads t
                            LEFT JOIN checkpoints c ON t.thread_id = c.thread_id AND c.checkpoint_ns = ''
                            WHERE t.github_login = %s
                              AND t.app_id = %s
+                             AND t.gem_id IS NULL
                            GROUP BY t.thread_id, t.app_id, t.label, t.updated_at
                            ORDER BY t.updated_at DESC
                            LIMIT 50""",
@@ -348,7 +351,11 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
             messages = []
             for msg in state.values["messages"]:
                 role = "user" if isinstance(msg, HumanMessage) else "ai"
-                messages.append({"role": role, "content": msg.content})
+                entry: dict = {"role": role, "content": msg.content}
+                sender = getattr(msg, "name", None)
+                if sender:
+                    entry["senderName"] = sender
+                messages.append(entry)
             if messages:
                 # Canvas threads: replace last AI message with canvas JSON so the
                 # frontend CollapsibleCodeBlock renders it the same as live responses.

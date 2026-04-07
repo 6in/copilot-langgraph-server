@@ -92,9 +92,11 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   };
 
   // D-14: gemId と onCanvasResponse を useChat に渡す
+  // app_id: 'canvas' を明示することで通常の ChatApp スレッドと混在しないようにする
   const { isThinking, sendMessage } = useChat({
     activeThreadId,
     selectedModel,
+    appId: 'canvas',
     gemId: canvasGemId,
     setMessages,
     refreshThreads,

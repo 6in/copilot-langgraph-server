@@ -185,6 +185,7 @@ frontend/
 
 - Docker Compose: FastAPI backend + PostgreSQL (langgraph-checkpoint-postgres) + Redis (arq worker queue) + React frontend (Bun/Vite)
 - **Primary startup method: `docker compose up`** — do not use direct `uvicorn` or `bun run dev` commands for running the full app
+- **開発時アクセス URL: `http://localhost:5173/orochi/`**（Vite dev server）
 - Legacy Vanilla JS UI served at `/` via FastAPI StaticFiles (`static/` directory)
 - React UI served at `/app` (Vite dev server proxies `/api` to backend in dev; FastAPI serves `frontend/dist/` in production)
 - Reverse-proxy URL prefix (e.g. `/orochi`) configured via `APP_PREFIX` (FastAPI) + `VITE_APP_BASE` (Vite); nginx strips the prefix before forwarding — see `docs/nginx.md`
@@ -197,6 +198,32 @@ frontend/
 - ChatCopilot wraps Copilot SDK behind BaseChatModel interface
 - LangGraph StateGraph compiled once at startup; checkpointer lifecycle owned by caller
 <!-- GSD:architecture-end -->
+
+## Chrome DevTools MCP
+
+`chrome-devtools` MCP（`.mcp.json`）は `http://127.0.0.1:9222` で動作する Chromium に接続する。
+
+### Chromium の起動
+
+chrome-devtools MCP を使う前に、Chromium がリモートデバッグモードで起動していることを確認する。
+
+**起動コマンド（ユーザーが手動実行）:**
+```bash
+chromium --remote-debugging-port=9222 --no-first-run --no-default-browser-check &
+```
+
+**Claude が使う前に確認すべきこと:**
+
+1. 起動確認:
+   ```bash
+   curl -s http://127.0.0.1:9222/json/version
+   ```
+2. 接続できない（エラーまたは空レスポンス）場合は、ユーザーに以下を依頼する:
+   ```
+   ! chromium --remote-debugging-port=9222 --no-first-run --no-default-browser-check &
+   ```
+   `!` プレフィックスでセッション内実行できる。
+3. 起動確認後、chrome-devtools ツールを使用する。
 
 <!-- GSD:workflow-start source:GSD defaults -->
 ## GSD Workflow Enforcement

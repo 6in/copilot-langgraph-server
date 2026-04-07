@@ -69,6 +69,7 @@ export interface AppDefinition {
   description: string;
   icon: string;
   agents: string[];
+  type?: string;
 }
 
 export interface ChatRequest {

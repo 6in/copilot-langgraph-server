@@ -342,7 +342,7 @@ interface DebateConfigPanelProps {
 
 function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
   const { agents, isLoading: agentsLoading } = useAgents();
-  const { gems } = useGems();
+  const { gems, isLoading: gemsLoading } = useGems();
   const [pattern, setPattern] = useState<DebatePattern>('debate');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [maxTurns, setMaxTurns] = useState(3);
@@ -422,7 +422,7 @@ function DebateConfigPanel({ onStart, isDark }: DebateConfigPanelProps) {
           gems={gems}
           selectedIds={selectedIds}
           onToggle={handleToggleParticipant}
-          isLoading={agentsLoading}
+          isLoading={agentsLoading || gemsLoading}
           isDark={isDark}
         />
 

@@ -10,6 +10,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
+import { useCurrentTheme } from '../contexts/ThemeContext';
+import { agentBgColor, agentAccentColor } from '../utils/agentColor';
 import {
   MessageList,
   Message,
@@ -92,6 +94,8 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
 }
 
 export function MessageArea({ messages, isThinking, onSend, disabled = false, placeholder }: MessageAreaProps) {
+  const theme = useCurrentTheme();
+  const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isInputDisabled = isThinking || disabled;
@@ -178,20 +182,34 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
                 position: 'single',
                 type: 'custom',
               }}
-            >
+              >
               <Message.CustomContent>
-                {msg.senderName && (
-                  <div style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: '#7c6ff7',
-                    marginBottom: '4px',
-                    letterSpacing: '0.02em',
-                  }}>
-                    {msg.senderName}
-                  </div>
-                )}
-                <MarkdownMessage content={msg.content} />
+                <div style={msg.senderName ? {
+                  background: agentBgColor(msg.senderName, isDark),
+                  margin: '-8px -12px',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                } : undefined}>
+                  {msg.senderName && (
+                    <div style={{ marginBottom: '6px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: agentAccentColor(msg.senderName),
+                        border: `1px solid ${agentAccentColor(msg.senderName)}`,
+                        borderRadius: '10px',
+                        padding: '1px 8px',
+                        letterSpacing: '0.02em',
+                        background: `${agentAccentColor(msg.senderName)}18`,
+                      }}>
+                        {msg.senderName}
+                      </span>
+                    </div>
+                  )}
+                  <MarkdownMessage content={msg.content} />
+                </div>
               </Message.CustomContent>
               <Message.Footer>
                 <CopyButton text={msg.content} />

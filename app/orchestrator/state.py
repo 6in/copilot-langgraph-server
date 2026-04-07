@@ -14,3 +14,4 @@ class AgentState(TypedDict):
     next: str
     context: Annotated[RPCContext, _keep_first]
     error: str | None
+    agent_name: str | None  # which agent produced the final output

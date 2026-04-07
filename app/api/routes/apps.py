@@ -46,12 +46,14 @@ async def list_apps(_payload: dict = Depends(get_jwt_payload)) -> list[AppInfo]:
             description = post.metadata.get("description", "")
             icon = post.metadata.get("icon", "")
             agents: list[str] = post.metadata.get("agents") or []
+            app_type: str = str(post.metadata.get("type", "superchat"))
             apps.append(AppInfo(
                 slug=slug,
                 name=str(name),
                 description=str(description).strip(),
                 icon=str(icon),
                 agents=list(agents),
+                type=app_type,
             ))
         except Exception:
             # Skip malformed APP.md files — do not crash the endpoint

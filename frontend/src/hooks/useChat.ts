@@ -46,8 +46,8 @@ interface UseChatReturn {
   sendMessage: (text: string, threadId?: string) => Promise<void>;
 }
 
-// Phase 15/17: Parse job result — detect Canvas / debate_result JSON payload vs plain text.
-function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null; debate: DebateResult | null } {
+// Phase 15/17: Parse job result — detect Canvas / debate_result / orchestrator_result JSON payload vs plain text.
+function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null; debate: DebateResult | null; agentName: string | null } {
   try {
     const parsed = JSON.parse(raw);
     if (parsed && parsed.type === 'canvas') {
@@ -56,15 +56,18 @@ function parseJobResult(raw: string): { text: string; canvas: CanvasResult | nul
       const html = c.html ?? '';
       // canvashtml: custom language tag → CollapsibleCodeBlock in MarkdownMessage
       const text = `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\``;
-      return { text, canvas: c, debate: null };
+      return { text, canvas: c, debate: null, agentName: null };
     }
     if (parsed && parsed.type === 'debate_result') {
-      return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult };
+      return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult, agentName: null };
+    }
+    if (parsed && parsed.type === 'orchestrator_result') {
+      return { text: parsed.content as string, canvas: null, debate: null, agentName: parsed.agent_name ?? null };
     }
   } catch {
     // plain text — not JSON
   }
-  return { text: raw, canvas: null, debate: null };
+  return { text: raw, canvas: null, debate: null, agentName: null };
 }
 
 export function useChat({
@@ -124,7 +127,7 @@ export function useChat({
 
       // Helper: handle result raw string (Canvas / debate_result / plain text)
       const handleResult = (raw: string) => {
-        const { text: resultText, canvas, debate } = parseJobResult(raw);
+        const { text: resultText, canvas, debate, agentName } = parseJobResult(raw);
         if (canvas && onCanvasResponse) {
           // Canvas response: show raw text in chat + open Canvas pane
           setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
@@ -160,7 +163,7 @@ export function useChat({
             is_complete: debate.is_complete,
           });
         } else {
-          setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
+          setMessages((prev) => [...prev, { role: 'ai', content: resultText, ...(agentName ? { senderName: agentName } : {}) }]);
         }
       };
 

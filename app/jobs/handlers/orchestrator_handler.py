@@ -35,6 +35,8 @@ class OrchestratorHandler(TaskHandler):
 
         # Read app_id from job payload; fall back to "superchat" for backward compat (D-08 REVISED)
         app_id: str = job.get("app_id", "superchat")
+        # gem_ids (multi-select) takes precedence; fall back to singular gem_id for backward compat
+        gem_ids: list[str] = job.get("gem_ids") or ([job["gem_id"]] if job.get("gem_id") else [])
         registry = SubAgentRegistry(AGENT_DIR, github_token)
         agents_filter: list[str] | None = job.get("agents")
         try:
@@ -45,6 +47,44 @@ class OrchestratorHandler(TaskHandler):
                     f"No agents found in AGENT_DIR={AGENT_DIR}. "
                     "Check that agents/ directory exists and contains AGENT.md files."
                 )
+
+            # gem_ids がある場合は各 GemSubAgent を registry に追加してマルチエージェントに参加させる
+            if gem_ids:
+                try:
+                    from app.orchestrator.gem_agent import GemSubAgent
+                    import psycopg
+
+                    github_login_for_gem: str = job.get("github_login", "unknown")
+                    async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
+                        async with conn.cursor() as cur:
+                            await cur.execute(
+                                """SELECT gem_id::text, name, system_prompt
+                                   FROM gems
+                                   WHERE gem_id = ANY(%s::uuid[])
+                                     AND (is_public = true OR github_login = %s)""",
+                                (gem_ids, github_login_for_gem),
+                            )
+                            rows = await cur.fetchall()
+
+                    for row in rows:
+                        _gid, gem_name, gem_system_prompt = row
+                        gem_agent = GemSubAgent(
+                            name=gem_name,
+                            system_prompt=gem_system_prompt or "",
+                            github_token=github_token,
+                        )
+                        registry.agents[gem_name] = gem_agent
+                        if agents_filter is None:
+                            agents_filter = [gem_name]
+                        elif gem_name not in agents_filter:
+                            agents_filter = [*agents_filter, gem_name]
+                        logger.info("OrchestratorHandler: injected GemSubAgent '%s'", gem_name)
+
+                    not_found = len(gem_ids) - len(rows)
+                    if not_found:
+                        logger.warning("OrchestratorHandler: %d gem_id(s) not found or not accessible", not_found)
+                except Exception as e:
+                    logger.warning("OrchestratorHandler: gem fetch failed: %s", e)
 
             # If no explicit agents_filter from UI chips, derive from APP.md agents list (D-08 REVISED)
             # This allows app-scoped agent filtering without requiring the frontend to pass chips
@@ -97,12 +137,20 @@ class OrchestratorHandler(TaskHandler):
                     "output": "",
                     "next": "",
                     "error": None,
+                    "agent_name": None,
                     "context": context,
                 }
                 result = await graph.ainvoke(initial, config=config)
             final_text = result["output"]
+            agent_name: str | None = result.get("agent_name")
 
-            await job_store.save_result(job_id, final_text)
+            import json as _json
+            if agent_name:
+                saved = _json.dumps({"type": "orchestrator_result", "content": final_text, "agent_name": agent_name})
+            else:
+                saved = final_text
+
+            await job_store.save_result(job_id, saved)
             await notifier.done()
 
         except Exception as e:
