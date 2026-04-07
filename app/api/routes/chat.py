@@ -302,8 +302,8 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
             raise HTTPException(status_code=404, detail="Thread not found")
     except HTTPException:
         raise
-    except Exception:
-        pass  # If DB check fails, proceed with delete (non-blocking ownership check)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable") from e
 
     checkpointer = request.app.state.checkpointer
     try:
