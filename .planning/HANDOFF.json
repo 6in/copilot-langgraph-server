@@ -1,44 +1,34 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-06T12:28:44.613Z",
-  "phase": "17",
-  "phase_name": "debate-chat",
-  "phase_dir": ".planning/phases/17-debate-chat",
-  "plan": 3,
-  "task": 3,
-  "total_tasks": 3,
+  "timestamp": "2026-04-07T01:21:07.578Z",
+  "phase": "16",
+  "phase_name": "Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ",
+  "phase_dir": ".planning/phases/16-canvas-app",
+  "plan": 4,
+  "task": 2,
+  "total_tasks": 2,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Wave 1: DebateGraph コア TDD 実装", "status": "done", "commit": "8f8cc5c"},
-    {"id": 2, "name": "Wave 2: DebateHandler + API 拡張", "status": "done", "commit": "f1ef4e3"},
-    {"id": 3, "name": "Wave 3 Task 1: DebateChatApp + useChat 拡張 + types", "status": "done", "commit": "e8f32e2"},
-    {"id": 4, "name": "Wave 3 Task 2: App.tsx + MenuScreen ナビゲーション統合", "status": "done", "commit": "6456374"},
-    {"id": 5, "name": "fix: debate turns streaming + chat history (3 bugs)", "status": "done", "commit": "e2b79b1"}
+    {"id": "16-01", "name": "バックエンド API 拡張（deployed フィルタ・Canvas Gem 自動登録・/api/canvas/gem）", "status": "done", "commit": "284c73f"},
+    {"id": "16-02", "name": "フロントエンド: CanvasChatApp + CanvasScreen + client.ts 拡張", "status": "done", "commit": "9ed6f12"},
+    {"id": "16-03", "name": "フロントエンド: MenuScreen Canvas カード + App.tsx ナビゲーション拡張", "status": "done", "commit": "fa74328"},
+    {"id": "16-04", "name": "E2E 検証チェックポイント + VERIFICATION.md", "status": "done", "commit": "5e7d6c8"}
   ],
-  "remaining_tasks": [
-    {"id": 6, "name": "Wave 3 Task 3: 討論チャット機能の手動検証 (approved 待ち)", "status": "awaiting_verification"}
-  ],
-  "blockers": [
-    {
-      "description": "討論チャットの動作検証が未完了 — コンテナは最新コードでビルド済み・起動中",
-      "type": "human_action",
-      "workaround": "ブラウザで /app → 討論チャットを実行して確認"
-    }
-  ],
+  "remaining_tasks": [],
+  "blockers": [],
   "human_actions_pending": [
     {
-      "action": "討論チャットの動作検証 — ターンがリアルタイム表示されること、スレッド切り替え後も履歴が復元されることを確認",
-      "context": "Plan 17-03 Task 3 のチェックポイント: 11ステップ検証後 approved と入力",
+      "action": "gsd/phase-16-canvas-app ブランチを main にマージする",
+      "context": "Phase 16 は全プラン完了・VERIFICATION.md 作成済み。28 ファイル・4581 行の変更がある。マージ前に /create-adr で振り返りを記録するか確認すること（CLAUDE.md の Merge Workflow ルール）。",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "astream ループで直接 turns を蓄積 (aget_state 廃止)", "rationale": "PostgreSQL チェックポインタからの逆シリアライズで AIMessage 型が失われる。astream の更新チャンクは in-memory なので型が保持される", "phase": "17"},
-    {"decision": "useChat.ts に streamedTurnCount 追跡を追加", "rationale": "SSE が切断されても done ハンドラで result.turns から残りターンを補完できるよう", "phase": "17"},
-    {"decision": "get_thread_messages に DebateState フォールバック追加", "rationale": "通常チャットグラフ (MessagesState) は DebateState チェックポイントを解釈できない。最小 StateGraph(DebateState) で同チェックポインタから読み直す", "phase": "17"},
-    {"decision": "コンテナが古いコード (dc591d1: ainvoke) でビルドされていたことが根本原因", "rationale": "その後の commit で astream/turns が追加されたがコンテナに反映されておらず、Redis に turns が書き込まれていなかった", "phase": "17"}
+    {"decision": "Wave 2 並列マージで CanvasChatApp.tsx / CanvasScreen.tsx が競合 → 16-02 正規実装を採用", "rationale": "16-02 が専用プランとして実装したため", "phase": "16"},
+    {"decision": "マージ後に 16-01 のバックエンド実装が消失 → 16-04 で復元", "rationale": "ワークツリーソフトリセット時に差分が混入したため", "phase": "16"},
+    {"decision": "Phase 17 (DebateChatApp) は main に既存マージ済みと判明 → ROADMAP/STATE に登録", "rationale": "ユーザーから完了済みと確認", "phase": "17"}
   ],
-  "uncommitted_files": [],
-  "next_action": "docker compose up --build -d 済み・起動中。ブラウザで /app にアクセスし討論チャットを実行。ターンがリアルタイムで名前ラベル付きバブルとして表示され、スレッド切り替え後も履歴が復元されることを確認。問題なければ approved と入力。",
-  "context_notes": "今セッションで3つのバグを修正してコミット (e2b79b1)。(1) debate_handler.py: astream ループで turns 直接蓄積 (2) useChat.ts: done ハンドラに streamedTurnCount フォールバック (3) chat.py: get_thread_messages に DebateState フォールバック。api は --reload で自動反映済み。worker は restart 済み。次は手動検証のみ。"
+  "uncommitted_files": ["static/apps/ (デプロイ済みアプリのサンプルディレクトリ — .gitignore 対象か確認が必要)"],
+  "next_action": "CLAUDE.md の Merge Workflow ルールに従い「/create-adr でこのブランチの振り返りを記録しますか？」を確認してからマージを実行する",
+  "context_notes": "Phase 16 は完全完了。Phase 17 も main 上で完了済み。ROADMAP/STATE はどちらも最新化済み。2 件の Todo（デプロイ URL プレフィックス、チャット復元時 HTML プレビュー）を追加した。"
 }
