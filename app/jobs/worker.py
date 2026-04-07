@@ -64,6 +64,7 @@ async def process_chat(
     agents: list[str] | None = None,
     github_login: str = "unknown",
     app_id: str | None = None,
+    gem_id: str | None = None,
     gem_ids: list[str] | None = None,
     # Phase 17: 討論チャット
     participants: list[str] | None = None,
@@ -97,6 +98,7 @@ async def process_chat(
         "agents": agents,
         "github_login": github_login,
         "app_id": app_id,
+        "gem_id": gem_id,
         "gem_ids": gem_ids,
         # Phase 17
         "participants": participants,
