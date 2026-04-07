@@ -249,7 +249,8 @@ async def deploy_app(
         )
         await conn.commit()
 
-    return CanvasDeployResponse(url=f"/apps/{row['app_id']}/")
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    return CanvasDeployResponse(url=f"{root_path}/apps/{row['app_id']}/")
 
 
 @router.get("/apps/{app_id}/source")

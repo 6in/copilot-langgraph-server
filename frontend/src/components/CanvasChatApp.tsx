@@ -3,7 +3,7 @@
 // 左右分割レイアウト: ThreadSidebar + sidebar drag handle + MessageArea + canvas drag handle + CanvasPane
 // GemChatApp.tsx を参照実装として、CanvasPane 常時表示（D-01〜D-04, D-14, D-15, D-17）を追加。
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
@@ -67,7 +67,16 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   const canvasDragStartWidth = useRef<number>(CANVAS_PANE_DEFAULT);
 
   // Canvas 状態管理
-  const { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas } = useCanvas();
+  const { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, loadCanvasForThread } = useCanvas();
+
+  // スレッド切り替え時に最新の canvas app を復元（Todo #2）
+  useEffect(() => {
+    if (!activeThreadId) {
+      setCanvasApp(null);
+      return;
+    }
+    loadCanvasForThread(activeThreadId);
+  }, [activeThreadId, loadCanvasForThread, setCanvasApp]);
 
   const handleNewChat = async () => {
     await createNewThread();

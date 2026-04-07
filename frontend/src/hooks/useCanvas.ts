@@ -2,7 +2,7 @@
 // Canvas app state management hook.
 
 import { useCallback, useState } from 'react';
-import { updateCanvasApp, deployCanvasApp } from '../api/client';
+import { updateCanvasApp, deployCanvasApp, getCanvasAppByThread } from '../api/client';
 import type { CanvasAppInfo } from '../types';
 
 interface UseCanvasReturn {
@@ -15,6 +15,7 @@ interface UseCanvasReturn {
   saveCanvas: (appId: string, html: string) => Promise<void>;
   deployCanvas: (appId: string) => Promise<string>;
   dismissCanvas: () => void;
+  loadCanvasForThread: (threadId: string) => Promise<void>;
 }
 
 export function useCanvas(): UseCanvasReturn {
@@ -58,5 +59,16 @@ export function useCanvas(): UseCanvasReturn {
     setDeployError(null);
   }, []);
 
-  return { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, dismissCanvas };
+  const loadCanvasForThread = useCallback(async (threadId: string) => {
+    setDeployUrl(null);
+    setDeployError(null);
+    try {
+      const apps = await getCanvasAppByThread(threadId);
+      setCanvasApp(apps.length > 0 ? apps[0] : null);
+    } catch {
+      setCanvasApp(null);
+    }
+  }, []);
+
+  return { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, dismissCanvas, loadCanvasForThread };
 }
