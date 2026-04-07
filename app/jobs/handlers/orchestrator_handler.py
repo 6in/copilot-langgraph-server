@@ -35,7 +35,8 @@ class OrchestratorHandler(TaskHandler):
 
         # Read app_id from job payload; fall back to "superchat" for backward compat (D-08 REVISED)
         app_id: str = job.get("app_id", "superchat")
-        gem_id: str | None = job.get("gem_id")
+        # gem_ids (multi-select) takes precedence; fall back to singular gem_id for backward compat
+        gem_ids: list[str] = job.get("gem_ids") or ([job["gem_id"]] if job.get("gem_id") else [])
         registry = SubAgentRegistry(AGENT_DIR, github_token)
         agents_filter: list[str] | None = job.get("agents")
         try:
@@ -47,40 +48,41 @@ class OrchestratorHandler(TaskHandler):
                     "Check that agents/ directory exists and contains AGENT.md files."
                 )
 
-            # gem_id がある場合は GemSubAgent を registry に追加してマルチエージェントに参加させる
-            if gem_id:
+            # gem_ids がある場合は各 GemSubAgent を registry に追加してマルチエージェントに参加させる
+            if gem_ids:
                 try:
                     from app.orchestrator.gem_agent import GemSubAgent
                     import psycopg
 
+                    github_login_for_gem: str = job.get("github_login", "unknown")
                     async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
                         async with conn.cursor() as cur:
-                            github_login_for_gem: str = job.get("github_login", "unknown")
                             await cur.execute(
-                                """SELECT name, system_prompt
+                                """SELECT gem_id::text, name, system_prompt
                                    FROM gems
-                                   WHERE gem_id = %s::uuid
+                                   WHERE gem_id = ANY(%s::uuid[])
                                      AND (is_public = true OR github_login = %s)""",
-                                (gem_id, github_login_for_gem),
+                                (gem_ids, github_login_for_gem),
                             )
-                            row = await cur.fetchone()
+                            rows = await cur.fetchall()
 
-                    if row:
-                        gem_name, gem_system_prompt = row
+                    for row in rows:
+                        _gid, gem_name, gem_system_prompt = row
                         gem_agent = GemSubAgent(
                             name=gem_name,
                             system_prompt=gem_system_prompt or "",
                             github_token=github_token,
                         )
                         registry.agents[gem_name] = gem_agent
-                        # agents_filter に GEM 名を追加してオーケストレーターが routing 対象に含める
                         if agents_filter is None:
                             agents_filter = [gem_name]
                         elif gem_name not in agents_filter:
                             agents_filter = [*agents_filter, gem_name]
                         logger.info("OrchestratorHandler: injected GemSubAgent '%s'", gem_name)
-                    else:
-                        logger.warning("OrchestratorHandler: gem_id=%s not found or not accessible", gem_id)
+
+                    not_found = len(gem_ids) - len(rows)
+                    if not_found:
+                        logger.warning("OrchestratorHandler: %d gem_id(s) not found or not accessible", not_found)
                 except Exception as e:
                     logger.warning("OrchestratorHandler: gem fetch failed: %s", e)
 

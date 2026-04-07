@@ -145,7 +145,12 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     (name) => filteredAgents.some((a) => a.name === name)
   );
 
-  const [selectedGemId, setSelectedGemId] = useState<string | null>(null);
+  const [selectedGemIds, setSelectedGemIds] = useState<string[]>([]);
+  const handleToggleGem = (gemId: string) => {
+    setSelectedGemIds((prev) =>
+      prev.includes(gemId) ? prev.filter((id) => id !== gemId) : [...prev, gemId]
+    );
+  };
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
@@ -170,7 +175,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     selectedMode: 'super',
     agents: visibleSelectedAgents,
     appId: appId || undefined,
-    gemId: selectedGemId,
+    gemIds: selectedGemIds,
     onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
@@ -261,8 +266,8 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
             isDark={isDark}
           />
           <GemSelector
-            selectedGemId={selectedGemId}
-            onSelectGem={setSelectedGemId}
+            selectedGemIds={selectedGemIds}
+            onToggleGem={handleToggleGem}
           />
 
           {isLoadingMessages ? (
