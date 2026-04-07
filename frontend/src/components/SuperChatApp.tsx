@@ -16,6 +16,7 @@ import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
 import { useCanvas } from '../hooks/useCanvas';
 import { useCurrentTheme } from '../contexts/ThemeContext';
+import { agentAccentColor } from '../utils/agentColor';
 import { renameThread } from '../api/client';
 import type { AgentInfo, CanvasAppInfo } from '../types';
 
@@ -38,7 +39,7 @@ interface AgentChipProps {
 }
 
 function AgentChip({ agent, selected, onToggle, isDark }: AgentChipProps) {
-  const accentColor = isDark ? '#7c6ff7' : '#0366d6';
+  const accentColor = agentAccentColor(agent.name);
   return (
     <button
       onClick={() => onToggle(agent.name)}
