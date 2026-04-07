@@ -18,6 +18,17 @@ export default defineConfig({
             '',
           ),
       },
+      // Proxy deployed canvas apps (static files served by FastAPI at /apps/).
+      // Strips VITE_APP_BASE prefix to match FastAPI's mount at /apps/.
+      [`${process.env.VITE_APP_BASE ?? ''}/apps`]: {
+        target: process.env.API_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(
+            new RegExp('^' + (process.env.VITE_APP_BASE ?? '')),
+            '',
+          ),
+      },
     },
   },
 });

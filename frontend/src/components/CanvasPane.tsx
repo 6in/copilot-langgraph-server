@@ -4,6 +4,8 @@
 // Security: iframe sandbox="allow-scripts allow-forms" only — NO allow-same-origin (XSS prevention, T-15-08).
 
 import { useState, useEffect } from 'react';
+import Editor from '@monaco-editor/react';
+import { useCurrentTheme } from '../contexts/ThemeContext';
 import type { CanvasAppInfo } from '../types';
 
 interface CanvasPaneProps {
@@ -29,8 +31,14 @@ export function CanvasPane({
   onDeploy,
   onClose,
 }: CanvasPaneProps) {
+  const theme = useCurrentTheme();
+  const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
+
   const [activeTab, setActiveTab] = useState<TabId>('editor');
   const [htmlContent, setHtmlContent] = useState(canvasApp.html);
+
+  // VITE_APP_BASE is baked in at build time (e.g. '/orochi'); strip trailing slash.
+  const appBase = (import.meta.env.VITE_APP_BASE as string ?? '').replace(/\/$/, '');
 
   // Sync htmlContent when canvasApp.html changes (e.g. after save)
   useEffect(() => {
@@ -164,7 +172,7 @@ export function CanvasPane({
           {deployUrl && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <a
-                href={deployUrl}
+                href={appBase + deployUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ fontSize: '0.75rem', color: '#666666' }}
@@ -172,7 +180,7 @@ export function CanvasPane({
                 Open app
               </a>
               <button
-                onClick={() => navigator.clipboard.writeText(window.location.origin + deployUrl)}
+                onClick={() => navigator.clipboard.writeText(window.location.origin + appBase + deployUrl)}
                 style={{
                   background: 'none',
                   border: '1px solid #d1dbe3',
@@ -239,25 +247,26 @@ export function CanvasPane({
           overflow: 'hidden',
         }}
       >
-        <textarea
-          value={htmlContent}
-          onChange={(e) => setHtmlContent(e.target.value)}
-          style={{
-            fontFamily: "'Courier New', Courier, monospace",
-            fontSize: '13px',
-            resize: 'none',
-            width: '100%',
-            flex: 1,
-            border: 'none',
-            outline: 'none',
-            padding: '12px',
-            boxSizing: 'border-box',
-            lineHeight: 1.5,
-            color: '#333333',
-            background: '#ffffff',
-          }}
-          spellCheck={false}
-        />
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+          <Editor
+            height="100%"
+            width="100%"
+            language="html"
+            value={htmlContent}
+            theme={monacoTheme}
+            onChange={(val) => setHtmlContent(val ?? '')}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              fontSize: 13,
+              lineNumbers: 'on',
+              folding: true,
+              padding: { top: 8, bottom: 8 },
+              automaticLayout: true,
+            }}
+          />
+        </div>
         <div
           style={{
             padding: '8px 12px',

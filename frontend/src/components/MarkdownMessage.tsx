@@ -168,13 +168,76 @@ const CodeBlock = memo(function CodeBlock({ language, value, monacoTheme }: Code
   );
 });
 
+// Collapsible HTML block for canvas responses (canvashtml language tag).
+// Starts collapsed to avoid cluttering the chat with large HTML payloads.
+const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
+  value,
+  monacoTheme,
+}: {
+  value: string;
+  monacoTheme: 'vs' | 'vs-dark';
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const lineCount = value.split('\n').length;
+  const editorHeight = Math.min(Math.max(lineCount, 3), 30) * 19 + 16;
+  const borderColor = monacoTheme === 'vs-dark' ? '#3c3c3c' : '#e1e4e8';
+  const headerBg = monacoTheme === 'vs-dark' ? '#1e1e1e' : '#f6f8fa';
+  const headerColor = monacoTheme === 'vs-dark' ? '#858585' : '#57606a';
+
+  return (
+    <div style={{ border: `1px solid ${borderColor}`, borderRadius: '6px', margin: '8px 0', overflow: 'hidden', width: '100%', minWidth: 0 }}>
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        style={{
+          display: 'flex',
+          width: '100%',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '4px 12px',
+          background: headerBg,
+          border: 'none',
+          borderBottom: expanded ? `1px solid ${borderColor}` : 'none',
+          cursor: 'pointer',
+          fontSize: '12px',
+          color: headerColor,
+        }}
+      >
+        <span>{expanded ? '▼' : '▶'} HTML ({lineCount}行)</span>
+        <span>{expanded ? '折りたたむ' : '展開する'}</span>
+      </button>
+      {expanded && (
+        <Editor
+          height={editorHeight}
+          width="100%"
+          language="html"
+          value={value}
+          theme={monacoTheme}
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            lineNumbers: 'on',
+            folding: true,
+            renderLineHighlight: 'none',
+            scrollbar: { vertical: lineCount > 30 ? 'auto' : 'hidden', horizontal: 'auto', alwaysConsumeMouseWheel: false },
+            contextmenu: false,
+            fontSize: 13,
+            padding: { top: 8, bottom: 8 },
+          }}
+        />
+      )}
+    </div>
+  );
+});
+
 export const MarkdownMessage = memo(function MarkdownMessage({ content }: MarkdownMessageProps) {
   const theme = useCurrentTheme();
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
 
   const components = useMemo(() => ({
     pre({ children }: { children?: React.ReactNode }) {
-      return <div>{children}</div>;
+      return <div style={{ width: '100%', minWidth: 0 }}>{children}</div>;
     },
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
             const match = /language-(\w+)/.exec(className || '');
@@ -183,6 +246,12 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
             if (isBlock) {
               const language = normalizeLanguage(match ? match[1] : '');
               const value = String(children).replace(/\n$/, '');
+
+              // canvashtml: canvas AI response — collapsible, read-only HTML block
+              if (language === 'canvashtml') {
+                return <CollapsibleCodeBlock value={value} monacoTheme={monacoTheme} />;
+              }
+
               return (
                 <CodeBlock
                   language={language}

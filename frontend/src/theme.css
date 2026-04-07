@@ -35,6 +35,12 @@
   box-sizing: border-box;
 }
 
+/* pre elements inside incoming messages must also stretch so CollapsibleCodeBlock fills the bubble */
+.cs-message--incoming pre {
+  width: 100%;
+  max-width: 100%;
+}
+
 /* ============================================================
    DARK MODE — chatscope container overrides
    (verify class names on @chatscope upgrade)

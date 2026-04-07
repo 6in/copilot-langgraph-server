@@ -51,7 +51,12 @@ function parseJobResult(raw: string): { text: string; canvas: CanvasResult | nul
   try {
     const parsed = JSON.parse(raw);
     if (parsed && parsed.type === 'canvas') {
-      return { text: raw, canvas: parsed as CanvasResult, debate: null };
+      const c = parsed as CanvasResult;
+      const name = c.name ?? 'HTMLアプリ';
+      const html = c.html ?? '';
+      // canvashtml: custom language tag → CollapsibleCodeBlock in MarkdownMessage
+      const text = `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\``;
+      return { text, canvas: c, debate: null };
     }
     if (parsed && parsed.type === 'debate_result') {
       return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult };

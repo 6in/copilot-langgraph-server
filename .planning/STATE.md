@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Phase 17 UI-SPEC approved
-last_updated: "2026-04-06T08:44:54.194Z"
-last_activity: 2026-04-06
+milestone: v3.0
+milestone_name: Agent Platform Phases
+status: idle
+stopped_at: Phase 17 complete (DebateChatApp merged to main)
+last_updated: "2026-04-07T00:00:00.000Z"
+last_activity: 2026-04-07
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 0
-  percent: 0
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 42
+  completed_plans: 42
+  percent: 100
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 17 — debate-chat
+**Current focus:** Phase 17 完了 — DebateChatApp (マルチエージェント討論チャット) — main にマージ済み
 
 ## Current Position
 
-Phase: 17 (debate-chat) — EXECUTING
-Plan: 1 of 3
+Phase: 17 (DebateChatApp — マルチエージェント討論チャット) — COMPLETE
+Plan: 3 of 3
 Milestone: v3.0 COMPLETE (2026-04-06)
 Next: v4.0 — Phase 17 (DebateChatApp) — 未着手
-Status: Executing Phase 17
+Status: Executing Phase 16
 
 Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
@@ -200,6 +200,7 @@ Recent decisions affecting current work:
 - v3.0 roadmap created (2026-04-04): Phases 11–14 — RPCContext, Hybrid Registry + Tool Quality, Scalable Routing, Application Packages
 - Phase 15 added: 現在の仕様をベースに gem/canvas 機能を実装する
 - Phase 15.1 inserted after Phase 15: Gem + Canvas 後処理 — デプロイフロー改善・Gem UX 強化 (URGENT)
+- Phase 16 added: Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ（Gem の Canvas モードとは分離した独立アプリ）
 
 ### Pending Todos
 
@@ -239,7 +240,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-06
-Last session: 2026-04-06T08:16:22.185Z
-Stopped at: Phase 17 UI-SPEC approved
-Resume file: .planning/phases/17-debate-chat/17-UI-SPEC.md
+Last activity: 2026-04-07
+Last session: 2026-04-06T22:31:22.686Z
+Stopped at: Phase 16 UI-SPEC approved
+Resume file: .planning/phases/16-canvas-app/16-UI-SPEC.md

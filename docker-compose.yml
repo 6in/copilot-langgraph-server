@@ -72,6 +72,7 @@ services:
       - /app/node_modules    # anonymous volume preserves container's node_modules
     environment:
       - API_TARGET=http://api:8000
+      - VITE_APP_BASE=${VITE_APP_BASE:-}
     depends_on:
       - api
 
