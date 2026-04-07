@@ -68,43 +68,45 @@ function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAp
       <div style={{ fontSize: '1rem', fontWeight: 600, color: textColor, marginBottom: '8px' }}>
         {app.name}
       </div>
-      {app.deployed && (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
         <button
           style={{
-            display: 'block',
-            fontSize: '0.875rem',
-            color: '#7c6ff7',
-            marginBottom: '16px',
-            background: 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
             border: 'none',
-            padding: 0,
+            background: '#7c6ff7',
+            color: '#ffffff',
             cursor: 'pointer',
-            textDecoration: 'underline',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            minHeight: '48px',
           }}
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(`${appBase}/apps/${app.app_id}/`, '_blank', 'noopener,noreferrer');
-          }}
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
         >
-          Open App ↗
+          チャットを開く
         </button>
-      )}
-      <button
-        style={{
-          padding: '8px 16px',
-          borderRadius: '4px',
-          border: 'none',
-          background: '#7c6ff7',
-          color: '#ffffff',
-          cursor: 'pointer',
-          fontSize: '0.875rem',
-          fontWeight: 600,
-          minHeight: '48px',
-        }}
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
-      >
-        チャットを開く
-      </button>
+        {app.deployed && (
+          <button
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: '1px solid #7c6ff7',
+              background: '#ffffff',
+              color: '#7c6ff7',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              minHeight: '48px',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`${appBase}/apps/${app.app_id}/`, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            アプリを開く ↗
+          </button>
+        )}
+      </div>
     </div>
   );
 }
