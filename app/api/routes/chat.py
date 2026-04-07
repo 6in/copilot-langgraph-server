@@ -23,7 +23,7 @@ from langchain_core.messages import HumanMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
-from app.auth.jwt_utils import decode_jwt, decrypt_github_token
+from app.auth.jwt_utils import decode_jwt, decrypt_github_token, async_is_blocked
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -32,6 +32,7 @@ async def get_jwt_payload(request: Request) -> dict:
     """FastAPI dependency: decode JWT session cookie and return the full payload dict.
 
     Use this when you need JWT claims (e.g. github_login) without decrypting the token.
+    Checks the Redis blocklist (shared with arq worker) for revoked JTIs.
 
     Raises HTTPException 401 with detail:
     - "auth_required" if no session cookie is present
@@ -42,7 +43,14 @@ async def get_jwt_payload(request: Request) -> dict:
     if not session_cookie:
         raise HTTPException(status_code=401, detail="auth_required")
     try:
-        return decode_jwt(session_cookie)
+        payload = decode_jwt(session_cookie)
+        # Check Redis blocklist (survives restarts and is shared with arq worker)
+        jti = payload.get("jti", "")
+        if jti:
+            redis = getattr(request.app.state, "redis_client", None)
+            if redis and await async_is_blocked(jti, redis):
+                raise jwt.InvalidTokenError("Token revoked")
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="auth_expired")
     except jwt.InvalidTokenError:
@@ -137,7 +145,7 @@ async def send_message(
 
 
 @router.get("/chat/{job_id}/stream")
-async def stream_job(job_id: str, request: Request):
+async def stream_job(job_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """SSE endpoint for real-time job completion notification (ASYNC-04, ASYNC-06).
 
     1. Check if job already done (reload/reconnect case) — return immediate done event
@@ -302,8 +310,8 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
             raise HTTPException(status_code=404, detail="Thread not found")
     except HTTPException:
         raise
-    except Exception:
-        pass  # If DB check fails, proceed with delete (non-blocking ownership check)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable") from e
 
     checkpointer = request.app.state.checkpointer
     try:
@@ -324,13 +332,16 @@ async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Requ
     if not label:
         raise HTTPException(status_code=422, detail="label must not be empty")
 
+    github_login = payload.get("github_login", "")
     db_uri = request.app.state.db_uri
     async with await psycopg.AsyncConnection.connect(db_uri) as conn:
-        await conn.execute(
-            "UPDATE threads SET label = %s, updated_at = now() WHERE thread_id = %s",
-            (label, thread_id),
+        result = await conn.execute(
+            "UPDATE threads SET label = %s, updated_at = now() WHERE thread_id = %s AND github_login = %s",
+            (label, thread_id, github_login),
         )
         await conn.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Thread not found")
 
     return {"thread_id": thread_id, "label": label}
 

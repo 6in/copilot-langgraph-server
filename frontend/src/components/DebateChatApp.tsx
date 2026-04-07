@@ -578,6 +578,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
   };
 
   const handleExtend = () => {
+    if (!activeThreadId) return; // 延長は既存スレッドが必須
     const newMaxTurns = currentTurn + extensionTurns;
     setDynamicMaxTurns(newMaxTurns);
     setDynamicCurrentTurn(currentTurn);

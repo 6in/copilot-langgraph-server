@@ -83,13 +83,12 @@ class DebateHandler(TaskHandler):
 
                     async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
                         async with conn.cursor() as cur:
-                            placeholders = ", ".join(["%s"] * len(gem_ids))
                             await cur.execute(
-                                f"""SELECT gem_id, name, system_prompt
-                                    FROM gems
-                                    WHERE gem_id IN ({placeholders})
-                                      AND (is_public = true OR github_login = %s)""",
-                                (*gem_ids, github_login),
+                                """SELECT gem_id::text, name, system_prompt
+                                   FROM gems
+                                   WHERE gem_id = ANY(%s::uuid[])
+                                     AND (is_public = true OR github_login = %s)""",
+                                (gem_ids, github_login),
                             )
                             gem_rows = await cur.fetchall()
 

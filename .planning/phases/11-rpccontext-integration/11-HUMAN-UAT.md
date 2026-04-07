@@ -1,9 +1,10 @@
 ---
-status: partial
+status: closed
 phase: 11-rpccontext-integration
 source: [11-VERIFICATION.md]
 started: 2026-04-04T06:15:00.000Z
-updated: 2026-04-04T06:15:00.000Z
+updated: 2026-04-08T00:00:00Z
+closed_reason: not tested — superseded by later phases
 ---
 
 ## Current Test

@@ -71,6 +71,8 @@ def _load_code_agent(agent_dir: Path, github_token: str) -> "SubAgent":
         f"agent_{agent_dir.name}",
         agent_dir / "agent.py",
     )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot create module spec for {agent_dir / 'agent.py'}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     agent_cls = module.SubAgent

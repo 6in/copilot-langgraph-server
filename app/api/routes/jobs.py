@@ -3,15 +3,16 @@
 GET /api/job/{job_id} — returns job status from JobStore.
 Used by frontend for polling fallback and SSE done-signal result fetch.
 """
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
 from app.api.models import JobStatusResponse
+from app.api.routes.chat import get_jwt_payload
 
 router = APIRouter(prefix="/api", tags=["jobs"])
 
 
 @router.get("/job/{job_id}", response_model=JobStatusResponse)
-async def get_job(job_id: str, request: Request):
+async def get_job(job_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Return job status. pending if not yet complete, done with result if complete."""
     job_store = request.app.state.job_store
     job = await job_store.get(job_id)
