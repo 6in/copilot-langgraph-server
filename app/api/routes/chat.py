@@ -104,6 +104,7 @@ async def send_message(
         agents=body.agents,
         github_login=github_login,
         app_id=app_id,
+        gem_id=body.gem_id,
         gem_ids=body.gem_ids,
         # Phase 17: 討論チャット
         participants=body.participants,

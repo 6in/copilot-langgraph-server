@@ -35,6 +35,7 @@ class OrchestratorHandler(TaskHandler):
 
         # Read app_id from job payload; fall back to "superchat" for backward compat (D-08 REVISED)
         app_id: str = job.get("app_id", "superchat")
+        gem_id: str | None = job.get("gem_id")
         registry = SubAgentRegistry(AGENT_DIR, github_token)
         agents_filter: list[str] | None = job.get("agents")
         try:
@@ -45,6 +46,43 @@ class OrchestratorHandler(TaskHandler):
                     f"No agents found in AGENT_DIR={AGENT_DIR}. "
                     "Check that agents/ directory exists and contains AGENT.md files."
                 )
+
+            # gem_id がある場合は GemSubAgent を registry に追加してマルチエージェントに参加させる
+            if gem_id:
+                try:
+                    from app.orchestrator.gem_agent import GemSubAgent
+                    import psycopg
+
+                    async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
+                        async with conn.cursor() as cur:
+                            github_login_for_gem: str = job.get("github_login", "unknown")
+                            await cur.execute(
+                                """SELECT name, system_prompt
+                                   FROM gems
+                                   WHERE gem_id = %s::uuid
+                                     AND (is_public = true OR github_login = %s)""",
+                                (gem_id, github_login_for_gem),
+                            )
+                            row = await cur.fetchone()
+
+                    if row:
+                        gem_name, gem_system_prompt = row
+                        gem_agent = GemSubAgent(
+                            name=gem_name,
+                            system_prompt=gem_system_prompt or "",
+                            github_token=github_token,
+                        )
+                        registry.agents[gem_name] = gem_agent
+                        # agents_filter に GEM 名を追加してオーケストレーターが routing 対象に含める
+                        if agents_filter is None:
+                            agents_filter = [gem_name]
+                        elif gem_name not in agents_filter:
+                            agents_filter = [*agents_filter, gem_name]
+                        logger.info("OrchestratorHandler: injected GemSubAgent '%s'", gem_name)
+                    else:
+                        logger.warning("OrchestratorHandler: gem_id=%s not found or not accessible", gem_id)
+                except Exception as e:
+                    logger.warning("OrchestratorHandler: gem fetch failed: %s", e)
 
             # If no explicit agents_filter from UI chips, derive from APP.md agents list (D-08 REVISED)
             # This allows app-scoped agent filtering without requiring the frontend to pass chips
