@@ -14,7 +14,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 
 from app.api.models import AuthLogoutResponse, AuthPollResponse, AuthStartResponse, AuthStatusResponse
-from app.auth.jwt_utils import add_to_blocklist, create_jwt, decode_jwt
+from app.auth.jwt_utils import add_to_blocklist, async_add_to_blocklist, create_jwt, decode_jwt
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -110,9 +110,11 @@ async def poll_auth(request: Request, flow_id: str = Query(...)):
 
 @router.post("/logout")
 async def logout(request: Request):
-    """Log out by revoking the JWT session cookie via in-memory blocklist.
+    """Log out by revoking the JWT session cookie via Redis blocklist.
 
-    Reads JWT from session cookie, extracts JTI, adds to blocklist.
+    Reads JWT from session cookie, extracts JTI, adds to Redis blocklist
+    (shared across FastAPI processes and arq worker, persists across restarts).
+    Falls back to in-memory blocklist if Redis is unavailable.
     Deletes the session cookie via Set-Cookie response header.
 
     Does NOT call auth_manager.logout() — token.enc is for CLI use only,
@@ -126,7 +128,11 @@ async def logout(request: Request):
             payload = decode_jwt(session_cookie)
             jti = payload.get("jti", "")
             if jti:
-                add_to_blocklist(jti)
+                redis = getattr(request.app.state, "redis_client", None)
+                if redis:
+                    await async_add_to_blocklist(jti, redis)
+                else:
+                    add_to_blocklist(jti)
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             # Token already invalid — blocklist not needed, proceed with cookie deletion
             pass

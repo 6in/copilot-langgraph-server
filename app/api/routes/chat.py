@@ -23,7 +23,7 @@ from langchain_core.messages import HumanMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
-from app.auth.jwt_utils import decode_jwt, decrypt_github_token
+from app.auth.jwt_utils import decode_jwt, decrypt_github_token, async_is_blocked
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -32,6 +32,7 @@ async def get_jwt_payload(request: Request) -> dict:
     """FastAPI dependency: decode JWT session cookie and return the full payload dict.
 
     Use this when you need JWT claims (e.g. github_login) without decrypting the token.
+    Checks the Redis blocklist (shared with arq worker) for revoked JTIs.
 
     Raises HTTPException 401 with detail:
     - "auth_required" if no session cookie is present
@@ -42,7 +43,14 @@ async def get_jwt_payload(request: Request) -> dict:
     if not session_cookie:
         raise HTTPException(status_code=401, detail="auth_required")
     try:
-        return decode_jwt(session_cookie)
+        payload = decode_jwt(session_cookie)
+        # Check Redis blocklist (survives restarts and is shared with arq worker)
+        jti = payload.get("jti", "")
+        if jti:
+            redis = getattr(request.app.state, "redis_client", None)
+            if redis and await async_is_blocked(jti, redis):
+                raise jwt.InvalidTokenError("Token revoked")
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="auth_expired")
     except jwt.InvalidTokenError:

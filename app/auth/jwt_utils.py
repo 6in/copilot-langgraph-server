@@ -3,12 +3,13 @@
 Provides:
 - JWT creation and validation (PyJWT, HS256)
 - Fernet encryption/decryption for GitHub tokens embedded in JWT payloads
-- In-memory logout blocklist (clears on server restart — acceptable for personal tool)
+- Redis-backed logout blocklist (shared across FastAPI and arq worker processes)
 
 Exports:
     create_jwt, decode_jwt,
     encrypt_github_token, decrypt_github_token,
-    add_to_blocklist, is_blocked
+    add_to_blocklist, is_blocked,
+    async_add_to_blocklist, async_is_blocked
 """
 
 from __future__ import annotations
@@ -22,23 +23,58 @@ import jwt
 from cryptography.fernet import Fernet
 
 # ---------------------------------------------------------------------------
-# In-memory logout blocklist
+# Logout blocklist — Redis-backed (shared across processes and restarts)
 # ---------------------------------------------------------------------------
-# Stores JTI strings of revoked JWTs.
-# NOTE: This set is in-memory only — it clears on server restart.
-# Active JWTs issued before restart continue to work until expiry.
-# Acceptable trade-off for a personal tool with no Redis dependency.
+# JTI revocation is stored in Redis with a TTL matching the JWT expiry (24h).
+# Falls back to an in-memory set when Redis is not available (e.g. unit tests).
 _blocklist: set[str] = set()
+
+_BLOCKLIST_KEY_PREFIX = "jwt_blocklist:"
+_BLOCKLIST_TTL_SECONDS = 86400  # 24 hours — matches default JWT expiry
 
 
 def add_to_blocklist(jti: str) -> None:
-    """Add a JWT ID to the revocation blocklist."""
+    """Add a JWT ID to the in-memory revocation blocklist (legacy sync path).
+
+    Prefer async_add_to_blocklist when a Redis client is available.
+    """
     _blocklist.add(jti)
 
 
 def is_blocked(jti: str) -> bool:
-    """Return True if the JTI has been revoked via logout."""
+    """Return True if the JTI has been revoked via the in-memory blocklist.
+
+    Only checked when no Redis client is provided. Prefer async_is_blocked.
+    """
     return jti in _blocklist
+
+
+async def async_add_to_blocklist(jti: str, redis) -> None:  # type: ignore[type-arg]
+    """Revoke a JWT by adding its JTI to the Redis blocklist.
+
+    Sets a key with 24h TTL so the entry auto-expires after the JWT would
+    have expired anyway. Falls back to the in-memory set if Redis raises.
+    """
+    try:
+        await redis.set(
+            f"{_BLOCKLIST_KEY_PREFIX}{jti}",
+            "1",
+            ex=_BLOCKLIST_TTL_SECONDS,
+        )
+    except Exception:
+        # Redis unavailable — fall back to in-memory blocklist
+        _blocklist.add(jti)
+
+
+async def async_is_blocked(jti: str, redis) -> bool:  # type: ignore[type-arg]
+    """Return True if the JTI has been revoked in Redis.
+
+    Falls back to the in-memory blocklist if Redis raises.
+    """
+    try:
+        return bool(await redis.get(f"{_BLOCKLIST_KEY_PREFIX}{jti}"))
+    except Exception:
+        return jti in _blocklist
 
 
 # ---------------------------------------------------------------------------
