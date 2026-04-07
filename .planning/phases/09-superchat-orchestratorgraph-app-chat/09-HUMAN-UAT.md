@@ -1,9 +1,10 @@
 ---
-status: partial
+status: closed
 phase: 09-superchat-orchestratorgraph-app-chat
 source: [09-VERIFICATION.md]
 started: 2026-04-04T00:00:00Z
-updated: 2026-04-04T00:00:00Z
+updated: 2026-04-08T00:00:00Z
+closed_reason: not tested — superseded by later phases
 ---
 
 ## Current Test
