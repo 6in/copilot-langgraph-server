@@ -10,6 +10,23 @@
 
 import { useRef, useState, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
+
+// Deterministic pastel background color per agent name (for debugging / UX clarity)
+const AGENT_COLORS = [
+  '#eef3ff', // blue-tinted
+  '#f0faf0', // green-tinted
+  '#fff8ee', // orange-tinted
+  '#f8f0ff', // purple-tinted
+  '#fff0f5', // pink-tinted
+  '#f0fffe', // teal-tinted
+  '#fffbee', // yellow-tinted
+  '#f5f0ff', // violet-tinted
+];
+function agentColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return AGENT_COLORS[hash % AGENT_COLORS.length];
+}
 import {
   MessageList,
   Message,
@@ -178,20 +195,27 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
                 position: 'single',
                 type: 'custom',
               }}
-            >
+              >
               <Message.CustomContent>
-                {msg.senderName && (
-                  <div style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: '#7c6ff7',
-                    marginBottom: '4px',
-                    letterSpacing: '0.02em',
-                  }}>
-                    {msg.senderName}
-                  </div>
-                )}
-                <MarkdownMessage content={msg.content} />
+                <div style={msg.senderName ? {
+                  background: agentColor(msg.senderName),
+                  margin: '-8px -12px',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                } : undefined}>
+                  {msg.senderName && (
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#555',
+                      marginBottom: '4px',
+                      letterSpacing: '0.02em',
+                    }}>
+                      {msg.senderName}
+                    </div>
+                  )}
+                  <MarkdownMessage content={msg.content} />
+                </div>
               </Message.CustomContent>
               <Message.Footer>
                 <CopyButton text={msg.content} />

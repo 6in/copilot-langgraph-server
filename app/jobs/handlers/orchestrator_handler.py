@@ -137,12 +137,20 @@ class OrchestratorHandler(TaskHandler):
                     "output": "",
                     "next": "",
                     "error": None,
+                    "agent_name": None,
                     "context": context,
                 }
                 result = await graph.ainvoke(initial, config=config)
             final_text = result["output"]
+            agent_name: str | None = result.get("agent_name")
 
-            await job_store.save_result(job_id, final_text)
+            import json as _json
+            if agent_name:
+                saved = _json.dumps({"type": "orchestrator_result", "content": final_text, "agent_name": agent_name})
+            else:
+                saved = final_text
+
+            await job_store.save_result(job_id, saved)
             await notifier.done()
 
         except Exception as e:
