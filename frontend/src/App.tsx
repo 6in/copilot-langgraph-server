@@ -1,12 +1,13 @@
 // frontend/src/App.tsx
 // Root component: AuthProvider + auth gate.
 // AuthPanel shown when unauthenticated/expired.
-// 7-screen navigation: menu | superchat | gems | gemchat | debate | canvas | canvaschat
+// 8-screen navigation: menu | chat | superchat | gems | gemchat | debate | canvas | canvaschat
 
 import { useState } from 'react';
 import { AuthContext, useAuthProvider } from './hooks/useAuth';
 import { AuthPanel } from './components/AuthPanel';
 import { Header } from './components/Header';
+import { ChatApp } from './components/ChatApp';
 import { SuperChatApp } from './components/SuperChatApp';
 import { MenuScreen } from './components/MenuScreen';
 import { GemsScreen } from './components/GemsScreen';
@@ -19,7 +20,7 @@ import { ThemeContext } from './contexts/ThemeContext';
 import { getCanvasGemId } from './api/client';
 import type { AppDefinition, GemInfo } from './types';
 
-type Screen = 'menu' | 'superchat' | 'gems' | 'gemchat' | 'debate' | 'canvas' | 'canvaschat';
+type Screen = 'menu' | 'chat' | 'superchat' | 'gems' | 'gemchat' | 'debate' | 'canvas' | 'canvaschat';
 
 export function App() {
   const authValue = useAuthProvider();
@@ -36,7 +37,7 @@ export function App() {
 
   const handleNavigate = (app: AppDefinition) => {
     setActiveApp(app);
-    setCurrentScreen('superchat');
+    setCurrentScreen(app.type === 'chat' ? 'chat' : 'superchat');
   };
 
   const handleBackToMenu = () => {
@@ -100,6 +101,19 @@ export function App() {
                   onToggleTheme={toggleTheme}
                 />
                 <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} onOpenDebate={handleOpenDebate} onOpenCanvas={handleOpenCanvas} />
+              </>
+            )}
+            {currentScreen === 'chat' && (
+              <>
+                <Header
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                  onBackToMenu={handleBackToMenu}
+                  appName={activeApp?.name}
+                />
+                <ChatApp selectedModel={selectedModel} />
               </>
             )}
             {currentScreen === 'superchat' && (
