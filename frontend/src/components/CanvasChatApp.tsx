@@ -48,12 +48,12 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   } = useThreads(undefined, canvasGemId);
 
   // initialThreadId が渡された場合は起動時にスレッドを復元（D-10）
-  const initialSwitchDone = useRef(false);
-  if (initialThreadId && !initialSwitchDone.current) {
-    initialSwitchDone.current = true;
-    // useEffect は hooks 内のものを使うため、ここでは ref フラグで初回のみ実行
-    setTimeout(() => switchThread(initialThreadId), 0);
-  }
+  useEffect(() => {
+    if (initialThreadId) {
+      switchThread(initialThreadId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 初回マウント時のみ
 
   // サイドバー幅
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
