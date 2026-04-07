@@ -2,7 +2,7 @@
 // sendMessage with SSE completion + polling fallback.
 // Mirrors static/app.js sendMessage (lines ~370-450).
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
 import type { CanvasAppInfo, CanvasResult, ChatMessage } from '../types';
 
@@ -89,6 +89,17 @@ export function useChat({
   onDebateResult,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup fallback polling timer on unmount
+  useEffect(() => {
+    return () => {
+      if (fallbackTimerRef.current) {
+        clearInterval(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const sendMessage = useCallback(async (text: string, threadId?: string) => {
     if (!text.trim() || isThinking) return;
@@ -233,11 +244,12 @@ export function useChat({
       es.onerror = () => {
         // SSE connection dropped — fall back to polling every 2 seconds
         es.close();
-        const timer = setInterval(async () => {
+        fallbackTimerRef.current = setInterval(async () => {
           try {
             const job = await getJob(job_id);
             if (job.status === 'done' && job.result) {
-              clearInterval(timer);
+              clearInterval(fallbackTimerRef.current!);
+              fallbackTimerRef.current = null;
               handleResult(job.result);
               setIsThinking(false);
               await refreshThreads?.();
