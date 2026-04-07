@@ -43,6 +43,7 @@ interface CanvasAppCardProps {
 }
 
 function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAppCardProps) {
+  const appBase = (import.meta.env.VITE_APP_BASE as string ?? '').replace(/\/$/, '');
   return (
     <div
       style={{
@@ -69,7 +70,7 @@ function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAp
       </div>
       {app.deployed && (
         <a
-          href={`/apps/${app.app_id}/`}
+          href={`${appBase}/apps/${app.app_id}/`}
           target="_blank"
           rel="noopener noreferrer"
           style={{ display: 'block', fontSize: '0.875rem', color: '#7c6ff7', marginBottom: '16px' }}
