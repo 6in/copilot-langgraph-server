@@ -106,6 +106,12 @@ class DebateHandler(TaskHandler):
                             participants.append(gem_name)
                 except Exception as e:
                     logger.warning("DebateHandler: gem fetch failed: %s", e)
+                    # Gem fetch 失敗後 participants が空なら討論不可 → エラー返却
+                    if not participants:
+                        error_msg = f"Error: GEM のロードに失敗しました。再試行してください。({e})"
+                        await job_store.save_result(job_id, error_msg)
+                        await notifier.done()
+                        return {"job_id": job_id, "status": "done"}
 
             # T-17-06: participants でエージェントをフィルター、KeyError をキャッチ
             try:
