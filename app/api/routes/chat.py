@@ -351,7 +351,11 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
             messages = []
             for msg in state.values["messages"]:
                 role = "user" if isinstance(msg, HumanMessage) else "ai"
-                messages.append({"role": role, "content": msg.content})
+                entry: dict = {"role": role, "content": msg.content}
+                sender = getattr(msg, "name", None)
+                if sender:
+                    entry["senderName"] = sender
+                messages.append(entry)
             if messages:
                 # Canvas threads: replace last AI message with canvas JSON so the
                 # frontend CollapsibleCodeBlock renders it the same as live responses.
