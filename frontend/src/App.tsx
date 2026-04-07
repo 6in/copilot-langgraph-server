@@ -1,7 +1,7 @@
 // frontend/src/App.tsx
 // Root component: AuthProvider + auth gate.
 // AuthPanel shown when unauthenticated/expired.
-// 5-screen navigation: menu | superchat | gems | gemchat | debate
+// 7-screen navigation: menu | superchat | gems | gemchat | debate | canvas | canvaschat
 
 import { useState } from 'react';
 import { AuthContext, useAuthProvider } from './hooks/useAuth';
@@ -12,11 +12,14 @@ import { MenuScreen } from './components/MenuScreen';
 import { GemsScreen } from './components/GemsScreen';
 import { GemChatApp } from './components/GemChatApp';
 import { DebateChatApp } from './components/DebateChatApp';
+import { CanvasScreen } from './components/CanvasScreen';
+import { CanvasChatApp } from './components/CanvasChatApp';
 import { useTheme } from './hooks/useTheme';
 import { ThemeContext } from './contexts/ThemeContext';
+import { getCanvasGemId } from './api/client';
 import type { AppDefinition, GemInfo } from './types';
 
-type Screen = 'menu' | 'superchat' | 'gems' | 'gemchat' | 'debate';
+type Screen = 'menu' | 'superchat' | 'gems' | 'gemchat' | 'debate' | 'canvas' | 'canvaschat';
 
 export function App() {
   const authValue = useAuthProvider();
@@ -26,6 +29,8 @@ export function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
   const [activeApp, setActiveApp] = useState<AppDefinition | null>(null);
   const [activeGem, setActiveGem] = useState<GemInfo | null>(null);
+  const [activeCanvasAppId, setActiveCanvasAppId] = useState<string | null>(null);
+  const [canvasGemId, setCanvasGemId] = useState<string | null>(null);
 
   const isAuthenticated = authValue.authState === 'authenticated';
 
@@ -57,6 +62,30 @@ export function App() {
 
   const handleBackFromGems = () => { setCurrentScreen('menu'); };
 
+  // Phase 16: Canvas ナビゲーション（D-07）
+  const handleOpenCanvas = () => { setCurrentScreen('canvas'); };
+  const handleBackFromCanvas = () => { setCurrentScreen('menu'); };
+
+  const handleOpenCanvasChat = async (initialThreadId?: string) => {
+    // canvasGemId が未取得の場合は取得してから遷移
+    let gemId = canvasGemId;
+    if (!gemId) {
+      try {
+        const result = await getCanvasGemId();
+        gemId = result.gem_id;
+        setCanvasGemId(gemId);
+      } catch {
+        // 取得失敗でも遷移は許可（CanvasChatApp 側でエラーハンドリング）
+      }
+    }
+    setActiveCanvasAppId(initialThreadId ?? null);
+    setCurrentScreen('canvaschat');
+  };
+
+  const handleBackFromCanvasChat = () => {
+    setCurrentScreen('canvas');
+  };
+
   return (
     <AuthContext.Provider value={authValue}>
       <ThemeContext.Provider value={theme}>
@@ -70,7 +99,7 @@ export function App() {
                   theme={theme}
                   onToggleTheme={toggleTheme}
                 />
-                <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} onOpenDebate={handleOpenDebate} />
+                <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} onOpenDebate={handleOpenDebate} onOpenCanvas={handleOpenCanvas} />
               </>
             )}
             {currentScreen === 'superchat' && (
@@ -116,6 +145,38 @@ export function App() {
                   gem={activeGem}
                   selectedModel={selectedModel}
                   onBack={handleBackFromGemChat}
+                />
+              </>
+            )}
+            {/* Phase 16: Canvas 画面 */}
+            {currentScreen === 'canvas' && (
+              <>
+                <Header
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                />
+                <CanvasScreen
+                  onBack={handleBackFromCanvas}
+                  onStartChat={handleOpenCanvasChat}
+                />
+              </>
+            )}
+            {/* Phase 16: CanvasChatApp 画面 — canvasGemId が null の場合は表示しない（T-16-09） */}
+            {currentScreen === 'canvaschat' && canvasGemId && (
+              <>
+                <Header
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                />
+                <CanvasChatApp
+                  canvasGemId={canvasGemId}
+                  selectedModel={selectedModel}
+                  onBack={handleBackFromCanvasChat}
+                  initialThreadId={activeCanvasAppId}
                 />
               </>
             )}
