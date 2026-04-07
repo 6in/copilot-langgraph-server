@@ -332,13 +332,16 @@ async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Requ
     if not label:
         raise HTTPException(status_code=422, detail="label must not be empty")
 
+    github_login = payload.get("github_login", "")
     db_uri = request.app.state.db_uri
     async with await psycopg.AsyncConnection.connect(db_uri) as conn:
-        await conn.execute(
-            "UPDATE threads SET label = %s, updated_at = now() WHERE thread_id = %s",
-            (label, thread_id),
+        result = await conn.execute(
+            "UPDATE threads SET label = %s, updated_at = now() WHERE thread_id = %s AND github_login = %s",
+            (label, thread_id, github_login),
         )
         await conn.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Thread not found")
 
     return {"thread_id": thread_id, "label": label}
 
