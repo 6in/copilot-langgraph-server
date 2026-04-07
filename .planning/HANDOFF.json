@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-07T13:45:26.177Z",
+  "phase": null,
+  "phase_name": "fix/ui-canvas-gem-issues (branch)",
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "CanvasChatApp appId:'canvas' 追加", "status": "done", "commit": "abcfa8e"},
+    {"id": 2, "name": "GemSelector.tsx 復元 + SuperChatApp 再統合", "status": "done", "commit": "abcfa8e"},
+    {"id": 3, "name": "DebateChatApp gemsLoading 修正", "status": "done", "commit": "abcfa8e"},
+    {"id": 4, "name": "API: スレッド一覧 gem_id IS NULL フィルタ追加", "status": "done", "commit": "fa1a026"},
+    {"id": 5, "name": "gem_agent.py 新規作成 + OrchestratorHandler gem_id 対応 + chat.py gem_id 欠落修正", "status": "done", "commit": "b4311a1"}
+  ],
+  "remaining_tasks": [
+    {"id": 6, "name": "SuperChatApp GEM招待 動作確認", "status": "not_started"},
+    {"id": 7, "name": "討論チャット GEM 動作確認", "status": "not_started"},
+    {"id": 8, "name": "ブランチを main にマージ", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {"action": "SuperChatApp で GEM を選択してマルチエージェント会話を確認", "context": "b4311a1 で実装済み、未テスト", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "gem_id IS NULL を app_id フィルタに追加", "rationale": "DB マイグレーション不要で既存スレッドも遡及修正できる", "phase": "fix"},
+    {"decision": "ChatApp に GemSelector は入れない", "rationale": "ユーザーの設計判断: 通常チャットは GEM 招待不要", "phase": "fix"},
+    {"decision": "GemSubAgent を SubAgent の継承で実装", "rationale": "debate_handler と orchestrator_handler 両方で再利用", "phase": "fix"}
+  ],
+  "uncommitted_files": [
+    ".planning/todos/pending/2026-04-07-canvaschatapp-html.md (deleted)",
+    ".planning/todos/pending/2026-04-07-url-app-prefix.md (deleted)",
+    "CLAUDE.md (modified - pre-existing)"
+  ],
+  "next_action": "SuperChatApp で GEM を選択してメッセージ送信 → GEM が応答に参加するか確認。問題なければ /create-adr でブランチ振り返りを記録してマージ。",
+  "context_notes": "gem_agent.py が存在しないという根本原因を発見したことで、debate_handler の GEM バグも同時に解決できた。chat.py の enqueue_job に gem_id が含まれていなかった重大バグも発見・修正済み。"
+}
