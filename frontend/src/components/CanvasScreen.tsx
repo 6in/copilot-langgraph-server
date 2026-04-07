@@ -69,15 +69,25 @@ function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAp
         {app.name}
       </div>
       {app.deployed && (
-        <a
-          href={`${appBase}/apps/${app.app_id}/`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'block', fontSize: '0.875rem', color: '#7c6ff7', marginBottom: '16px' }}
-          onClick={(e) => e.stopPropagation()}
+        <button
+          style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            color: '#7c6ff7',
+            marginBottom: '16px',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(`${appBase}/apps/${app.app_id}/`, '_blank', 'noopener,noreferrer');
+          }}
         >
-          Open App
-        </a>
+          Open App ↗
+        </button>
       )}
       <button
         style={{
