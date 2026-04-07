@@ -1,34 +1,40 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-07T01:21:07.578Z",
+  "timestamp": "2026-04-07T02:10:07.635Z",
   "phase": "16",
   "phase_name": "Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ",
   "phase_dir": ".planning/phases/16-canvas-app",
   "plan": 4,
-  "task": 2,
-  "total_tasks": 2,
+  "task": 4,
+  "total_tasks": 4,
   "status": "paused",
   "completed_tasks": [
     {"id": "16-01", "name": "バックエンド API 拡張（deployed フィルタ・Canvas Gem 自動登録・/api/canvas/gem）", "status": "done", "commit": "284c73f"},
     {"id": "16-02", "name": "フロントエンド: CanvasChatApp + CanvasScreen + client.ts 拡張", "status": "done", "commit": "9ed6f12"},
     {"id": "16-03", "name": "フロントエンド: MenuScreen Canvas カード + App.tsx ナビゲーション拡張", "status": "done", "commit": "fa74328"},
-    {"id": "16-04", "name": "E2E 検証チェックポイント + VERIFICATION.md", "status": "done", "commit": "5e7d6c8"}
+    {"id": "16-04", "name": "E2E 検証 + VERIFICATION.md + 後処理 UX 修正 8件", "status": "done", "commit": "7dd5a0b"}
   ],
   "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
     {
       "action": "gsd/phase-16-canvas-app ブランチを main にマージする",
-      "context": "Phase 16 は全プラン完了・VERIFICATION.md 作成済み。28 ファイル・4581 行の変更がある。マージ前に /create-adr で振り返りを記録するか確認すること（CLAUDE.md の Merge Workflow ルール）。",
+      "context": "Phase 16 全プラン完了。今セッションで UX 後処理 8コミット追加済み（deploy URL プレフィックス、スレッド復元、Open App 別タブ、Monaco エディタ、折りたたみ HTML、スレッド名一覧、Vite proxy、docker-restart.sh）。CLAUDE.md の Merge Workflow ルール: マージ前に /create-adr で振り返りを記録するか確認。",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "Wave 2 並列マージで CanvasChatApp.tsx / CanvasScreen.tsx が競合 → 16-02 正規実装を採用", "rationale": "16-02 が専用プランとして実装したため", "phase": "16"},
-    {"decision": "マージ後に 16-01 のバックエンド実装が消失 → 16-04 で復元", "rationale": "ワークツリーソフトリセット時に差分が混入したため", "phase": "16"},
-    {"decision": "Phase 17 (DebateChatApp) は main に既存マージ済みと判明 → ROADMAP/STATE に登録", "rationale": "ユーザーから完了済みと確認", "phase": "17"}
+    {"decision": "VITE_APP_BASE を docker-compose frontend 環境変数で渡す", "rationale": "APP_PREFIX 未設定で root_path が空。VITE_APP_BASE がビルド時定数として確実", "phase": "16"},
+    {"decision": "Open App を window.open() ボタンに変更（<a> から）", "rationale": "clickable card 内で <a target=_blank> がイベント伝播して onStartChat を起動する問題を解決", "phase": "16"},
+    {"decision": "canvas レスポンスを canvashtml コードブロック付きサマリーに変換", "rationale": "生 JSON がチャットに表示されて冗長。折りたたみ Monaco ビューアに変更", "phase": "16"},
+    {"decision": "CanvasPane editor を textarea → Monaco Editor に変更", "rationale": "@monaco-editor/react はインストール済み。シンタックスハイライト・folding 対応", "phase": "16"},
+    {"decision": "Vite proxy に /apps/ を追加", "rationale": "dev server 経由でデプロイ済みアプリにアクセスするため", "phase": "16"},
+    {"decision": "CanvasScreen 一覧にスレッドラベルを表示（LEFT JOIN threads）", "rationale": "thread_label が app name より意味があり、ユーザーが識別しやすい", "phase": "16"}
   ],
-  "uncommitted_files": ["static/apps/ (デプロイ済みアプリのサンプルディレクトリ — .gitignore 対象か確認が必要)"],
-  "next_action": "CLAUDE.md の Merge Workflow ルールに従い「/create-adr でこのブランチの振り返りを記録しますか？」を確認してからマージを実行する",
-  "context_notes": "Phase 16 は完全完了。Phase 17 も main 上で完了済み。ROADMAP/STATE はどちらも最新化済み。2 件の Todo（デプロイ URL プレフィックス、チャット復元時 HTML プレビュー）を追加した。"
+  "uncommitted_files": [
+    "docker-restart.sh (未追跡 — ローカル運用スクリプト、コミット任意)",
+    "static/apps/ (デプロイ済みアプリ — .gitignore 対象)"
+  ],
+  "next_action": "CLAUDE.md の Merge Workflow ルールに従い '/create-adr でこのブランチの振り返りを記録しますか？' を確認してからマージを実行する",
+  "context_notes": "Phase 16 全プラン完了後、ユーザーとの動作確認セッションで UX 後処理 8コミット追加。deploy URL プレフィックス・スレッド復元・Monaco エディタ・折りたたみ HTML・スレッド名一覧・Open App 別タブ・Vite proxy・docker-restart.sh がすべて完了。マージ待ち。"
 }
