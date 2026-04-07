@@ -185,7 +185,7 @@ const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
   const headerColor = monacoTheme === 'vs-dark' ? '#858585' : '#57606a';
 
   return (
-    <div style={{ border: `1px solid ${borderColor}`, borderRadius: '6px', margin: '8px 0', overflow: 'hidden' }}>
+    <div style={{ border: `1px solid ${borderColor}`, borderRadius: '6px', margin: '8px 0', overflow: 'hidden', width: '100%', minWidth: 0 }}>
       <button
         onClick={() => setExpanded((e) => !e)}
         style={{
@@ -216,7 +216,7 @@ const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
             readOnly: true,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            wordWrap: 'off',
+            wordWrap: 'on',
             lineNumbers: 'on',
             folding: true,
             renderLineHighlight: 'none',
@@ -237,7 +237,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
 
   const components = useMemo(() => ({
     pre({ children }: { children?: React.ReactNode }) {
-      return <div>{children}</div>;
+      return <div style={{ width: '100%', minWidth: 0 }}>{children}</div>;
     },
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
             const match = /language-(\w+)/.exec(className || '');

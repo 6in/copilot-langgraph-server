@@ -111,9 +111,22 @@ export const getThreadMessages = (threadId: string) =>
   );
 
 // Convenience: fetch the full message list as ChatMessage[]
+// Canvas responses are stored as raw JSON in the DB; convert them to canvashtml
+// markdown blocks so CollapsibleCodeBlock renders them the same as live responses.
 export const loadThreadMessages = async (threadId: string): Promise<ChatMessage[]> => {
   const data = await getThreadMessages(threadId);
-  return data.messages;
+  return data.messages.map((msg) => {
+    if (msg.role !== 'ai') return msg;
+    try {
+      const parsed = JSON.parse(msg.content);
+      if (parsed?.type === 'canvas') {
+        const name = (parsed.name as string | undefined) ?? 'HTMLアプリ';
+        const html = (parsed.html as string | undefined) ?? '';
+        return { ...msg, content: `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\`` };
+      }
+    } catch { /* not JSON — leave as-is */ }
+    return msg;
+  });
 };
 
 // Agents

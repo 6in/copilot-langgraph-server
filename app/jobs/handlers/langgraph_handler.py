@@ -7,7 +7,7 @@ import psycopg
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from app.graph.builder import build_graph
+from app.graph.builder import build_canvas_graph, build_graph
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
 from app.providers.copilot import ChatCopilot
@@ -57,15 +57,15 @@ class LangGraphHandler(TaskHandler):
         llm = ChatCopilot(github_token=github_token, model=model)
 
         try:
+            # Gem 情報を先に取得してグラフ種別を決定する
+            gem_id, gem_type, gem_name, system_prompt, knowledge = await _get_gem_info(thread_id, DB_URI)
+
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
-                graph = build_graph(llm, checkpointer)
+                graph = build_canvas_graph(llm, checkpointer) if gem_type == "canvas" else build_graph(llm, checkpointer)
                 github_login = job.get("github_login", "unknown")
                 config = {"configurable": {"thread_id": thread_id, "github_login": github_login}}
 
                 await notifier.progress("thinking")
-
-                # Gem 情報を取得し、SystemMessage を注入する（Canvas Gem 対応）
-                gem_id, gem_type, gem_name, system_prompt, knowledge = await _get_gem_info(thread_id, DB_URI)
 
                 # knowledge が空でなければ system_prompt に結合（Todo 7）
                 if system_prompt and knowledge:

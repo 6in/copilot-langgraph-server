@@ -11,9 +11,40 @@ See: langgraph.prebuilt.ToolNode, langgraph.prebuilt.tools_condition
 from __future__ import annotations
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
+
+
+def _trim_html_history(messages: list) -> list:
+    """Keep all messages but replace older HTML AI responses with a placeholder.
+
+    Canvas chat accumulates large HTML payloads in history. We only need the
+    most recent HTML for context; older ones waste tokens without adding value.
+    An AI message is treated as HTML when its content is long and contains HTML tags.
+    """
+    def _is_html(msg) -> bool:
+        if not isinstance(msg, AIMessage):
+            return False
+        content = msg.content if isinstance(msg.content, str) else ""
+        return len(content) > 300 and any(
+            tag in content.lower() for tag in ("<html", "<!doctype", "<body", "<div", "<head")
+        )
+
+    html_indices = [i for i, m in enumerate(messages) if _is_html(m)]
+    if len(html_indices) <= 1:
+        return messages  # 0 or 1 HTML message — nothing to trim
+
+    # Replace all but the most recent HTML AI message with a short placeholder
+    last_html_idx = html_indices[-1]
+    trimmed = []
+    for i, msg in enumerate(messages):
+        if i in html_indices and i != last_html_idx:
+            trimmed.append(AIMessage(content="[previous HTML response omitted]"))
+        else:
+            trimmed.append(msg)
+    return trimmed
+
 
 SYSTEM_PROMPT = SystemMessage(content=(
     "You are a helpful assistant. "
@@ -54,6 +85,26 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
 
     async def chatbot_node(state: MessagesState) -> dict:
         response = await llm.ainvoke([SYSTEM_PROMPT] + state["messages"])
+        return {"messages": [response]}
+
+    builder = StateGraph(MessagesState)
+    builder.add_node("chatbot", chatbot_node)
+    builder.add_edge(START, "chatbot")
+    builder.add_edge("chatbot", END)
+
+    return builder.compile(checkpointer=checkpointer)
+
+
+def build_canvas_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
+    """Build and compile the Canvas-specific conversation graph.
+
+    Identical to build_graph except the chatbot node applies _trim_html_history
+    before invoking the LLM — older HTML AI responses are replaced with a
+    placeholder so only the most recent HTML is sent as context.
+    """
+
+    async def chatbot_node(state: MessagesState) -> dict:
+        response = await llm.ainvoke([SYSTEM_PROMPT] + _trim_html_history(state["messages"]))
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)

@@ -350,6 +350,32 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
                 role = "user" if isinstance(msg, HumanMessage) else "ai"
                 messages.append({"role": role, "content": msg.content})
             if messages:
+                # Canvas threads: replace last AI message with canvas JSON so the
+                # frontend CollapsibleCodeBlock renders it the same as live responses.
+                try:
+                    db_uri = request.app.state.db_uri
+                    async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+                        async with conn.cursor() as cur:
+                            await cur.execute(
+                                "SELECT app_id, name, html FROM canvas_apps WHERE thread_id = %s LIMIT 1",
+                                (thread_id,),
+                            )
+                            row = await cur.fetchone()
+                    if row:
+                        app_id_val, name_val, html_val = row
+                        canvas_json = json.dumps({
+                            "type": "canvas",
+                            "app_id": str(app_id_val),
+                            "name": name_val or "Canvas App",
+                            "html": html_val or "",
+                        })
+                        # Replace last AI message content with canvas JSON
+                        for i in range(len(messages) - 1, -1, -1):
+                            if messages[i]["role"] == "ai":
+                                messages[i] = {**messages[i], "content": canvas_json}
+                                break
+                except Exception:
+                    pass  # canvas_apps lookup failure is non-fatal
                 return {"messages": messages, "thread_id": thread_id}
     except Exception:
         pass
