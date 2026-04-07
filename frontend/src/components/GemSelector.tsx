@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useGems } from '../hooks/useGems';
+import { agentAccentColor } from '../utils/agentColor';
 
 interface GemSelectorProps {
   selectedGemIds: string[];
@@ -42,16 +43,15 @@ export function GemSelector({ selectedGemIds, onToggleGem }: GemSelectorProps) {
     transition: 'opacity 0.1s',
   };
 
-  const chipSelected: React.CSSProperties = {
-    ...chipBase,
-    border: '2px solid #7c6ff7',
-    background: 'rgba(124,111,247,0.12)',
-  };
-
   const chipUnselected: React.CSSProperties = {
     ...chipBase,
     border: '1px solid #d1dbe3',
     background: 'transparent',
+  };
+
+  const chipSelectedFor = (name: string): React.CSSProperties => {
+    const accent = agentAccentColor(name);
+    return { ...chipBase, border: `2px solid ${accent}`, background: `${accent}1e` };
   };
 
   const focusVisibleStyle = `
@@ -92,7 +92,7 @@ export function GemSelector({ selectedGemIds, onToggleGem }: GemSelectorProps) {
               className="gem-chip-wrapper"
             >
               <button
-                style={isSelected ? chipSelected : chipUnselected}
+                style={isSelected ? chipSelectedFor(gem.name) : chipUnselected}
                 aria-pressed={isSelected}
                 onClick={() => onToggleGem(gem.gem_id)}
                 title={gem.name}
