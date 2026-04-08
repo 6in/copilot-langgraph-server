@@ -206,10 +206,11 @@ Recent decisions affecting current work:
 
 - 今回の仕組みの説明資料をPowerPointで作成する — docs
 - インストールされているスキルを活用してコードレビューを実施する — general
-- Implement Gem and Canvas feature — api
 - Integrate LangGraph tool calling with async worker execution — api
 - Investigate Agent-Skills integration mechanism — general
-- チャットのコンテキストにてユーザー情報も入れるようにする — api
+- Cache GEM data in Redis in OrchestratorHandler — api
+- Migrate frontend from Node.js/npm to Bun — ui
+- Canvas アプリに iframe postMessage JSON-RPC API ブリッジを実装する — api
 
 ### Quick Tasks Completed
 
