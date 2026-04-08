@@ -197,3 +197,16 @@ export const listCanvasApps = (deployed?: boolean): Promise<CanvasAppInfo[]> => 
 
 export const getCanvasGemId = (): Promise<{ gem_id: string }> =>
   apiFetch<{ gem_id: string }>(`${API_BASE}/api/canvas/gem`);
+
+// --- Phase 18: Iframe RPC API ---
+
+export interface IframeRpcResponse {
+  job_id: string;
+}
+
+export const postIframeRpc = (id: string, method: string, params?: Record<string, unknown>) =>
+  apiFetch<IframeRpcResponse>(`${API_BASE}/api/iframe-rpc`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, method, params }),
+  });
