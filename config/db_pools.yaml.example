@@ -1,0 +1,16 @@
+# DB connection pool configuration for iframe-rpc QUERY method.
+# Copy this file to db_pools.yaml and configure your DSN values.
+#
+# SECURITY: Use a READ-ONLY database user for all pools.
+# The is_select_only() check is a first defense; a read-only DB role
+# is the second defense against CTE+write bypass (WITH ... DELETE).
+#
+# Format:
+#   pools:
+#     <pool_name>:
+#       dsn: postgresql://<user>:<password>@<host>:<port>/<database>
+pools:
+  main:
+    dsn: postgresql://readonly_user:password@postgres:5432/app
+  # analytics:
+  #   dsn: postgresql://readonly_user:password@analytics-db:5432/data
