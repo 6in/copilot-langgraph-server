@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1–6 (shipped 2026-04-02) — [Archive](milestones/v1.0-ROADMAP.md)
 - ✅ **v2.0 SuperChat** — Phases 7–10 (shipped 2026-04-04)
 - ✅ **v3.0 Agent Platform** — Phases 11–17 (shipped 2026-04-07) — [Archive](milestones/v3.0-ROADMAP.md)
+- 🚧 **v4.0 Canvas API Bridge** — Phases 18+
 
 ## Phases
 
@@ -70,3 +71,14 @@ See [v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md) for full phase details.
 | 15.1. Gem UX 強化 | v3.0 | 3/3 | Complete | 2026-04-06 |
 | 16. Canvas App | v3.0 | 4/4 | Complete | 2026-04-07 |
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
+| 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 0/0 | Not started | — |
+
+### Phase 18: Canvas iframe postMessage JSON-RPC API ブリッジ実装
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 17
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 18 to break down)
