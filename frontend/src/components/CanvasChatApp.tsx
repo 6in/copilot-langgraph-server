@@ -262,6 +262,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
               onSave={saveCanvas}
               onDeploy={deployCanvas}
               onClose={() => {}}
+              style={{ minWidth: `${CANVAS_PANE_MIN}px`, width: `${canvasPaneWidth}px` }}
             />
           ) : (
             <div

@@ -18,6 +18,7 @@ interface CanvasPaneProps {
   onSave: (appId: string, html: string) => void;
   onDeploy: (appId: string) => void;
   onClose: () => void;
+  style?: React.CSSProperties;
 }
 
 type TabId = 'editor' | 'preview';
@@ -31,6 +32,7 @@ export function CanvasPane({
   onSave,
   onDeploy,
   onClose,
+  style,
 }: CanvasPaneProps) {
   const theme = useCurrentTheme();
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
@@ -170,6 +172,7 @@ export function CanvasPane({
         background: '#ffffff',
         flexShrink: 0,
         overflow: 'hidden',
+        ...style,
       }}
     >
       <style>{focusVisibleStyle}</style>

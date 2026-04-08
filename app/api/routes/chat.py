@@ -100,6 +100,30 @@ async def send_message(
         app_id = "superchat" if body.mode == "super" else "chat"
     github_login = payload.get("github_login", "unknown")
 
+    # Upsert threads table BEFORE enqueuing the job.
+    # The worker calls _get_gem_info(thread_id) immediately on pickup — if the thread
+    # row isn't committed yet, gem_type comes back None and the system prompt is skipped.
+    # Inserting first eliminates this race condition (fix for canvas/gem system prompt bug).
+    label = f"Chat {datetime.now(tz=JST).strftime('%Y-%m-%d %H:%M')}"
+    db_uri = request.app.state.db_uri
+    gem_id = body.gem_id  # Phase 15: Gem association (may be None)
+    try:
+        async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+            await conn.execute(
+                """INSERT INTO threads (thread_id, app_id, github_login, label, gem_id, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s::uuid, now(), now())
+                   ON CONFLICT (thread_id)
+                   DO UPDATE SET github_login = COALESCE(threads.github_login, EXCLUDED.github_login),
+                                 gem_id = COALESCE(threads.gem_id, EXCLUDED.gem_id),
+                                 updated_at = now()""",
+                (body.thread_id, app_id, github_login, label, gem_id),
+            )
+            await conn.commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("threads upsert failed: %s", e, exc_info=True)
+        # Non-fatal: threads upsert failure should not block the chat job
+
     await arq_redis.enqueue_job(
         "process_chat",
         job_id=job_id,
@@ -120,26 +144,6 @@ async def send_message(
         max_turns=body.max_turns,
         current_turn=body.current_turn,
     )
-
-    # Upsert threads table with app_id and github_login (first writer wins via COALESCE)
-    # app_id is NOT overwritten on conflict — first message determines the application
-    label = f"Chat {datetime.now(tz=JST).strftime('%Y-%m-%d %H:%M')}"
-    db_uri = request.app.state.db_uri
-    gem_id = body.gem_id  # Phase 15: Gem association (may be None)
-    try:
-        async with await psycopg.AsyncConnection.connect(db_uri) as conn:
-            await conn.execute(
-                """INSERT INTO threads (thread_id, app_id, github_login, label, gem_id, created_at, updated_at)
-                   VALUES (%s, %s, %s, %s, %s::uuid, now(), now())
-                   ON CONFLICT (thread_id)
-                   DO UPDATE SET github_login = COALESCE(threads.github_login, EXCLUDED.github_login),
-                                 gem_id = COALESCE(threads.gem_id, EXCLUDED.gem_id),
-                                 updated_at = now()""",
-                (body.thread_id, app_id, github_login, label, gem_id),
-            )
-            await conn.commit()
-    except Exception:
-        pass  # Non-fatal: threads upsert failure should not block the chat job
 
     return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
 

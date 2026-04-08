@@ -69,7 +69,8 @@ async def lifespan(app: FastAPI):
                 """INSERT INTO applications (app_id, display_name, enabled, created_at) VALUES
                        ('chat',      'Chat',        true, now()),
                        ('superchat', 'SuperChat',   true, now()),
-                       ('debate',    'Debate Chat', true, now())
+                       ('debate',    'Debate Chat', true, now()),
+                       ('canvas',    'Canvas Chat', true, now())
                    ON CONFLICT DO NOTHING"""
             )
 

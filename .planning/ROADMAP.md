@@ -71,16 +71,16 @@ See [v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md) for full phase details.
 | 15.1. Gem UX 強化 | v3.0 | 3/3 | Complete | 2026-04-06 |
 | 16. Canvas App | v3.0 | 4/4 | Complete | 2026-04-07 |
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
-| 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 0/3 | In Progress | — |
+| 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete   | 2026-04-08 |
 
 ### Phase 18: Canvas iframe postMessage JSON-RPC API ブリッジ実装
 
 **Goal:** iframe 内 Canvas アプリの JS から postMessage 経由で DB クエリ（SELECT）と AI（Copilot ワンショット）を呼び出せる JSON-RPC ブリッジを実装する
 **Requirements**: [D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20]
 **Depends on:** Phase 17
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 18-01-PLAN.md — IframeRpcHandler + POST /api/iframe-rpc エンドポイント + テスト
-- [ ] 18-02-PLAN.md — arq ワーカー拡張 + DB プール管理 + config 設定
-- [ ] 18-03-PLAN.md — CanvasPane postMessage リスナー + iframe JSON-RPC ブリッジ
+- [x] 18-01-PLAN.md — IframeRpcHandler + POST /api/iframe-rpc エンドポイント + テスト
+- [x] 18-02-PLAN.md — arq ワーカー拡張 + DB プール管理 + config 設定
+- [x] 18-03-PLAN.md — CanvasPane postMessage リスナー + iframe JSON-RPC ブリッジ

@@ -28,6 +28,7 @@
   width: 100% !important;
 }
 
+.cs-message--incoming .cs-message__content-wrapper,
 .cs-message--incoming .cs-message__content,
 .cs-message--incoming .cs-message__custom-content {
   max-width: 100% !important;
