@@ -238,6 +238,7 @@ Recent decisions affecting current work:
 | 260409-fh8 | static/iframe-rpc.js ライブラリ作成 + CanvasPane インライン注入 | 2026-04-09 | 6201a90 | [260409-fh8-static-iframe-rpc-js-canvaspane](.planning/quick/260409-fh8-static-iframe-rpc-js-canvaspane/) |
 | 260409-g6g | Canvas chat: extract_htmlフォールバックでテキスト説明がコードエディタに表示される不具合修正 | 2026-04-09 | 053d120 | [260409-g6g-canvas-chat-extract-html](.planning/quick/260409-g6g-canvas-chat-extract-html/) |
 | 260409-gab | Vite プロキシに iframe-rpc.js を追加して開発環境で FastAPI static ファイルを取得できるようにする | 2026-04-09 | 138f1ac | [260409-gab-vite-iframe-rpc-js-fastapi-static](.planning/quick/260409-gab-vite-iframe-rpc-js-fastapi-static/) |
+| 260409-gd5 | CANVAS_SYSTEM_PROMPT にベーステンプレートHTML埋め込み + 起動時 gems 上書き更新 | 2026-04-09 | 2e02a32 | [260409-gd5-canvas-system-prompt-html-gems](.planning/quick/260409-gd5-canvas-system-prompt-html-gems/) |
 
 ### Blockers/Concerns
 
