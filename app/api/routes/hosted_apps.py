@@ -38,6 +38,7 @@ _SHELL_TEMPLATE = """<!DOCTYPE html>
 
 
 @router.get("/apps/{app_id}", response_class=HTMLResponse)
+@router.get("/apps/{app_id}/", response_class=HTMLResponse, include_in_schema=False)
 async def serve_hosted_app(app_id: str, request: Request) -> HTMLResponse:
     """Serve a deployed Canvas app as a standalone page (D-01, D-08).
 
