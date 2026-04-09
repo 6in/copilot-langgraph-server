@@ -43,6 +43,7 @@ _SHELL_TEMPLATE = """<!DOCTYPE html>
   sandbox="allow-scripts allow-forms"
   srcdoc="{srcdoc_escaped}"
 ></iframe>
+<script>window.__APP_PREFIX = '{app_prefix}';</script>
 <script src="{parent_bridge_src}"></script>
 </body>
 </html>"""
@@ -82,5 +83,6 @@ async def serve_hosted_app(app_id: str, request: Request) -> HTMLResponse:
         app_name=app_name,
         srcdoc_escaped=srcdoc_escaped,
         parent_bridge_src=f"{_APP_PREFIX}/js/parent-bridge.js",
+        app_prefix=_APP_PREFIX,
     )
     return HTMLResponse(content=html)

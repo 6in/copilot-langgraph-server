@@ -51,7 +51,9 @@ export function CanvasPane({
 
   // Phase 19: parent-bridge.js を一度だけ読み込む（Shell HTML との共通リレーロジック）
   // handleIframeMessage は parent-bridge.js に委譲。e.source を使って返信するため iframeRef 不要。
+  // window.__APP_PREFIX を先に設定することで parent-bridge.js が正しい API URL を使える。
   useEffect(() => {
+    (window as Window & { __APP_PREFIX?: string }).__APP_PREFIX = appBase;
     const src = `${appBase}/js/parent-bridge.js`;
     if (document.querySelector(`script[src="${src}"]`)) return;
     const script = document.createElement('script');

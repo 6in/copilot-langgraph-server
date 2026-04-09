@@ -5,6 +5,9 @@
  * Listens for JSON-RPC 2.0 postMessages from child iframes, forwards to
  * POST /api/iframe-rpc, awaits completion via SSE, replies to the source iframe.
  *
+ * URL prefix: reads window.__APP_PREFIX (set by shell HTML or CanvasPane before load).
+ * This allows the bridge to work behind a path prefix (e.g. /orochi) via Vite proxy or nginx.
+ *
  * Protocol (matches iframe-rpc.js on the iframe side):
  *   Request (iframe -> parent):  { jsonrpc: '2.0', id, method, params }
  *   Response (parent -> iframe): { jsonrpc: '2.0', id, result: true|false, ...payload }
@@ -19,7 +22,8 @@
  */
 async function _waitForJob(job_id) {
   return new Promise((resolve, reject) => {
-    const es = new EventSource('/api/job/' + job_id + '/stream');
+    var _prefix = (typeof window.__APP_PREFIX === 'string' ? window.__APP_PREFIX : '');
+    const es = new EventSource(_prefix + '/api/job/' + job_id + '/stream');
 
     const timer = setTimeout(function () {
       es.close();
@@ -32,7 +36,7 @@ async function _waitForJob(job_id) {
         if (event.status === 'done') {
           clearTimeout(timer);
           es.close();
-          var jobResp = await fetch('/api/job/' + job_id, { credentials: 'include' });
+          var jobResp = await fetch(_prefix + '/api/job/' + job_id, { credentials: 'include' });
           var job = await jobResp.json();
           resolve(job.result != null ? job.result : '{"result":false,"error":"No result"}');
         }
@@ -71,7 +75,8 @@ async function handleIframeMessage(e) {
   if (!source) return;
 
   try {
-    var resp = await fetch('/api/iframe-rpc', {
+    var _p = (typeof window.__APP_PREFIX === 'string' ? window.__APP_PREFIX : '');
+    var resp = await fetch(_p + '/api/iframe-rpc', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
