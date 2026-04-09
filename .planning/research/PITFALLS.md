@@ -1,356 +1,532 @@
-# Domain Pitfalls
+# Domain Pitfalls: v5.0 Agent Tool Platform
 
-**Domain:** LangGraph chat web app with custom BaseChatModel (GitHub Copilot SDK / JSON-RPC)
-**Researched:** 2026-03-31
-**Confidence:** HIGH (core LangGraph/LangChain patterns), MEDIUM (Copilot SDK specifics — Technical Preview, limited public docs)
+**Domain:** FastMCP + LangGraph bind_tools on non-OpenAI Copilot SDK stack
+**Researched:** 2026-04-09
+**Stack:** Python 3.12, LangGraph 1.1.3, langchain-core, ChatCopilot (BaseChatModel), arq worker, FastMCP, langchain-mcp-adapters, Docker Compose
+
+---
+
+## Pitfall Summary Table
+
+| # | Issue | Severity | Prevention | Phase to Address |
+|---|-------|----------|------------|-----------------|
+| P1 | `ChatCopilot` has no `bind_tools` — `ToolNode` integration fails immediately | CRITICAL | Implement `bind_tools` + tool-call parsing in `copilot.py` first | MCP-02 (bind_tools integration) |
+| P2 | Copilot SDK returns plain text, not structured `tool_calls` — LangGraph `ToolNode` never fires | CRITICAL | Prompt-injection tool-call parsing: parse JSON from response text; populate `AIMessage.tool_calls` manually | MCP-02 |
+| P3 | `MultiServerMCPClient` async context manager removed in v0.1.0 — tutorials show broken pattern | HIGH | Use `session()` method or direct `.get_tools()` calls; never `async with client:` | MCP-01 (FastMCP setup) |
+| P4 | MCP client re-initialized per arq job — connection overhead + race conditions | HIGH | Init `MultiServerMCPClient` in arq `startup()`, store in `ctx`; teardown in `shutdown()` | MCP-01 |
+| P5 | Claude Code CLI subprocess blocks async event loop — all arq jobs stall | HIGH | Use `asyncio.create_subprocess_exec()` with `asyncio.wait_for()`; never `subprocess.run()` | MCP-03 (Claude Code tool) |
+| P6 | Claude Code CLI subprocess inherits `CLAUDECODE=1` — nested session rejected | HIGH | Explicitly unset `CLAUDECODE` in subprocess env before spawning | MCP-03 |
+| P7 | `tool_calls` infinite loop — agent never reaches terminal state | HIGH | Add iteration counter to `AgentState`; set `recursion_limit`; cap at 10 iterations | MCP-02 |
+| P8 | Shell injection via tool arguments passed to Claude Code CLI | HIGH | Use `create_subprocess_exec()` (list args, not shell string); validate all args against schema | MCP-03 |
+| P9 | FastMCP `stdio` transport incompatible with Docker multi-container networking | MEDIUM | Use `http` transport; add `mcp-server` Docker service; `worker` depends_on `mcp-server` | MCP-01 |
+| P10 | Tool name collisions across MCP servers overwrite each other silently | MEDIUM | Enable `tool_name_prefix=True` in `MultiServerMCPClient`; use distinct tool names in FastMCP | MCP-01 |
+| P11 | Tavily sync client (`TavilyClient`) blocks arq event loop | MEDIUM | Use `AsyncTavilyClient`; initialize in `startup()` and store in `ctx` | MCP-03 (web search tool) |
+| P12 | Tavily full-page response overflows Copilot model context window | MEDIUM | Use `search_context(max_tokens=3000)` or limit to `max_results=3, include_raw_content=False` | MCP-03 |
+| P13 | `ToolNode` silently drops `invalid_tool_calls` (JSON parse failures in tool args) | MEDIUM | Add explicit error edge in graph; log `invalid_tool_calls`; add error-recovery node | MCP-02 |
+| P14 | FastMCP health check only available on `http` transport, not `stdio` | LOW | Add `@mcp.custom_route("/health")` explicitly; use in Docker `healthcheck` | MCP-01 |
+| P15 | arq `job_timeout=300` too short for long-running Claude Code tasks; zombie subprocess on timeout | LOW | Add internal `asyncio.wait_for(timeout=120)` in handler; call `proc.kill()` on `TimeoutError` | MCP-03 |
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause runtime failures, silent data corruption, or mandatory rewrites.
+### P1: `ChatCopilot` Does Not Implement `bind_tools`
 
----
+**What goes wrong:** `BaseChatModel.bind_tools()` raises `NotImplementedError` unless the subclass overrides it. `ChatCopilot` in `app/providers/copilot.py` currently has no `bind_tools` implementation. Calling `llm.bind_tools(tools)` at graph compile time — or inside `create_react_agent()` — throws immediately.
 
-### Pitfall 1: Calling `llm._agenerate()` Directly Inside Graph Nodes
-
-**What goes wrong:** The reference implementation in `docs/pre/copilot_langgraph_provider.md` calls `llm._agenerate(state["messages"])` directly in the graph node. This bypasses LangChain's public invocation path (`llm.invoke` / `llm.ainvoke`), which means callbacks, tracing, retry logic, and future middleware (e.g., LangSmith observability) are all skipped. Private methods are not part of the stable API and can change between minor langchain-core releases without a deprecation warning.
-
-**Why it happens:** The example code shortcuts to the internal async method for simplicity, which appears to work but violates the intended extension boundary.
+**Why it happens:** `bind_tools` is optional in the `BaseChatModel` interface. Only first-party LangChain providers (OpenAI, Anthropic, etc.) implement it. Custom wrappers do not get it for free. The method's default implementation in langchain-core simply raises `NotImplementedError`.
 
 **Consequences:**
-- No callback propagation — streaming hooks and LangSmith tracing will not fire.
-- If langchain-core changes `_agenerate`'s signature (e.g., adds a required `run_manager` parameter), node breaks silently at runtime.
-- Tool calling (`bind_tools`) will never work via the public interface if bypassed here.
-
-**Prevention:** In graph nodes, always call `await llm.ainvoke(messages)` (async) or `llm.invoke(messages)` (sync). Reserve `_agenerate` as the internal method that the public interface ultimately delegates to — it should never be called from outside the model class itself.
-
-**Warning signs:** Grep for `._agenerate(` or `._generate(` outside the `ChatCopilot` class body.
-
-**Phase:** Address in Phase 1 (BaseChatModel implementation and graph wiring).
-
----
-
-### Pitfall 2: `_generate` Using `asyncio.get_event_loop().run_until_complete()` in a Web Context
-
-**What goes wrong:** The reference implementation's `_generate` calls `loop.run_until_complete(self._agenerate(...))`. This pattern raises `RuntimeError: This event loop is already running` when called inside an ASGI framework (FastAPI, Starlette) or any other async context, because Python's asyncio does not permit nested `run_until_complete` calls.
-
-**Why it happens:** The sync wrapper was written assuming a standalone script context (`asyncio.run(main())`), but a web server has a persistent running event loop.
-
-**Consequences:**
-- Every synchronous call path from within the web server crashes immediately.
-- The workaround (`nest_asyncio`) is not production-grade and masks deeper design issues.
+- Graph compilation fails with `NotImplementedError` the moment any tool-binding code runs
+- `create_react_agent()` cannot be used at all with `ChatCopilot`
+- Any `ToolNode` integration requires `AIMessage.tool_calls` to be populated — impossible without this implementation
 
 **Prevention:**
-- Always call `await llm.ainvoke(...)` from async endpoints — never the sync `llm.invoke(...)` path when inside an ASGI app.
-- Implement `_generate` to raise `NotImplementedError` with a clear message ("Use ainvoke in async context") rather than attempting the event-loop hack. This forces callers to the async path.
-- Alternatively, use `asyncio.run_coroutine_threadsafe` with a background thread's dedicated event loop if sync compatibility is truly needed.
+Implement `bind_tools` in `app/providers/copilot.py`. Because the Copilot SDK does not natively emit structured `tool_calls` (see P2), the implementation must:
+1. Accept a list of tools; store their schemas on the model instance
+2. Inject tool schemas into the system prompt (prompt-injection pattern)
+3. Parse the LLM text response for JSON tool-call patterns in `_agenerate`
+4. Return `AIMessage(content="", tool_calls=[parsed_call])` when a tool call is detected
 
-**Warning signs:** Any `run_until_complete` or `asyncio.get_event_loop()` call inside `ChatCopilot._generate`; any sync FastAPI endpoint (`def` not `async def`) that calls the LLM.
+**Detection:** Immediate `NotImplementedError` on first `llm.bind_tools([...])` call or graph compile.
 
-**Phase:** Address in Phase 1 (BaseChatModel) and Phase 2 (web backend wiring).
+**Phase:** MCP-02. Must implement `bind_tools` in `copilot.py` before any tool-node graph work begins. This is the first thing to write in MCP-02, not the last.
 
 ---
 
-### Pitfall 3: `BaseChatModel._generate` / `_agenerate` Missing Required Signature Parameters
+### P2: Copilot SDK Returns Plain Text — `ToolNode` Never Dispatches
 
-**What goes wrong:** LangChain's `BaseChatModel` expects `_generate` and `_agenerate` to accept `stop: Optional[List[str]] = None` and `run_manager: Optional[CallbackManagerForLLMRun] = None` as keyword arguments. If these are absent, LangChain's internal dispatch will pass them anyway via `**kwargs` and they are silently dropped — but if the signature uses `**kwargs` without absorbing them, a `TypeError` surfaces when callbacks are active.
+**What goes wrong:** The GitHub Copilot SDK communicates via JSON-RPC and returns `response.data.content` as a plain string. There is no native mechanism to emit an `AIMessage` with a populated `tool_calls` list. LangGraph's `ToolNode` only dispatches tools when `AIMessage.tool_calls` is non-empty. Without custom parsing, the tool is registered but never called — and no error is raised.
 
-**Why it happens:** Minimal examples omit optional parameters. The reference implementation signature `def _generate(self, messages, **kwargs)` technically works but is fragile.
+**Why it happens:** The Copilot SDK is designed for its own agent loop (the Copilot CLI), not for LangChain's tool-call protocol. The SDK's own tool system uses `@define_tool` decorators + `tool.call` events internally. It does not surface tool selections as OpenAI-format JSON structures.
 
 **Consequences:**
-- Callback-based features (LangSmith tracing, streaming hooks) will not function correctly.
-- Adding `stop` words (used by some tool-calling patterns) will have no effect.
+- Standard `ToolNode` → model ReAct loop never triggers tool execution
+- Tools appear registered but are silently ignored
+- Agent always responds as if no tools are available
 
-**Prevention:** Implement both methods with the full canonical signature:
+**Two viable approaches (must choose before MCP-02 design):**
+
+*Approach A — Prompt-injection + text parsing (recommended):*
+- `bind_tools` serializes tool schemas into a `[TOOLS]` block in the system message
+- System prompt instructs: "When you need a tool, respond ONLY with `{"tool": "name", "args": {...}}`"
+- `_agenerate` parses response text: success → `AIMessage(content="", tool_calls=[...])`, failure → `AIMessage(content=text)`
+- This keeps tool invocations in LangGraph state as proper `ToolMessage` objects with full audit trail in PostgreSQL
+
+*Approach B — Copilot SDK native tool events:*
+- Register tools directly with `CopilotClient` via `@define_tool`
+- Handle `tool.call` events inside the SDK session
+- Return only the final text to LangGraph; tools are invisible to graph state
+- Simpler to implement, but loses LangGraph tool-state tracking and audit trail in checkpoints
+
+**Recommendation:** Approach A. The existing `_messages_to_prompt()` is already structured for extension; the codebase has PostgreSQL checkpoints that benefit from complete tool invocation history.
+
+**Detection:** Tools registered, no `tool_calls` present in any `AIMessage` in graph state, no tool execution fires.
+
+**Phase:** MCP-02. This architectural decision must precede graph design.
+
+---
+
+## High Severity Pitfalls
+
+### P3: `MultiServerMCPClient` Async Context Manager Removed in v0.1.0
+
+**What goes wrong:** Pre-0.1.0 examples and many tutorials show `async with MultiServerMCPClient(...) as client:`. This pattern was removed in v0.1.0. The new API uses direct method calls or the `session()` context manager. Using the old pattern raises `AttributeError` or `TypeError` at runtime.
+
+**Why it happens:** Breaking API change between langchain-mcp-adapters releases.
+
+**Consequences:**
+- Worker startup fails if initialization uses the old pattern
+- LLM-generated code and most online tutorials use the broken pattern
+
+**Prevention:**
 ```python
-def _generate(
-    self,
-    messages: List[BaseMessage],
-    stop: Optional[List[str]] = None,
-    run_manager: Optional[CallbackManagerForLLMRun] = None,
-    **kwargs: Any,
-) -> ChatResult: ...
+# WRONG (pre-0.1.0):
+async with MultiServerMCPClient(config) as client:
+    tools = await client.get_tools()
 
-async def _agenerate(
-    self,
-    messages: List[BaseMessage],
-    stop: Optional[List[str]] = None,
-    run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
-    **kwargs: Any,
-) -> ChatResult: ...
+# CORRECT (0.1.0+) — direct call:
+client = MultiServerMCPClient(config)
+tools = await client.get_tools()
+
+# CORRECT (0.1.0+) — explicit session for performance:
+async with client.session("mcp-server") as session:
+    tools = await session.get_tools()
 ```
 
-**Warning signs:** `_generate` or `_agenerate` signatures with no `stop` or `run_manager` parameter.
+**Detection:** `AttributeError: __aenter__` or `TypeError` on `async with MultiServerMCPClient(...)`.
 
-**Phase:** Address in Phase 1 (BaseChatModel implementation).
+**Phase:** MCP-01. Pin `langchain-mcp-adapters>=0.1.0` and verify the API pattern on first install.
 
 ---
 
-### Pitfall 4: LangGraph State Mutation — Overwriting Instead of Appending Messages
+### P4: MCP Client Re-initialized Per arq Job
 
-**What goes wrong:** If the `messages` field in `AgentState` is a plain `list` without a reducer, LangGraph uses last-write-wins semantics. A node that returns `{"messages": [new_ai_msg]}` will replace the entire conversation history with a single message, destroying all prior turns.
+**What goes wrong:** If `MultiServerMCPClient` is instantiated inside `process_chat()` (the arq job function), a new HTTP connection is established for every job. Under concurrent job load, this can exhaust FastMCP's connection capacity. The tool schema is also re-fetched on every job, even though it never changes at runtime.
 
-**Why it happens:** The reference `example_graph.py` manually constructs `state["messages"] + [ai_msg]`, which works but is fragile — it depends on the node always having the full history in state, and fails silently if a node ever returns a partial update.
+**Why it happens:** arq job functions share no state between invocations by default — only the `ctx` dict initialized in `startup()` is shared across job executions within the worker process.
 
 **Consequences:**
-- Multi-turn conversation history disappears after each turn.
-- Bugs are invisible until manually inspecting state (no exception is raised).
+- High per-job latency from repeated connection setup
+- FastMCP server flooded with `initialize` handshakes under concurrency
+- Tool list fetched redundantly on every job
 
-**Prevention:** Use `Annotated` with `add_messages` reducer from `langgraph.graph.message`:
+**Prevention:**
+Initialize in `startup()` and store in `ctx`:
 ```python
-from typing import Annotated
-from langgraph.graph.message import add_messages
+async def startup(ctx: dict) -> None:
+    ...
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+    ctx["mcp_client"] = MultiServerMCPClient({
+        "mcp-server": {
+            "url": "http://mcp-server:9000/mcp",
+            "transport": "http",
+        }
+    })
+    ctx["mcp_tools"] = await ctx["mcp_client"].get_tools()
+```
 
+The `MultiServerMCPClient` with HTTP transport does not hold a persistent connection by default (each `get_tools()` creates an ephemeral session); storing the client instance in `ctx` avoids repeated object creation overhead and allows tool list caching.
+
+**Warning sign:** Latency spikes on first tool call per job; FastMCP logs showing repeated `initialize` handshakes.
+
+**Phase:** MCP-01. Establish this lifecycle pattern before writing any job handler that uses MCP.
+
+---
+
+### P5: Claude Code CLI Subprocess Blocks Async Event Loop
+
+**What goes wrong:** Using `subprocess.run()` or `subprocess.Popen()` (synchronous) inside an `async def` arq job blocks the entire asyncio event loop for the duration of CLI execution. All other queued arq jobs hang. The arq heartbeat to Redis may time out, causing Redis to mark jobs as dead and the worker to restart.
+
+**Prevention:**
+```python
+# WRONG — blocks event loop:
+result = subprocess.run(["claude", "--print", prompt], capture_output=True)
+
+# CORRECT — non-blocking:
+proc = await asyncio.create_subprocess_exec(
+    "claude", "--print", prompt,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE,
+    env=_build_claude_env(),  # see P6
+)
+try:
+    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+except asyncio.TimeoutError:
+    proc.kill()
+    await proc.wait()  # reap zombie — do not skip this
+    raise RuntimeError("Claude Code CLI timed out after 120s")
+```
+
+**Detection:** Worker becomes unresponsive during Claude Code tool calls; other job types stall and time out in Redis.
+
+**Phase:** MCP-03. Mandatory pattern from the first line of the Claude Code handler.
+
+---
+
+### P6: Claude Code CLI Inherits `CLAUDECODE=1` — Nested Session Rejection
+
+**What goes wrong:** When the arq worker is run from within a Claude Code session (common in development), the `CLAUDECODE=1` environment variable is set in the parent process. The Claude Code CLI detects this and refuses to start, printing a "nested Claude Code session" error. The tool always fails in this context.
+
+**Why it happens:** Claude Code sets `CLAUDECODE=1` to prevent recursive self-invocation. The arq worker inherits the full parent environment, including this flag.
+
+**Real-world evidence:** Documented in GitHub issue anthropics/claude-agent-sdk-python#573. A related issue (anthropics/claude-code#18666) shows the subprocess also leaves zombie `claude` processes at 60-70% CPU on repeated failures.
+
+**Consequences:**
+- Claude Code tool consistently fails in dev when run from within Claude Code
+- Error looks like a permissions or auth failure — misleading
+- Zombie processes accumulate on the worker container
+
+**Prevention:**
+```python
+import os
+
+def _build_claude_env() -> dict[str, str]:
+    """Build subprocess env with CLAUDECODE cleared to prevent nested session error."""
+    env = os.environ.copy()
+    env.pop("CLAUDECODE", None)
+    env.pop("CLAUDE_CODE_ENTRYPOINT", None)
+    return env
+```
+
+Always use `_build_claude_env()` in `create_subprocess_exec()`. Add this utility function to the Claude Code handler module.
+
+**Detection:** Claude subprocess exits immediately with "cannot run inside another Claude Code session."
+
+**Phase:** MCP-03. Add env sanitization before first test run; will save hours of debugging.
+
+---
+
+### P7: `tool_calls` Infinite Loop — Agent Never Terminates
+
+**What goes wrong:** In a ReAct-style LangGraph loop, if the model continuously generates tool calls without ever producing a plain-text final answer, the graph runs until it hits the LangGraph `recursion_limit` (default: 25 steps). With `ChatCopilot` using the prompt-injection approach, a misformatted response or ambiguous termination instruction can cause this.
+
+**Consequences:**
+- arq job runs for the full `job_timeout=300s` (5 minutes of spinning)
+- N parallel jobs × 300s = runaway Copilot API consumption
+- User receives a timeout error with no partial result
+
+**Prevention:**
+Add an iteration counter to `AgentState`:
+```python
 class AgentState(TypedDict):
-    messages: Annotated[list, add_messages]
+    ...
+    tool_iterations: int  # annotated with operator.add for increment tracking
 ```
-With this, nodes only need to return the new message(s); the reducer appends automatically. Alternatively, use `MessagesState` from `langgraph.graph` which includes this reducer by default.
 
-**Warning signs:** `AgentState` with `messages: list` (no `Annotated`); node functions that return `state["messages"] + [...]`.
+In the `should_continue` routing function:
+```python
+MAX_TOOL_ITERATIONS = 10
 
-**Phase:** Address in Phase 1 (graph state design).
+def should_continue(state: AgentState) -> str:
+    last = state["messages"][-1]
+    if not isinstance(last, AIMessage) or not last.tool_calls:
+        return "end"
+    if state.get("tool_iterations", 0) >= MAX_TOOL_ITERATIONS:
+        return "end"
+    return "continue"
+```
+
+Also set `recursion_limit` defensively at invoke time:
+```python
+await graph.ainvoke(state, config={"recursion_limit": 20, ...})
+```
+
+**Detection:** Job runs 30+ seconds on simple queries; same tool called repeatedly in state messages.
+
+**Phase:** MCP-02. Bake into graph design from the first iteration — not a retrofit.
 
 ---
 
-### Pitfall 5: Pydantic v2 Incompatibility with `class Config` and `_client` Private Attribute
+### P8: Shell Injection via Tool Arguments
 
-**What goes wrong:** The reference `ChatCopilot` uses `class Config: arbitrary_types_allowed = True` (Pydantic v1 style) and assigns `_client: Any = None` as a class-level annotation. In Pydantic v2 (used by langchain-core >= 0.3), `class Config` is deprecated in favor of `model_config = ConfigDict(...)`. The `_client` annotation without `PrivateAttr()` may be treated as a model field (breaking serialization/validation) or silently ignored, depending on Pydantic's underscore handling rules.
+**What goes wrong:** Interpolating LLM-generated tool arguments into a shell command string enables command injection. A jailbroken model or a malicious prompt can cause arbitrary code execution on the worker container, which has access to PostgreSQL credentials, Redis, and the GitHub token.
 
-**Why it happens:** LangChain migrated to Pydantic v2 internally in langchain-core 0.3.0 (released 2024). Pre-migration examples use v1 patterns. The `langchain_core.pydantic_v1` shim was removed.
+**Real-world evidence:** Multiple CVEs documented in 2025-2026:
+- CVE-2025-59536: RCE via malicious Claude Code project configuration files
+- CVE-2025-54795: Prompt injection turning Claude against itself
+- phoenix.security: Three command injection flaws in Claude Code CLI enabling credential exfiltration
+
+**Prevention:**
+- Always use `asyncio.create_subprocess_exec(*args_list)` — the OS kernel handles argument quoting, not the shell
+- Never use `shell=True` with any user-controlled or LLM-generated content
+- Validate all tool arguments against a Pydantic schema before passing to subprocess
+- Run Claude Code with a restricted working directory; consider a separate sandboxed container for untrusted code execution
+
+**Detection:** Only caught by security audit or penetration test. No runtime warning.
+
+**Phase:** MCP-03. Security requirement, not optional. Must be reviewed at phase completion before any deployment.
+
+---
+
+## Medium Severity Pitfalls
+
+### P9: FastMCP `stdio` Transport Incompatible with Docker Multi-Container Setup
+
+**What goes wrong:** FastMCP's default `stdio` transport spawns a subprocess and communicates over stdin/stdout. This only works when the MCP server is a child process of the client. In Docker Compose, `worker` and `mcp-server` are separate containers — they cannot share a process pipe.
 
 **Consequences:**
-- `TypeError` when instantiating `ChatCopilot` if Pydantic rejects the old `Config` syntax.
-- `_client` may appear in model JSON schema or be reset on serialization.
-- `ValidationError` if `auth_manager: Any = None` causes issues without `arbitrary_types_allowed`.
+- `langchain-mcp-adapters` with `stdio` transport fails to connect from `worker` to `mcp-server`
+- Failure is at runtime (connection time), not at image build time
 
 **Prevention:**
 ```python
-from pydantic import ConfigDict, PrivateAttr
-
-class ChatCopilot(BaseChatModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    model: str = "gpt-4.1"
-    github_token: Optional[str] = None
-    auth_manager: Optional[Any] = None
-    _client: Any = PrivateAttr(default=None)
+# mcp_server/main.py
+mcp.run(transport="http", host="0.0.0.0", port=9000)
 ```
-Use `PrivateAttr` for `_client` so Pydantic tracks it correctly as instance state outside the model schema.
 
-**Warning signs:** `class Config:` inside any `BaseChatModel` subclass; `_client: Any = None` as a class-level annotation without `PrivateAttr`.
+```yaml
+# docker-compose.yml additions
+  mcp-server:
+    build: ./mcp_server
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-**Phase:** Address in Phase 1 (BaseChatModel implementation).
+  worker:
+    depends_on:
+      mcp-server:
+        condition: service_healthy  # worker waits for MCP server
+```
+
+Worker `MultiServerMCPClient` config must use `"transport": "http"` and address `http://mcp-server:9000/mcp`.
+
+**Detection:** `BrokenPipeError` or `ConnectionRefusedError` in worker logs at MCP connection time.
+
+**Phase:** MCP-01. Transport selection is a Docker architecture decision made before any code is written.
 
 ---
 
-### Pitfall 6: GitHub Copilot SDK Session Not Closed on Error / CopilotClient Lifecycle Mismanagement
+### P10: Tool Name Collisions Across MCP Servers
 
-**What goes wrong:** `_ensure_client()` lazily initializes `_client` and `_client.start()` opens a JSON-RPC subprocess connection to the Copilot CLI. If an exception occurs during `_agenerate` (e.g., network timeout, bad response), the client is left in an open/partially-failed state. Subsequent calls may reuse a broken client, producing cryptic errors or hangs. Additionally, `close()` is only called if the caller explicitly invokes it — there is no `__del__` or context manager safety net.
+**What goes wrong:** If multiple MCP servers expose tools with the same name, `get_tools()` returns a flat list where later definitions silently override earlier ones. The wrong tool handler gets called with no error.
 
-**Why it happens:** The reference implementation's lazy initialization has no error recovery path and no automatic lifecycle management.
+**Prevention:**
+```python
+client = MultiServerMCPClient(
+    config,
+    tool_name_prefix=True  # tools become "mcp-server__web_search" etc.
+)
+```
+
+Or use distinct names in FastMCP from the start: `web_search`, `db_query`, `claude_code_run`. Do not use generic names like `search` or `query`.
+
+**Phase:** MCP-01. Establish naming conventions when defining the first MCP tools.
+
+---
+
+### P11: Tavily Sync Client Blocks arq Event Loop
+
+**What goes wrong:** The default `TavilyClient` uses the synchronous `requests` library. Calling it inside an async arq job blocks the entire event loop identically to P5.
+
+**Prevention:**
+```python
+from tavily import AsyncTavilyClient
+
+# In startup():
+ctx["tavily_client"] = AsyncTavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+
+# In handler:
+result = await ctx["tavily_client"].search(query, max_results=5)
+```
+
+The free tier allows 100 RPM; the production tier allows 1000 RPM. No special rate-limit handling needed for 200-user internal usage, but add error handling for 429 responses.
+
+**Detection:** Event loop stalls during web search; other jobs time out concurrently.
+
+**Phase:** MCP-03. Enforced from the first implementation of the web search tool.
+
+---
+
+### P12: Tavily Response Size Overflows Copilot Model Context Window
+
+**What goes wrong:** Tavily's default search response includes full page content. When injected as a `ToolMessage` into the LangGraph message list and then serialized into `_messages_to_prompt()`, accumulated search results across multiple tool calls can exceed the Copilot model's context window.
+
+**Prevention:**
+```python
+# Preferred: built-in token limiting
+result = await client.search_context(query, max_tokens=3000)
+
+# Alternative: limit results and exclude raw content
+results = await client.search(query, max_results=3, include_raw_content=False)
+```
+
+Keep each `ToolMessage` content under 2000 tokens. If the Copilot model starts truncating or producing incoherent responses after several tool calls, this is the first thing to investigate.
+
+**Phase:** MCP-03. Apply from the first web search implementation.
+
+---
+
+### P13: `ToolNode` Silently Drops `invalid_tool_calls`
+
+**What goes wrong:** When the Copilot model generates tool call arguments that fail JSON parsing (which is more likely with the prompt-injection approach than with native tool-calling models), LangGraph creates `invalid_tool_calls` on the `AIMessage`. `ToolNode` ignores these entirely — no error is raised, no fallback fires, the graph proceeds as if no tool was requested.
+
+**Why it happens:** `ToolNode` only processes `AIMessage.tool_calls` (valid, parsed calls). `invalid_tool_calls` is a documented field on `AIMessage` but is not handled by `ToolNode`'s default implementation.
 
 **Consequences:**
-- Leaked subprocess connections accumulate over server lifetime.
-- A single failed request can corrupt all subsequent requests in the same server instance.
-- The Copilot CLI subprocess may zombie-process if `_client.stop()` is never called.
+- Silent tool failures especially likely with prompt-injection approach (P2/Approach A)
+- User receives a generic empty response with no indication of failure
+- Hard to debug without explicit logging
 
 **Prevention:**
-- Wrap `_agenerate` with try/except that resets `_client = None` on connection-level errors so the next call gets a fresh client.
-- Implement `ChatCopilot` as an async context manager (`__aenter__`/`__aexit__`) or use a lifespan handler in the web framework to ensure `close()` is always called.
-- Consider creating a new session per request (not a new client per request) — reuse the `CopilotClient` but create a fresh session object for each inference call, as sessions represent individual conversation contexts.
+```python
+def check_tool_errors(state: AgentState) -> str:
+    # Check the message before the last ToolMessages
+    for msg in reversed(state["messages"]):
+        if isinstance(msg, AIMessage):
+            if msg.invalid_tool_calls:
+                logger.warning("invalid_tool_calls: %s", msg.invalid_tool_calls)
+                return "error_recovery"
+            break
+    return "continue"
+```
 
-**Warning signs:** No `try/finally` in `_agenerate`; no lifespan shutdown hook calling `llm.close()`.
+Add an explicit error-recovery node that returns a "I had trouble calling the tool, please rephrase" response.
 
-**Phase:** Address in Phase 1 (BaseChatModel) and Phase 2 (web server lifespan wiring).
-
----
-
-### Pitfall 7: GitHub Copilot OAuth Token Stored Without Expiry Validation
-
-**What goes wrong:** The `load_token()` method reads the encrypted token and returns it without checking whether it is still valid. GitHub device flow tokens (`ghu_` prefix) can be revoked by the user, expire per GitHub's token policy, or be invalidated when the user's Copilot subscription changes. Passing a stale token to `CopilotClient` will produce an authentication error at SDK call time — potentially mid-conversation.
-
-**Why it happens:** The saved payload includes `saved_at` but there is no expiry check in `load_token()`. GitHub's token lifetime for device flow tokens issued to third-party OAuth apps is not deterministically documented, but tokens can become invalid at any time.
-
-**Consequences:**
-- Users get an opaque SDK error mid-session rather than a clean "please re-authenticate" flow.
-- If the token error is not distinguished from other errors, the app may retry forever or crash.
-
-**Prevention:**
-- Wrap the `CopilotClient` call in a try/except that catches authentication errors, deletes the stored token, and triggers `device_login()` again.
-- Surface a clear "Token expired — please re-authenticate" response to the UI rather than a generic 500.
-- Consider storing a `last_used_at` timestamp and proactively re-authenticating if the token hasn't been used in > 30 days.
-
-**Warning signs:** `load_token()` returning a value without any validity check; no exception handler distinguishing auth errors from other SDK errors.
-
-**Phase:** Address in Phase 2 (auth flow and error handling).
-
----
-
-### Pitfall 8: Fernet Encryption Key Stored Next to the Encrypted File
-
-**What goes wrong:** The reference implementation stores the Fernet key at `~/.copilot_sdk/.enc_key` and the encrypted token at `~/.copilot_sdk/token.enc` — in the same directory. If an attacker (or a backup/sync tool) reads both files, the encryption provides no protection. The key and ciphertext must be separate secrets; co-locating them makes encryption theater.
-
-**Why it happens:** Convenience — keeping both in the same directory simplifies path management.
-
-**Consequences:**
-- Anyone with filesystem read access to `~/.copilot_sdk/` can decrypt the GitHub token.
-- Backup tools (Time Machine, Dropbox, rsync) that sync `~` may upload both files to cloud storage.
-
-**Prevention:**
-- Prefer `COPILOT_TOKEN_ENC_KEY` environment variable (already supported in the reference code) as the primary key source, using the file-based key only as a developer fallback.
-- Document clearly that `.enc_key` must not be committed to version control or synced to cloud storage (add to `.gitignore`).
-- Consider using system keychain (macOS Keychain, Linux Secret Service via `keyring` library) instead of a file-based key for production use.
-- Add `~/.copilot_sdk/` to `.gitignore`.
-
-**Warning signs:** `~/.copilot_sdk/.enc_key` committed to git; no `.gitignore` entry for the key.
-
-**Phase:** Address in Phase 2 (auth/token storage setup).
-
----
-
-## Moderate Pitfalls
-
----
-
-### Pitfall 9: LangGraph Graph Not Compiled Before Use / Recompilation on Every Request
-
-**What goes wrong:** `build_graph()` calls `graph.compile()` each time it is invoked. If `build_graph` is called inside a request handler, compilation overhead is paid on every request. More critically, if `compile()` is called without adding all required edges (e.g., forgetting `graph.set_entry_point()` or leaving a node without outgoing edges), the graph silently produces no output rather than raising at construction time.
-
-**Prevention:** Compile the graph once at application startup (module level or in the lifespan handler) and store the compiled graph as a singleton. Verify compilation produces the expected graph structure with a startup smoke test.
-
-**Warning signs:** `build_graph()` called inside a request handler; no startup validation of the compiled graph.
-
-**Phase:** Address in Phase 2 (web server wiring).
-
----
-
-### Pitfall 10: `_messages_to_prompt()` Converts Structured Messages to a Flat String
-
-**What goes wrong:** The reference implementation collapses the LangChain `BaseMessage` list into a single string with `[User]: / [Assistant]:` prefixes. This loses structured message metadata and makes it impossible to later pass tool call results (which have their own message type `ToolMessage`) or use native system prompt handling. The Copilot SDK may have its own session context management that expects prompts in a specific format.
-
-**Prevention:**
-- Investigate whether the Copilot SDK `session.send_and_wait()` accepts structured turn-based input rather than a single concatenated string.
-- If flat string is required, ensure the format exactly matches what the Copilot model was trained to recognize as a conversation delimiter. Test with multi-turn conversations early.
-- Design the prompt serialization as a separate injectable function so it can be swapped without touching the core model class.
-
-**Warning signs:** `_messages_to_prompt` returning a joined string; test cases with multi-turn conversations are absent.
-
-**Phase:** Address in Phase 1 (BaseChatModel implementation) with multi-turn test validation.
-
----
-
-### Pitfall 11: Missing `_llm_type` Property Causes Silent Serialization Failures
-
-**What goes wrong:** `_llm_type` is an abstract property required by `BaseChatModel`. While the reference code includes it, if it is accidentally omitted in a refactor, LangChain will raise `NotImplementedError` only when serialization or certain introspection paths are triggered — not at instantiation time.
-
-**Prevention:** Add a unit test that instantiates `ChatCopilot` and asserts `llm._llm_type == "github-copilot"`. This also confirms the class can be constructed without credentials in test environments (using `github_token="test"`).
-
-**Warning signs:** No unit test covering `ChatCopilot` instantiation.
-
-**Phase:** Address in Phase 1 (BaseChatModel implementation).
-
----
-
-### Pitfall 12: LangGraph `MemorySaver` Is Not Safe for Production / Multi-Process Deployment
-
-**What goes wrong:** `MemorySaver` (in-memory checkpointer) stores all thread state in the Python process's heap. If the web server restarts, all conversation history is lost. If multiple worker processes are used (e.g., Uvicorn with `--workers 2`), each process has its own disconnected memory and requests will be routed to the wrong state.
-
-**Prevention:**
-- For v1 (single-process personal tool), `MemorySaver` is acceptable but document the restart-loses-history limitation.
-- Use `thread_id` per conversation and pass it consistently via the LangGraph config: `graph.ainvoke(state, config={"configurable": {"thread_id": session_id}})`.
-- Design the thread_id → conversation mapping in the web layer so it can be swapped for a persistent checkpointer later without graph changes.
-
-**Warning signs:** Deploying with `--workers > 1` while using `MemorySaver`; no `thread_id` in graph invocation config.
-
-**Phase:** Note in Phase 2 (web architecture); upgrade path documented for future milestone.
-
----
-
-### Pitfall 13: Device Flow `device_login()` Cannot Run Inside a Web Request Handler
-
-**What goes wrong:** `device_login()` is an interactive flow that prints instructions to stdout and polls in a loop with `asyncio.sleep`. If a web request triggers `get_token()` and the token is missing, the request handler will block indefinitely waiting for the user to authenticate in a browser — with no timeout and no feedback to the HTTP client.
-
-**Prevention:**
-- Treat authentication as a prerequisite: validate token presence at app startup, not lazily inside request handlers.
-- Expose a dedicated `/auth/login` endpoint that streams the device code URL to the frontend, then poll `/auth/status` until the token is stored.
-- Add a timeout to the `device_login()` loop (GitHub device codes expire after 15 minutes).
-
-**Warning signs:** `auth_manager.get_token()` called inside a FastAPI route handler without prior token validation.
-
-**Phase:** Address in Phase 2 (auth endpoint design).
-
----
-
-### Pitfall 14: Technical Preview SDK Breaking Changes Without Notice
-
-**What goes wrong:** `github/copilot-sdk` is explicitly labeled Technical Preview. Breaking changes to the Python package (`github-copilot-sdk` on PyPI) — including renamed classes, changed constructor parameters, or altered JSON-RPC protocol — can occur in any minor version bump without a deprecation window.
-
-**Prevention:**
-- Pin the SDK to an exact version in `requirements.txt` or `pyproject.toml` (e.g., `github-copilot-sdk==x.y.z`).
-- Isolate all SDK calls behind a thin adapter layer (`copilot_langchain.py` already partially achieves this) — the rest of the codebase should never import from `copilot` directly.
-- Add a `CHANGELOG` watch or GitHub release notification for `github/copilot-sdk`.
-- Write integration tests that run against the pinned SDK version so regressions from upgrades are caught before deployment.
-
-**Warning signs:** Unpinned `github-copilot-sdk` dependency; `from copilot import ...` imports outside the adapter module.
-
-**Phase:** Address in Phase 1 (dependency pinning and adapter boundary design).
+**Phase:** MCP-02. Add to graph design as an explicit error edge from the start.
 
 ---
 
 ## Minor Pitfalls
 
----
+### P14: FastMCP Health Check Only Works on HTTP Transport
 
-### Pitfall 15: Frontend SSE / Streaming Not Planned For, Causing Architectural Rework Later
-
-**What goes wrong:** Streaming is out of scope for v1, but the architecture chosen now will determine how easy it is to add. Using a simple request/response JSON API (`POST /chat → full response`) makes streaming a backward-incompatible change to the API contract, requiring frontend rewrites.
+**What goes wrong:** FastMCP's automatic health check endpoint is transport-dependent — it only exists for `http`/`httpStream` transports. Even with HTTP transport, the default path and configuration may not match Docker's `CMD-SHELL` expectations.
 
 **Prevention:**
-- Design the backend endpoint with streaming in mind even if not implemented: use FastAPI's `StreamingResponse` with a generator that currently yields a single chunk (the full response). This keeps the API contract streaming-compatible.
-- On the frontend, if using `fetch`, write the response consumer as a streaming reader even if it currently just reads the whole body.
+Always add an explicit custom health route to FastMCP:
+```python
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 
-**Warning signs:** Backend endpoint returning `{"response": "..."}` JSON rather than an NDJSON or SSE-compatible format.
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> PlainTextResponse:
+    return PlainTextResponse("ok")
+```
 
-**Phase:** Note in Phase 2 (API design); no implementation required until streaming is added.
+This ensures the health check works regardless of transport configuration changes.
+
+**Phase:** MCP-01.
 
 ---
 
-### Pitfall 16: GitHub Device Code Polling Does Not Handle `slow_down` Correctly
+### P15: arq Timeout + Claude Code Zombie Subprocess
 
-**What goes wrong:** The reference `device_login()` adds 5 seconds to `interval` on `slow_down` but does not also `await asyncio.sleep(interval)` before retrying — the `continue` statement skips the sleep at the top of the loop. This means the app may hammer the GitHub token endpoint faster than allowed, causing further `slow_down` responses and eventual rate-limit errors.
+**What goes wrong:** The current `WorkerSettings.job_timeout = 300` (5 minutes) applies to all job types. Claude Code tasks that exceed this limit cause arq to mark the job as failed — but the `claude` subprocess may continue running as a zombie on the container, consuming CPU (the documented 60-70% CPU zombie issue from claude-code#18666).
 
-**Prevention:** Restructure the polling loop so the sleep always occurs at the beginning (or end) of every iteration, regardless of the error code received.
+**Prevention:**
+- Add `asyncio.wait_for(proc.communicate(), timeout=120)` inside the Claude Code handler (internal timeout shorter than arq's)
+- In the `TimeoutError` handler: always call `proc.kill()` then `await proc.wait()` to reap the zombie process
+- Consider a dedicated `claude_code` arq function with a higher per-function timeout if 120s is insufficient
 
-**Warning signs:** `slow_down` branch does not explicitly sleep before the next poll.
+**Phase:** MCP-03. Handle on first implementation; do not defer.
 
-**Phase:** Address in Phase 2 (auth flow implementation).
+---
+
+## The Hardest Problem: Copilot SDK vs. LangGraph Tool Protocol
+
+P1 and P2 together represent the most architecturally significant challenge. This is not a configuration issue — it requires a deliberate design decision before MCP-02 begins.
+
+**The core impedance mismatch:**
+- LangGraph `ToolNode` expects: `AIMessage(tool_calls=[{"name": "...", "args": {...}, "id": "..."}])`
+- Copilot SDK produces: `response.data.content = "some plain text string"`
+
+**Option comparison:**
+
+| Option | Complexity | Tool state in checkpoints | LangGraph ToolNode works |
+|--------|------------|--------------------------|-------------------------|
+| Prompt injection + text parsing (Approach A) | Medium | Yes — full `ToolMessage` history | Yes, with custom `_agenerate` parsing |
+| Copilot SDK native tool events (Approach B) | Low | No — tools invisible to graph state | No — custom dispatch only |
+| Separate OpenAI/Claude model for tool-calling turns | High | Yes | Yes |
+
+**Recommended path:** Approach A (prompt injection + parsing).
+
+Rationale:
+- `_messages_to_prompt()` is already structured for extension
+- PostgreSQL checkpoints capture complete tool invocation history (valuable for 200-user internal audit)
+- Copilot models (Claude Sonnet, GPT-4.1) reliably produce structured JSON with clear prompting
+- Avoids adding a second model provider dependency
+
+**Recommended system prompt template for `bind_tools`:**
+```
+You have access to tools. When you need to use a tool, respond ONLY with valid JSON:
+{"tool": "<tool_name>", "args": {<arguments>}}
+
+When you have a final answer, respond with plain text (no JSON).
+
+Available tools:
+[TOOL_SCHEMAS_HERE]
+```
+
+The JSON-vs-text distinction is the termination condition that prevents P7 (infinite loop).
 
 ---
 
 ## Phase-Specific Warnings
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|---|---|---|
-| Phase 1: BaseChatModel implementation | Pydantic v2 Config syntax; private `_client` field; missing `stop`/`run_manager` params; calling `_agenerate` directly in graph | Write full canonical signature; use `PrivateAttr`; use `model_config = ConfigDict` |
-| Phase 1: Graph state design | Missing `add_messages` reducer; last-write-wins destroying history | Use `Annotated[list, add_messages]` from day one |
-| Phase 1: SDK adapter boundary | Technical Preview breaking changes; `from copilot import` scattered | Pin version; single adapter module |
-| Phase 2: Web server wiring | Event loop conflict in `_generate`; graph recompilation per request; device flow blocking requests | ASGI-only path (`ainvoke`); compile at startup; prerequisite token check |
-| Phase 2: Auth endpoint | Device flow blocking; token expiry not handled; key co-located with ciphertext | Dedicated auth endpoints; try/except on auth errors; env-var key |
-| Phase 2: Session lifecycle | CopilotClient leaked on error; zombie CLI subprocess | Context manager or lifespan hook; reset `_client` on error |
-| Future: Streaming | Non-streaming API contract incompatible with SSE | Design endpoint as `StreamingResponse` even when yielding one chunk |
-| Future: Persistent checkpointer | `MemorySaver` lost on restart; multi-worker split-brain | Document limitation; thread_id abstracted for easy swap |
+| Phase | Topic | Likely Pitfall | Mitigation |
+|-------|-------|---------------|------------|
+| MCP-01 | FastMCP Docker service | `stdio` incompatible with Docker (P9) | Use `http` transport from the start |
+| MCP-01 | langchain-mcp-adapters install | Async context manager API removed (P3) | Pin `>=0.1.0`; use `session()` or direct call pattern |
+| MCP-01 | arq startup MCP lifecycle | Per-job connection overhead (P4) | Initialize in `startup()`; store in `ctx` |
+| MCP-01 | FastMCP health check | Only works on HTTP transport (P14) | Add `@mcp.custom_route("/health")` explicitly |
+| MCP-01 | Tool naming | Silent name collisions (P10) | Enable `tool_name_prefix=True`; use distinct names |
+| MCP-02 | `bind_tools` in `ChatCopilot` | No implementation exists (P1) | Implement before any graph work |
+| MCP-02 | Tool dispatch architecture | No native `tool_calls` from SDK (P2) | Decide Approach A vs B; design graph around the choice |
+| MCP-02 | ReAct graph design | Infinite loop risk (P7) | Add `tool_iterations` counter to state; set `recursion_limit` |
+| MCP-02 | Tool call error handling | Silent `invalid_tool_calls` drops (P13) | Add explicit error-recovery edge in graph |
+| MCP-03 | Claude Code handler | Subprocess blocks event loop (P5) | Use `asyncio.create_subprocess_exec()` always |
+| MCP-03 | Claude Code handler | Nested session env var (P6) | Unset `CLAUDECODE` in subprocess env |
+| MCP-03 | Claude Code handler | Shell injection (P8) | List args only; never `shell=True`; schema-validate args |
+| MCP-03 | Claude Code handler | Zombie subprocess on timeout (P15) | `proc.kill()` + `await proc.wait()` in `TimeoutError` handler |
+| MCP-03 | Web search tool | Sync Tavily client (P11) | Use `AsyncTavilyClient`; init in `startup()` |
+| MCP-03 | Web search tool | Response size overflow (P12) | Use `search_context(max_tokens=3000)` |
 
 ---
 
 ## Sources
 
-- LangGraph state management and reducers: [LangGraph Best Practices](https://www.swarnendu.de/blog/langgraph-best-practices/) | [LangGraph Notes: State Management](https://medium.com/@omeryalcin48/langgraph-notes-state-management-62ea5b5a5cdd)
-- `add_messages` reducer pattern: [DeepWiki: StateGraph and MessagesState](https://deepwiki.com/langchain-ai/langchain-academy/3.1-stategraph-and-messagesstate) | [LangGraph Use Graph API](https://docs.langchain.com/oss/python/langgraph/use-graph-api)
-- LangChain v0.3 Pydantic v2 migration: [Announcing LangChain v0.3](https://blog.langchain.com/announcing-langchain-v0-3/) | [LangChain Pydantic Compatibility](https://python.langchain.com/v0.2/docs/how_to/pydantic_compatibility/)
-- `BaseChatModel` abstract method signatures: [LangChain API Reference](https://python.langchain.com/api_reference/core/language_models/langchain_core.language_models.chat_models.BaseChatModel.html) | [Custom Chat Model Implementation](https://sweets.chat/blog/article/implementing-a-custom-chat-model-with-langchain)
-- asyncio nested event loop: [FastAPI Concurrency Guide](https://fastapi.tiangolo.com/async/) | [RuntimeError: asyncio.run() cannot be called from a running event loop](https://github.com/run-llama/llama_index/issues/9978)
-- Copilot SDK architecture: [GitHub Copilot SDK](https://github.com/github/copilot-sdk) | [DeepWiki: Copilot SDK](https://deepwiki.com/github/copilot-sdk) | [DeepWiki: Authentication and Token Management](https://deepwiki.com/github/copilot-cli/6.7-authentication-and-token-management)
-- Fernet key management: [Cryptography Fernet docs](https://cryptography.io/en/latest/fernet/) | [MultiFernet key rotation](https://www.geeksforgeeks.org/multifernet-module-in-python/)
-- LangGraph checkpoint and thread_id: [Mastering Persistence in LangGraph](https://medium.com/@vinodkrane/mastering-persistence-in-langgraph-checkpoints-threads-and-beyond-21e412aaed60) | [LangGraph Checkpointing Best Practices 2025](https://sparkco.ai/blog/mastering-langgraph-checkpointing-best-practices-for-2025)
-- SSE and streaming future-proofing: [SSE with FastAPI and LangGraph](https://www.softgrade.org/sse-with-fastapi-react-langgraph/) | [sse-starlette PyPI](https://pypi.org/project/sse-starlette/)
-- Pydantic PrivateAttr: [Pydantic Models docs](https://docs.pydantic.dev/latest/concepts/models/)
+- [LangChain Discussion #26146: Add bind_tools to custom BaseChatModel](https://github.com/langchain-ai/langchain/discussions/26146)
+- [LangGraph Issue #5135: bind_tools raises NotImplementedError](https://github.com/langchain-ai/langgraph/issues/5135)
+- [LangChain Issue #21479: bind_tools NotImplementedError with ChatOllama (non-OpenAI model)](https://github.com/langchain-ai/langchain/issues/21479)
+- [langchain-mcp-adapters: MultiServerMCPClient — DeepWiki](https://deepwiki.com/langchain-ai/langchain-mcp-adapters/2.1-multiservermcpclient)
+- [langchain-mcp-adapters — GitHub](https://github.com/langchain-ai/langchain-mcp-adapters)
+- [langchain-mcp-adapters — PyPI](https://pypi.org/project/langchain-mcp-adapters/)
+- [FastMCP Server documentation](https://gofastmcp.com/servers/server)
+- [FastMCP Server lifecycle — DeepWiki](https://deepwiki.com/jlowin/fastmcp/2.1-server-lifecycle-and-initialization)
+- [arq documentation v0.27.0](https://arq-docs.helpmanual.io/)
+- [arq + SQLAlchemy: async lifecycle patterns](https://wazaari.dev/blog/arq-sqlalchemy-done-right)
+- [anthropics/claude-agent-sdk-python Issue #573: CLAUDECODE=1 nested session](https://github.com/anthropics/claude-agent-sdk-python/issues/573)
+- [anthropics/claude-code Issue #18666: subprocess hang and zombie processes](https://github.com/anthropics/claude-code/issues/18666)
+- [Check Point Research: RCE via Claude Code project files (CVE-2025-59536)](https://research.checkpoint.com/2026/rce-and-api-token-exfiltration-through-claude-code-project-files-cve-2025-59536/)
+- [phoenix.security: Command injection flaws in Claude Code CLI](https://phoenix.security/critical-ci-cd-nightmare-3-command-injection-flaws-in-claude-code-cli-allow-credential-exfiltration/)
+- [Tavily rate limits documentation](https://docs.tavily.com/documentation/rate-limits)
+- [Tavily Python SDK — PyPI](https://pypi.org/project/tavily-python/0.6.0/)
+- [Python asyncio subprocess guide](https://docs.python.org/3/library/asyncio-dev.html)
+- [LangGraph Discussion #1725: GraphRecursionError in tool loops](https://github.com/langchain-ai/langgraph/discussions/1725)
+- [LangGraph Issue #5548: ReAct agent recursion limit not thrown](https://github.com/langchain-ai/langgraph/issues/5548)
+- [LangChain Issue #33504: invalid_tool_calls dropped by ToolNode](https://github.com/langchain-ai/langchain/issues/33504)
+- [github-copilot-sdk PyPI](https://pypi.org/project/github-copilot-sdk/)
+- [Docker Compose inter-container networking](https://dohost.us/index.php/2025/07/28/networking-in-docker-compose-inter-container-communication/)

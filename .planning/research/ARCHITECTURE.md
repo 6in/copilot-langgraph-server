@@ -1,403 +1,377 @@
-# Architecture Patterns
+# Architecture: v5.0 Agent Tool Platform — MCP Integration
 
-**Domain:** LangGraph-powered chat web application with custom Copilot provider
-**Researched:** 2026-03-31
-**Confidence:** HIGH (LangGraph/FastAPI patterns verified via official docs and multiple corroborating sources)
+**Project:** Copilot LangGraph Chat
+**Milestone:** v5.0 Agent Tool Platform
+**Researched:** 2026-04-09
+**Confidence:** HIGH (existing code read directly; library APIs verified via official sources)
 
 ---
 
-## Recommended Architecture
+## Executive Summary
 
-The application is a single-process Python server. It has four clearly bounded layers that
-communicate in one direction: the web layer calls the graph layer, which calls the provider
-layer, which calls the auth layer. No layer reaches back up.
+v5.0 adds MCP-based tool execution to the existing OrchestratorGraph. The core integration is:
+
+1. A new `mcp-server` Docker service (FastMCP 3.x, streamable-http transport) exposes tools as MCP methods.
+2. The `worker` service connects via `langchain-mcp-adapters` (v0.2.2) `MultiServerMCPClient` — one client instance per-job, scoped inside `OrchestratorHandler.handle()`.
+3. `OrchestratorGraph` gains a new `AgentNode` + `ToolNode` pair inside each agent node, replacing the current single `SubAgent.run()` call with a ReAct loop.
+4. `RouterNode` is unchanged. Tool execution runs after routing, inside the selected agent.
+
+The constraint driving all decisions: arq workers are short-lived async functions, not long-running servers. Connection lifecycle must be per-job (create in handle(), close before return). Persistent sessions across jobs are not feasible without shared state that arq does not provide.
+
+---
+
+## Component Diagram (ASCII)
 
 ```
 Browser
-  │  HTTP POST /chat  (JSON: thread_id, message)
-  │  HTTP GET  /auth/status
-  ▼
-┌─────────────────────────────────┐
-│  Web Layer  (FastAPI)           │  Owns: HTTP routing, request/response shape,
-│  app/api/                       │        lifespan startup, thread_id generation
-└─────────────────┬───────────────┘
-                  │ await graph.ainvoke(state, config)
-                  ▼
-┌─────────────────────────────────┐
-│  Graph Layer  (LangGraph)       │  Owns: StateGraph definition, node wiring,
-│  app/graph/                     │        MemorySaver checkpointer, thread state
-└─────────────────┬───────────────┘
-                  │ await llm._agenerate(messages)
-                  ▼
-┌─────────────────────────────────┐
-│  Provider Layer  (ChatCopilot)  │  Owns: BaseChatModel contract, message
-│  app/providers/                 │        serialization, CopilotClient lifecycle
-└─────────────────┬───────────────┘
-                  │ await auth_manager.get_token()
-                  ▼
-┌─────────────────────────────────┐
-│  Auth Layer  (CopilotAuth)      │  Owns: Device Flow OAuth, Fernet
-│  app/auth/                      │        encryption, token file I/O
-└─────────────────────────────────┘
-                  │ JSON-RPC
-                  ▼
-            Copilot CLI (server mode)
+  |
+  | HTTP/SSE
+  v
+[FastAPI :8000]
+  |  POST /api/chat  -->  Redis (arq queue)
+  |  GET  /api/job/:id/stream  <--  Redis (result store)
+  |
+  v
+[arq Worker]
+  |
+  |  TASK_HANDLERS["orchestrator"]
+  v
+[OrchestratorHandler]
+  |
+  |  per-job: MultiServerMCPClient({"mcp": {transport, url}})
+  |           .get_tools()  -->  list[BaseTool]
+  |
+  v
+[OrchestratorGraph]  (LangGraph StateGraph)
+  |
+  |  RouterNode  (keyword to LLM, unchanged)
+  |      |
+  |      v  (conditional edges by agent name)
+  |  [AgentNode_1]  [AgentNode_2]  ...  [fallback]
+  |      |
+  |      |  llm.bind_tools(mcp_tools)
+  |      |  "agent" node  ->  conditional ->  "tools" node  ->  back to "agent"
+  |      |  (ReAct loop until no more tool_calls)
+  |      |
+  |      v
+  |    output
+  |
+  v
+  result  -->  Redis (job_store.save_result)  -->  SSE notification
+
+[mcp-server :8001]  (FastMCP, streamable-http, Docker internal only)
+  |
+  |  /mcp  endpoint
+  |
+  +--  tool: web_search     -->  Tavily API (external HTTP)
+  +--  tool: db_query       -->  PostgreSQL (read-only, is_select_only guard)
+  +--  tool: claude_code    -->  subprocess: claude-code CLI
 ```
 
----
-
-## Component Boundaries
-
-| Component | Responsibility | Communicates With | Must NOT Touch |
-|-----------|---------------|-------------------|----------------|
-| `app/api/routes.py` | HTTP endpoints, request validation, response formatting | Graph layer only | LangChain, Copilot SDK directly |
-| `app/api/lifespan.py` | FastAPI lifespan: build graph, init checkpointer, attach to `app.state` | Graph layer, Auth layer | Business logic |
-| `app/graph/graph.py` | `build_graph()` factory, `StateGraph` definition, node wiring, `MemorySaver` | Provider layer | Web layer |
-| `app/graph/state.py` | `ChatState` TypedDict with `add_messages` reducer | Nothing | — |
-| `app/graph/nodes.py` | Pure node functions: receive state, call LLM, return state delta | Provider layer (via injected `llm`) | Auth, web framework |
-| `app/providers/copilot.py` | `ChatCopilot(BaseChatModel)`: message format translation, `CopilotClient` lifecycle | Auth layer | Web layer, graph internals |
-| `app/auth/manager.py` | `CopilotAuthManager`: Device Flow, Fernet encrypt/decrypt, token file | `httpx`, filesystem | Everything else |
+Docker network: all services on the default Compose network.
+Worker reaches mcp-server at `http://mcp-server:8001/mcp`.
 
 ---
 
-## State Design
+## Transport Decision: streamable-http (not stdio, not SSE)
 
-Use `MessagesState` from `langgraph.graph.message` (or an equivalent TypedDict) for the
-graph state. This is the standard LangGraph pattern for chat — the `add_messages` reducer
-appends rather than overwrites, which is what multi-turn conversation requires.
+| Transport | Viable for Docker? | Why |
+|-----------|-------------------|-----|
+| `stdio` | NO | Requires subprocess spawn from worker. Breaks Docker service isolation. Cannot reuse across tool calls in same job. |
+| `sse` | Partially | SSE transport is legacy in MCP spec. Requires GET + POST pair. Session-affinity issues with multiple workers. |
+| `streamable-http` | YES (recommended) | Single HTTP endpoint (`/mcp`). Worker connects over Docker internal DNS (`http://mcp-server:8001/mcp`). Stateless mode (`stateless_http=True`) eliminates session-affinity issues across multiple worker replicas. Official FastMCP recommendation for server deployments. |
 
+FastMCP server config:
 ```python
-# app/graph/state.py
-from typing import Annotated
-from langgraph.graph import add_messages
-from langchain_core.messages import BaseMessage
-
-class ChatState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-    # v1: no extra fields needed
-    # future: model_name: str, tool_results: list, etc.
+# mcp_server/main.py
+mcp.run(transport="streamable-http", host="0.0.0.0", port=8001)
+# OR for stateless (preferred for multi-worker):
+app = mcp.http_app(stateless_http=True)
 ```
 
-**Why not store messages in the web layer or a separate store?** The LangGraph checkpointer
-(keyed by `thread_id`) IS the store. The graph state is the source of truth for conversation
-history. The web layer holds nothing — it reads the last message from the state returned by
-`ainvoke()`.
-
-**What `messages` contains:** A flat list of `HumanMessage`, `AIMessage`, and optionally
-`SystemMessage`. The `add_messages` reducer handles deduplication by message ID, so
-re-delivering the same user message is safe.
-
----
-
-## Graph Node Design
-
-The v1 graph is intentionally minimal — one node, one edge to END. This is the correct
-starting point for a chat app with no tool calls. The node structure is designed to accept
-tools later without rewiring.
-
-```
-ENTRY → [agent_node] → END
-```
-
+MultiServerMCPClient config (in worker):
 ```python
-# app/graph/nodes.py
-async def agent_node(state: ChatState, llm: BaseChatModel) -> dict:
-    response = await llm.ainvoke(state["messages"])
-    return {"messages": [response]}  # add_messages appends this
+MultiServerMCPClient({
+    "mcp": {
+        "transport": "streamable_http",
+        "url": "http://mcp-server:8001/mcp"
+    }
+})
 ```
 
-The node receives the full message history via `state["messages"]` and returns only the
-new AI message. The `add_messages` reducer merges it. The LLM receives the full history,
-giving it multi-turn context automatically.
+---
 
-**Injecting the LLM into the node:** Use a closure (factory function) rather than a global.
-This keeps the node testable and makes the Copilot dependency replaceable.
+## MCP Client Lifecycle: Per-Job (not persistent)
 
+**Decision:** Create and discard `MultiServerMCPClient` inside each `OrchestratorHandler.handle()` call.
+
+**Rationale:**
+- arq workers are stateless async functions. The `ctx` dict survives across jobs (worker process lifetime), but storing an open HTTP session in `ctx` risks connection leaks if a job fails mid-tool-call.
+- `MultiServerMCPClient` with streamable-http transport is lightweight — each `.get_tools()` call does one HTTP round-trip to list tools, then individual tool calls do one HTTP request each. No persistent WebSocket.
+- Per-job scope matches the existing pattern for `AsyncPostgresSaver` (created fresh per job in `OrchestratorHandler`).
+- If performance profiling later shows per-job client creation is a bottleneck, migrate to a persistent client stored in `ctx["mcp_client"]` during `startup()`. But start simple.
+
+Pattern:
 ```python
-# app/graph/graph.py
-def build_graph(llm: BaseChatModel) -> CompiledGraph:
-    checkpointer = MemorySaver()
-    builder = StateGraph(ChatState)
-    builder.add_node("agent", partial(agent_node, llm=llm))
-    builder.set_entry_point("agent")
-    builder.add_edge("agent", END)
-    return builder.compile(checkpointer=checkpointer)
+# Inside OrchestratorHandler.handle()
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+mcp_url = os.getenv("MCP_SERVER_URL", "http://mcp-server:8001/mcp")
+client = MultiServerMCPClient({"mcp": {"transport": "streamable_http", "url": mcp_url}})
+tools = await client.get_tools()
+graph = build_orchestrator_graph(registry, github_token, tools=tools, checkpointer=checkpointer)
+result = await graph.ainvoke(initial, config=config)
 ```
 
-**Future-proofing for tools:** When `bind_tools()` is added, the graph gains a `tools_node`
-and conditional edges. The `agent_node` and `ChatState` do not need to change.
+Note on async context manager: langchain-mcp-adapters v0.2.2 (March 2026) may or may not support `async with MultiServerMCPClient(...) as client:` — v0.1.0 explicitly removed this. Verify against current README on install. Fallback: direct instantiation with no context manager (tools are loaded before graph runs, no cleanup needed for stateless HTTP transport).
 
 ---
 
-## Provider Isolation Pattern
+## OrchestratorGraph Changes: Where bind_tools Goes
 
-`ChatCopilot` is the only place in the codebase that imports `copilot` (the SDK). No other
-module touches the SDK. This is enforced by convention, not a language boundary, but it
-means replacing the SDK requires editing exactly one file.
-
-The `BaseChatModel` contract is the seam:
-
+### Current flow (v4.0)
 ```
-Graph nodes use: BaseChatModel (abstract)
-                        ↑
-                 ChatCopilot (concrete, isolates SDK)
+RouterNode -> SubAgent.run() -> END
+```
+`SubAgent.run()` calls `self._llm.ainvoke(messages)` — single LLM call, no tool loop.
+
+### New flow (v5.0)
+```
+RouterNode -> AgentNode (ReAct loop: llm.bind_tools -> ToolNode -> llm -> ...) -> END
 ```
 
-If GitHub changes the SDK's API, only `ChatCopilot._agenerate()` needs updating. If the
-SDK is abandoned, `ChatCopilot` is swapped for `ChatOpenAI` or any other `BaseChatModel`
-subclass with zero changes to graph nodes.
+**Where bind_tools happens:** Inside each SubAgent's internal ReAct graph, not in RouterNode.
 
-**`CopilotClient` lifecycle:** The client is initialized lazily on first `_agenerate()` call
-(via `_ensure_client()`) and held on the instance. The `ChatCopilot` instance is created
-once at app startup in lifespan and stored in `app.state`. This means one client per process
-— correct for a single-user personal tool.
+Two architectural options were evaluated:
 
----
+**Option A — Tool-aware SubAgent (recommended)**
+Each `SubAgent` builds its own mini-graph with `llm.bind_tools(tools)` + `ToolNode`. The outer `OrchestratorGraph` stays unchanged (RouterNode still routes to `agent.run()`). `tools` is injected at graph-build time.
 
-## Conversation Thread Persistence
+Benefits:
+- RouterNode is untouched (low-risk change)
+- Each agent can receive a filtered tool subset if needed
+- Existing `SubAgent.run()` interface preserved for tool-free agents (backward compatible)
 
-**v1: `MemorySaver` (in-memory)**
+**Option B — Global ToolNode in OrchestratorGraph**
+Add a shared ToolNode after all agent nodes at the outer graph level.
 
-`MemorySaver` is instantiated inside `build_graph()` and lives for the process lifetime.
-All thread state is in RAM. On server restart, history is lost. This is acceptable for v1.
+Drawback: All agents share the same tool set. Cannot give DB query only to data agents. Makes the graph structure more complex and harder to extend per-agent.
 
-**Thread ID management:** The web layer owns thread IDs. Each browser session gets a UUID
-`thread_id` that the client sends with every request. The server passes it to the graph
-as config:
+**Recommendation: Option A.**
 
+Mini-graph inside SubAgent (pseudocode):
 ```python
-config = {"configurable": {"thread_id": thread_id}}
-result = await graph.ainvoke({"messages": [HumanMessage(content=user_text)]}, config=config)
+class SubAgent:
+    def __init__(self, ..., tools: list | None = None):
+        self._tools = tools or []
+        base_llm = ChatCopilot(model=model, github_token=github_token)
+        self._llm = base_llm.bind_tools(self._tools) if self._tools else base_llm
+
+    async def run(self, state: AgentState) -> AgentState:
+        if self._tools:
+            return await self._run_with_tools(state)
+        # existing single-call path (backward compat)
+        messages = [SystemMessage(content=self._system_prompt), HumanMessage(content=state["input"])]
+        response = await self._llm.ainvoke(messages)
+        return {"output": response.content, "agent_name": self.name, "messages": [...]}
+
+    async def _run_with_tools(self, state: AgentState) -> AgentState:
+        from langgraph.prebuilt import ToolNode
+        from langgraph.graph import StateGraph, MessagesState, END
+
+        def should_continue(s):
+            return "tools" if s["messages"][-1].tool_calls else END
+
+        tool_node = ToolNode(self._tools)
+        g = StateGraph(MessagesState)
+        g.add_node("agent", self._call_llm)
+        g.add_node("tools", tool_node)
+        g.set_entry_point("agent")
+        g.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
+        g.add_edge("tools", "agent")
+        mini_graph = g.compile()
+        result = await mini_graph.ainvoke({"messages": [SystemMessage(...), HumanMessage(...)]})
+        final_content = result["messages"][-1].content
+        return {"output": final_content, "agent_name": self.name, "messages": [...]}
 ```
 
-LangGraph loads the checkpoint for that `thread_id`, appends the new message, runs the
-node, and saves the updated checkpoint — all transparently.
-
-**Thread ID generation strategy:** Generate a `thread_id` UUID in the browser (localStorage)
-on first load. Send it with every `/chat` request. This means the server is stateless about
-sessions — it only needs the `thread_id` to look up the LangGraph checkpoint.
-
-**v2 path to persistence:** Replace `MemorySaver` with `langgraph-checkpoint-sqlite` or
-`langgraph-checkpoint-postgres`. Because the thread ID scheme and graph invocation pattern
-do not change, this is a one-line swap at `build_graph()`.
+The ReAct loop runs inside the agent node. The outer `AgentState` TypedDict requires no changes — the agent node still returns `{output, agent_name, messages}`.
 
 ---
 
-## Web Layer Design
+## Tool Execution Isolation: In-Process vs Subprocess
 
-FastAPI is the web framework. Use its `lifespan` context manager to initialize all shared
-resources (auth, LLM, graph) once at startup. Store them in `app.state`.
+| Tool | Where Runs | Isolation Approach |
+|------|------------|-------------------|
+| `web_search` | mcp-server process, calls Tavily HTTP API | Network isolation sufficient. Tavily is external read-only API. |
+| `db_query` | mcp-server process, connects to postgres | `is_select_only` guard (already proven in iframe-rpc). Single PostgreSQL user with SELECT-only grants is the correct defense-in-depth. |
+| `claude_code` | subprocess spawned from mcp-server | `subprocess.run(["claude", ...], timeout=120, capture_output=True)`. mcp-server container has no write access to host filesystem unless explicitly mounted. |
 
-```python
-# app/api/lifespan.py
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    auth = CopilotAuthManager()
-    llm = ChatCopilot(model="gpt-4.1", auth_manager=auth)
-    graph = build_graph(llm)
-    app.state.graph = graph
-    app.state.llm = llm
-    yield
-    await llm.close()  # clean CopilotClient shutdown
-```
-
-**Endpoints (v1):**
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/chat` | Send a message, get a reply |
-| `GET` | `/auth/status` | Check if token exists (for UI gate) |
-| `POST` | `/auth/login` | Trigger Device Flow; returns verification URI and user code |
-
-**`POST /chat` contract:**
-
-```json
-Request:  { "thread_id": "uuid", "message": "string" }
-Response: { "reply": "string", "thread_id": "uuid" }
-```
-
-The endpoint is a thin adapter: unpack the request, call `app.state.graph.ainvoke()`, return
-the last AI message content. No business logic in routes.
-
-**Auth flow for the UI:** On startup, the frontend calls `GET /auth/status`. If not
-authenticated, it calls `POST /auth/login` which starts Device Flow and returns the
-verification URI and user code. The UI displays these. The frontend polls `GET /auth/status`
-until authenticated, then allows the chat form.
+**Security configuration:**
+- mcp-server must NOT mount `~/.copilot_sdk` volume (avoid token leak via claude_code tool).
+- claude_code tool should run in a restricted working directory (e.g., `/tmp/claude_sandbox`).
+- db_query should connect as a PostgreSQL read-only role, not the `postgres` superuser. Create a `mcp_readonly` role during initdb.
+- mcp-server port 8001 must NOT be exposed to the host in docker-compose (omit `ports:` mapping). Worker reaches it via Docker internal DNS only.
 
 ---
 
-## Async Patterns
+## New vs Modified Components
 
-**Rule:** All I/O is async throughout. Never block the FastAPI event loop.
+### New Files
 
-| Layer | Pattern | Reason |
-|-------|---------|--------|
-| FastAPI endpoints | `async def` + `await graph.ainvoke()` | Non-blocking, shares event loop |
-| LangGraph invocation | `await graph.ainvoke()` (not `invoke()`) | Graph nodes are async; sync invoke creates a new event loop inside an existing one — breaks on Python 3.12+ |
-| `ChatCopilot._generate()` | Override to raise `NotImplementedError`; only `_agenerate` is implemented | Forces async path; avoids `loop.run_until_complete()` inside an existing event loop |
-| `CopilotAuthManager.device_login()` | `async def` + `await asyncio.sleep()` | Polling loop must not block |
-| `CopilotClient` | Already async (SDK design) | Pass-through |
+| Path | Type | Description |
+|------|------|-------------|
+| `mcp_server/main.py` | New service entrypoint | FastMCP app definition, tool registrations, `mcp.run()` |
+| `mcp_server/tools/web_search.py` | New | `@mcp.tool` Tavily API wrapper |
+| `mcp_server/tools/db_query.py` | New | `@mcp.tool` PostgreSQL SELECT with `is_select_only` guard |
+| `mcp_server/tools/claude_code.py` | New | `@mcp.tool` subprocess claude CLI wrapper |
+| `mcp_server/requirements.txt` | New | `fastmcp`, `tavily-python`, `psycopg[binary]` |
+| `mcp_server/Dockerfile` | New | `python:3.12-slim`, install requirements |
+| `config/mcp_tools.yaml` | New (optional) | Tool-to-agent allowlist mapping |
+| `docker/initdb/02-mcp-readonly-role.sql` | New | CREATE ROLE mcp_readonly, GRANT SELECT |
 
-**Key known issue:** LangGraph's `.ainvoke()` has a known ASGI context propagation edge case
-(forum.langchain.com issue noted in 2025). Use Python >= 3.11 and call `ainvoke` directly
-from the `async def` endpoint — do not wrap in `asyncio.run()` or `run_in_executor()`.
+### Modified Files
 
----
+| Path | Change | Risk |
+|------|--------|------|
+| `docker-compose.yml` | Add `mcp-server` service. Add `MCP_SERVER_URL` env to `worker`. | LOW — additive |
+| `app/orchestrator/agent.py` | `SubAgent.__init__` accepts optional `tools` param. Add `_run_with_tools()` path. | MEDIUM — core class, must preserve backward compat for tool-free agents |
+| `app/orchestrator/graph.py` | `build_orchestrator_graph()` accepts `tools` param, passes to SubAgent constructors | LOW — signature extension only |
+| `app/jobs/handlers/orchestrator_handler.py` | Create MCP client, load tools, pass to `build_orchestrator_graph` | MEDIUM — job lifecycle change |
+| `app/providers/copilot.py` | Implement `bind_tools()` if Copilot SDK supports function calling — HIGH RISK, see below | HIGH — may require deep SDK research |
+| `pyproject.toml` | Add `langchain-mcp-adapters>=0.2.2` | LOW |
 
-## Directory Structure
+### Unchanged Files (confirmed)
 
-```
-copilot-langgraph/
-├── app/
-│   ├── main.py               # FastAPI app creation, lifespan wiring
-│   ├── api/
-│   │   ├── lifespan.py       # @asynccontextmanager startup/shutdown
-│   │   └── routes.py         # HTTP endpoint handlers (thin)
-│   ├── graph/
-│   │   ├── graph.py          # build_graph() factory
-│   │   ├── nodes.py          # agent_node and future nodes
-│   │   └── state.py          # ChatState TypedDict
-│   ├── providers/
-│   │   └── copilot.py        # ChatCopilot(BaseChatModel)
-│   └── auth/
-│       └── manager.py        # CopilotAuthManager
-├── frontend/
-│   └── index.html            # Single-page chat UI (vanilla JS)
-├── pyproject.toml
-└── .env.example
-```
+- `app/orchestrator/state.py` — `AgentState` TypedDict unchanged
+- `app/orchestrator/registry.py` — `SubAgentRegistry` unchanged
+- `app/orchestrator/context.py` — `RPCContext` unchanged
+- `app/api/` — all API routes unchanged
+- `app/jobs/handlers/langgraph_handler.py` — simple chat unchanged
+- `app/jobs/handlers/debate_handler.py` — debate unchanged
+- `app/jobs/handlers/iframe_rpc_handler.py` — iframe RPC unchanged
+- `app/jobs/worker.py` — only env var read addition, no structural change
 
 ---
 
-## Data Flow
-
-### Happy path — user sends a message:
+## Data Flow: Tool-Enabled Request
 
 ```
-1. Browser  →  POST /chat  { thread_id, message }
-2. routes.py   unpacks request, calls app.state.graph.ainvoke(
-                   {"messages": [HumanMessage(message)]},
-                   config={"configurable": {"thread_id": thread_id}}
-               )
-3. LangGraph   loads checkpoint for thread_id from MemorySaver
-               appends new HumanMessage via add_messages reducer
-4. agent_node  receives full message history in state["messages"]
-               calls await llm.ainvoke(state["messages"])
-5. ChatCopilot calls _ensure_client() (noop if already connected)
-               serializes messages to Copilot prompt string
-               calls session.send_and_wait({"prompt": ...})
-6. Copilot CLI responds via JSON-RPC
-7. ChatCopilot wraps response in AIMessage, returns ChatResult
-8. agent_node  returns {"messages": [AIMessage(...)]}
-9. LangGraph   add_messages reducer appends AIMessage to state
-               saves new checkpoint to MemorySaver
-               returns final state
-10. routes.py  extracts state["messages"][-1].content
-               returns { reply: "...", thread_id: "..." }
-11. Browser    displays reply
-```
-
-### Auth flow — first launch:
-
-```
-1. Browser  →  GET /auth/status  → { authenticated: false }
-2. Browser  →  POST /auth/login
-               routes.py calls auth_manager.device_login() [async]
-               returns { verification_uri, user_code }
-3. User        opens browser, enters code at github.com/login/device
-4. Browser     polls GET /auth/status every 3s
-5. Device Flow completes → token saved to ~/.copilot_sdk/token.enc
-6. GET /auth/status  → { authenticated: true }
-7. Browser     enables chat form
+1. User sends message via React UI
+2. POST /api/chat {task_type: "orchestrator", prompt: "...", ...}
+3. FastAPI enqueues arq job -> Redis
+4. arq worker picks up job -> OrchestratorHandler.handle()
+5. OrchestratorHandler:
+   a. SubAgentRegistry.load() (disk scan, as today)
+   b. MultiServerMCPClient({"mcp": {streamable_http, url}})  [NEW]
+   c. client.get_tools() -> [web_search, db_query, claude_code]  [NEW]
+   d. build_orchestrator_graph(registry, github_token, tools=tools, checkpointer)  [MODIFIED]
+   e. graph.ainvoke(initial_state)
+6. OrchestratorGraph:
+   a. RouterNode: keyword -> LLM -> picks agent name (UNCHANGED)
+   b. Conditional edge -> selected AgentNode
+7. AgentNode (SubAgent._run_with_tools):  [NEW PATH]
+   a. llm.bind_tools(tools).invoke(messages)
+   b. If tool_calls: route to ToolNode
+   c. ToolNode: dispatch tool call -> HTTP POST to mcp-server:8001/mcp
+   d. mcp-server executes tool (Tavily / pg / subprocess)
+   e. Tool result injected as ToolMessage into messages
+   f. Loop back to llm.invoke
+   g. When no tool_calls: route to END, return output
+8. OrchestratorHandler saves result -> Redis
+9. SSE notification -> frontend
 ```
 
 ---
 
-## Suggested Build Order
+## Docker Compose Addition
 
-The dependency graph between components determines build order. Lower layers must
-be built and tested before upper layers can use them.
+```yaml
+services:
+  mcp-server:
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    environment:
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - DATABASE_URL=postgresql://mcp_readonly:readonly_password@postgres:5432/postgres?sslmode=disable
+    # NO ports: mapping -- internal network only
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-```
-Phase 1: Auth Layer
-  app/auth/manager.py
-  → No dependencies. Can be built and tested in isolation with httpx mocks.
-  → Deliverable: CopilotAuthManager with get_token(), save_token()
-
-Phase 2: Provider Layer
-  app/providers/copilot.py
-  → Depends on: Auth layer, copilot SDK
-  → Deliverable: ChatCopilot passing LangChain's BaseChatModel interface test
-
-Phase 3: Graph Layer
-  app/graph/state.py → app/graph/nodes.py → app/graph/graph.py
-  → Depends on: Provider layer
-  → Deliverable: build_graph() producing a compiled graph that round-trips a message
-
-Phase 4: Web Layer
-  app/api/lifespan.py → app/api/routes.py → app/main.py
-  → Depends on: Graph layer
-  → Deliverable: HTTP server that accepts POST /chat and returns replies
-
-Phase 5: Frontend
-  frontend/index.html
-  → Depends on: Web layer (API contract)
-  → Deliverable: Browser chat UI that calls /chat and /auth/*
+  worker:
+    # existing config unchanged, add to environment:
+    environment:
+      - MCP_SERVER_URL=http://mcp-server:8001/mcp
+      # ... existing vars unchanged
+    depends_on:
+      # existing deps +
+      mcp-server:
+        condition: service_started
 ```
 
-Each phase produces something independently runnable (or testable in isolation), reducing
-integration risk. The provider layer is the highest-risk phase (SDK is Technical Preview)
-and is deliberately isolated so its instability cannot propagate up.
+All services share the default Compose bridge network. Worker reaches mcp-server via hostname `mcp-server` at port 8001. mcp-server reaches postgres via hostname `postgres`.
 
 ---
 
-## Anti-Patterns to Avoid
+## Build Order (Phase Sequencing)
 
-### Importing the Copilot SDK outside the provider layer
-**Why bad:** Breaks the isolation boundary. A SDK change forces edits in multiple files.
-**Instead:** Only `app/providers/copilot.py` imports `from copilot import ...`.
+Components have strict dependencies:
 
-### Storing conversation history in the web layer
-**Why bad:** Duplicates the checkpointer's job. Creates two sources of truth.
-**Instead:** History lives exclusively in LangGraph checkpoints, keyed by `thread_id`.
+```
+Phase 1: mcp-server scaffold  [NO DEPS]
+  - FastMCP Dockerfile + docker-compose service entry
+  - One stub tool: web_search (Tavily)
+  - Expose port temporarily for local curl testing
+  - Deliverable: curl http://localhost:8001/mcp returns MCP response
 
-### Creating the graph per-request
-**Why bad:** Reconnects `CopilotClient` on every request (expensive JSON-RPC handshake).
-**Instead:** One graph instance per process, created in lifespan, stored in `app.state`.
+Phase 2: Worker MCP client wiring  [DEPS: Phase 1]
+  - Add langchain-mcp-adapters to pyproject.toml
+  - MultiServerMCPClient in OrchestratorHandler (load tools, log them, not yet used in graph)
+  - Deliverable: worker logs show "loaded tools: [web_search]"
 
-### Using synchronous `graph.invoke()` inside `async def` endpoints
-**Why bad:** `invoke()` calls `asyncio.run()` internally, which raises `RuntimeError` if
-an event loop is already running (standard in ASGI servers).
-**Instead:** Always use `await graph.ainvoke()` from async endpoints.
+Phase 3: OrchestratorGraph ReAct loop  [DEPS: Phase 1, Phase 2]
+  - FIRST: verify ChatCopilot.bind_tools() capability (may require implementation)
+  - SubAgent._run_with_tools() mini-graph
+  - build_orchestrator_graph() tools param
+  - Deliverable: "search for latest Python news" prompt triggers tool call
 
-### Implementing `_generate()` as `loop.run_until_complete(_agenerate())`
-**Why bad:** Same problem — deadlocks when called from within an async context.
-**Instead:** Override `_generate()` to raise `NotImplementedError`. The async path
-(`_agenerate`) is the only one needed when the graph is invoked via `ainvoke`.
+Phase 4: Additional tools  [DEPS: Phase 3]
+  - db_query tool + mcp_readonly PostgreSQL role
+  - claude_code tool + sandbox config
+  - Security review: is_select_only guard, volume mounts
+  - Deliverable: DB query and Claude Code prompts work end-to-end
+
+Phase 5: Tool filtering per agent (optional)  [DEPS: Phase 4]
+  - config/mcp_tools.yaml agent-to-tool allowlist
+  - OrchestratorHandler reads config, filters tool list before passing to SubAgent
+```
+
+Phases 1 and 2 can be written in parallel but Phase 2 cannot be tested until Phase 1 is running. Phase 3 is the highest-risk phase due to the ChatCopilot bind_tools unknown.
 
 ---
 
-## Scalability Considerations
+## Key Risks
 
-This is explicitly a single-user personal tool. The architecture reflects that.
-
-| Concern | v1 (personal tool) | If ever multi-user |
-|---------|--------------------|--------------------|
-| Thread storage | MemorySaver (RAM) | langgraph-checkpoint-sqlite or postgres |
-| Token storage | Single file `~/.copilot_sdk/token.enc` | Per-user Redis store (see token_store.py in docs/pre) |
-| LLM instance | Singleton per process | One per authenticated user, or pooled |
-| Concurrency | Single user, no problem | FastAPI handles concurrent requests; MemorySaver is not thread-safe across processes — needs external store |
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| `ChatCopilot.bind_tools()` not implemented — Copilot SDK Technical Preview may not expose function-calling API | HIGH | Investigate as first task of Phase 3. Fallback: system-prompt-based tool description with manual output parsing (ReAct prompting). |
+| `langchain-mcp-adapters` async context manager API changed between versions | MEDIUM | Read current README on install day. Use direct instantiation if `async with` fails. |
+| mcp-server startup race (worker starts before mcp-server HTTP is ready) | MEDIUM | Add `depends_on: mcp-server` in worker. Add retry with exponential backoff in client init. |
+| claude_code subprocess hits arq job_timeout (300s) | LOW | Set subprocess timeout to 120s. Return timeout error as tool result, not exception. |
+| is_select_only guard bypass via clever SQL in db_query | HIGH | Parameterize queries. Use mcp_readonly PostgreSQL role (no INSERT/UPDATE/DELETE grants at DB level). Two independent guards. |
+| mcp-server port accidentally exposed to host | LOW | Omit `ports:` from docker-compose mcp-server service. Add comment in compose file. |
 
 ---
 
 ## Sources
 
-- LangGraph MessagesState and add_messages: https://deepwiki.com/langchain-ai/langchain-academy/3.1-stategraph-and-messagesstate
-- LangGraph memory / MemorySaver: https://docs.langchain.com/oss/python/langgraph/add-memory
-- LangGraph checkpointer tutorial: https://langchain-tutorials.github.io/implement-conversation-memory-langgraph-checkpointer/
-- FastAPI lifespan events (official): https://fastapi.tiangolo.com/advanced/events/
-- LangGraph + FastAPI integration pattern: https://dev.to/anuragkanojiya/how-to-use-langgraph-within-a-fastapi-backend-amm
-- LangGraph agent service toolkit (architecture reference): https://github.com/JoshuaC215/agent-service-toolkit
-- LangGraph ainvoke ASGI context issue: https://forum.langchain.com/t/langgraph-ainvoke-breaks-asgi-async-context/99
-- LangGraph production patterns 2026: https://use-apify.com/blog/langgraph-agents-production
-- Project context: docs/pre/copilot_langgraph_provider.md (HIGH confidence — primary design reference)
+- langchain-mcp-adapters GitHub: https://github.com/langchain-ai/langchain-mcp-adapters
+- langchain-mcp-adapters PyPI (v0.2.2, 2026-03-16): https://pypi.org/project/langchain-mcp-adapters/
+- MultiServerMCPClient DeepWiki: https://deepwiki.com/langchain-ai/langchain-mcp-adapters/2.1-multiservermcpclient
+- FastMCP HTTP Deployment docs: https://gofastmcp.com/deployment/http
+- FastMCP PyPI (v3.2.2, 2026-04-09): https://pypi.org/project/fastmcp/
+- LangGraph ToolNode reference: https://reference.langchain.com/python/langgraph/agents
+- LangGraph ReAct agent from scratch: https://langchain-ai.github.io/langgraph/how-tos/react-agent-from-scratch-functional/
+- LangChain MCP adapters announcement: https://changelog.langchain.com/announcements/mcp-adapters-for-langchain-and-langgraph

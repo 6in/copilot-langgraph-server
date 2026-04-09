@@ -1,184 +1,372 @@
-# Feature Landscape
+# Feature Landscape: v5.0 Agent Tool Platform
 
-**Domain:** Personal LLM Chat Web App (GitHub Copilot via LangGraph)
-**Researched:** 2026-03-31
-**Overall confidence:** HIGH
+**Domain:** MCP-based tool execution layer for LangGraph multi-agent chat app
+**Researched:** 2026-04-09
+**Confidence:** HIGH (LangGraph/FastMCP docs verified; tool patterns from official sources)
 
 ---
 
-## Context
+## Context: What Already Exists
 
-This is a single-user, locally-run chat interface over GitHub Copilot using a custom
-`ChatCopilot` (`BaseChatModel`) provider. The backend is Python (FastAPI + LangGraph).
-The frontend is a browser-based chat UI. No multi-user, no streaming (Copilot SDK
-does not support it in v1), no tool calling in v1.
+The following are built and must NOT be re-implemented:
 
-Scope anchor: a developer's personal daily-driver tool, not a product for others.
-The comparison baseline is Open WebUI, LibreChat, and TypingMind — but stripped to
-the minimal viable surface that feels complete, not broken.
+| Component | Location | Relevance to v5.0 |
+|-----------|----------|-------------------|
+| `OrchestratorGraph` | `app/orchestrator/graph.py` | SubAgent nodes called via `agent.run()` — needs tool node injection |
+| `SubAgent.run()` | `app/orchestrator/agent.py` | Currently calls `llm.ainvoke()` directly — v5.0 extends with `bind_tools` |
+| `SubAgentRegistry` | `app/orchestrator/agent.py` | Registry knows agents, not tools — tool config is a new concern |
+| `ScriptBackend` | `app/orchestrator/script_backend.py` | Loads `tools/*.py` with INPUT_SCHEMA validation — MCP replaces this for remote tools |
+| `is_select_only()` | `app/jobs/handlers/iframe_rpc_handler.py` | SELECT-only guard, production-tested in v4.0 — reuse directly |
+| `_json_default()` | `app/jobs/handlers/iframe_rpc_handler.py` | `datetime`/`Decimal` serializer — copy into MCP tool |
+| `db_pools` context | `app/jobs/handlers/iframe_rpc_handler.py` | psycopg_pool already wired in arq worker ctx |
 
 ---
 
 ## Table Stakes
 
-Features where absence makes the tool feel broken or unusable.
+Features that must work for v5.0 to be usable. Without these the agent tool platform does not exist.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Message history display | Without it there is no "chat" — just a single-shot box | Low | Chronological scroll, user and assistant bubbles clearly distinguished |
-| Multi-turn thread (context accumulation) | Each message must carry prior history to the model | Medium | LangGraph `messages` state; must persist within a session |
-| Send / receive flow | Type → submit → wait → display response | Low | Disable input while awaiting response to prevent double-sends |
-| Loading / thinking indicator | No feedback during LLM call (which takes 2-10 s) breaks perceived reliability | Low | Spinner or animated dots on the assistant bubble |
-| New chat button | Without it, context never resets; old irrelevant history poisons new topics | Low | Clears in-memory thread, starts fresh LangGraph state |
-| Markdown rendering in assistant bubbles | Code blocks, bold, lists from LLM output are unreadable as raw text | Medium | `react-markdown` + `remark-gfm` + `react-syntax-highlighter`; user bubbles stay plain text |
-| Error display inline | Silent failure after a 10 s wait is deeply frustrating | Low | Inline error message in the conversation, not just a console log |
-| Device Flow auth trigger + status | The whole tool is gated on a valid Copilot token | Medium | On first launch (or token missing), surface the verification URL + code; show "authenticated as X" in UI header |
-| Keyboard send (Enter) | Every chat tool works this way; mouse-only is friction | Low | Shift+Enter for newline |
-| Auto-scroll to latest message | Without it the user must manually scroll after every response | Low | Scroll to bottom on new message append |
+### 1. LangGraph bind_tools + ToolNode Loop
 
-**Dependency chain:**
+**What it is:** The core ReAct pattern. An LLM node with tools bound to it decides whether to call a tool or return a final answer. `ToolNode` executes the tool call; the graph loops back to the LLM until `tool_calls` is empty.
+
+**Loop behavior (HIGH confidence — verified from LangGraph prebuilt docs and community reports):**
 
 ```
-Device Flow auth
-  └─ ChatCopilot client initialised
-       └─ LangGraph graph can invoke
-            └─ Send/receive flow works
-                 └─ Multi-turn thread
-                      └─ Message history display
+[agent_node] → LLM responds with tool_calls in AIMessage
+    ↓  tools_condition returns "tools"
+[tool_node]  → executes each tool_call, appends ToolMessage to state
+    ↓
+[agent_node] → LLM sees tool results, may call more tools or return final answer
+    ↓  tools_condition returns END (last AIMessage has no tool_calls)
+[END]
 ```
+
+- `tools_condition` is a prebuilt helper in `langgraph.prebuilt`. It checks if the last `AIMessage` in state has non-empty `tool_calls`. If yes, routes to `"tools"`. If no, routes to `END`.
+- Each agent→tool→agent round-trip consumes 2 steps against `recursion_limit`.
+- LangGraph's default `recursion_limit` is **25** (confirmed from multiple issue reports and community discussions). This allows ~12 tool-call rounds at default.
+- For this application's tools (web search, DB query), a `recursion_limit` of 10 (set in `graph.ainvoke(config={"recursion_limit": 10})`) allows up to 5 tool-call rounds — sufficient for single-topic queries.
+- Known risk: LLM can get stuck calling the same tool repeatedly (duplicate tool_calls until recursion limit fires). Mitigations: system prompt instruction ("use each tool at most once per query"), or catching `GraphRecursionError` and returning a graceful error message.
+
+**Integration point — SubAgent refactor required:**
+
+Current `SubAgent.run()` calls `llm.ainvoke()` directly and returns `AgentState`. For tool-enabled agents, this must change. Two options:
+
+Option A (recommended): Compile an inner `StateGraph` per tool-enabled agent at startup, wrapping the LLM+ToolNode loop. `SubAgent.run()` calls `inner_graph.ainvoke()`.
+
+Option B: Use `create_react_agent(llm, tools)` from `langgraph.prebuilt` as the inner graph. Simpler but less customizable.
+
+The `OrchestratorGraph` structure (`router → agent_node → END`) does not change. Only what happens inside the agent node changes.
+
+**Complexity:** High — requires refactoring `SubAgent.run()` and threading MCP tool handles into per-agent graph compilation. The outer `OrchestratorGraph` topology is stable.
+
+---
+
+### 2. FastMCP Server — Docker Service
+
+**What it is:** A Python process serving MCP tools over HTTP (streamable-http transport), defined in its own `mcp/` directory, running as a new Docker Compose service.
+
+**Why a separate service:** The MCP server runs independently so tools can be updated without restarting the FastAPI app or arq worker. HTTP transport means both the `api` and `worker` containers can connect to it.
+
+**FastMCP @mcp.tool basics (HIGH confidence — verified from gofastmcp.com/servers/tools):**
+
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("tool-server")
+
+@mcp.tool(timeout=30)
+async def web_search(query: str, max_results: int = 5) -> dict:
+    """Search the web for current information.
+    Returns a dict with 'answer' (summary) and 'sources' (list of URLs)."""
+    ...
+
+if __name__ == "__main__":
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=8001)
+```
+
+Key constraints on `@mcp.tool`:
+- Input schema is **auto-generated from type annotations**. Every parameter must be explicitly typed — no `*args`/`**kwargs` (raises an error at registration time).
+- **Docstring becomes the tool description** shown to the LLM for tool selection. Write it to guide the model.
+- `timeout` parameter is built-in — an MCP error is returned automatically if exceeded. Set this lower than the `subprocess` timeout for CLI tools.
+- Return type `dict` produces structured content (JSON). `str` produces TextContent. Use `dict` for machine-readable results.
+- Error handling: raise `ToolError` for expected failures (message shown to LLM). Raise standard exceptions for unexpected failures. No built-in error decorator exists — wrap each tool body in try/except.
+- Optional parameters use Python defaults; parameters without defaults are required.
+
+**Complexity:** Medium — FastMCP is well-documented. Main effort is Docker service wiring and per-tool dependency injection (API keys, DB pool).
+
+---
+
+### 3. langchain-mcp-adapters Client
+
+**What it is:** `langchain-mcp-adapters` converts MCP tool definitions into LangChain `BaseTool` objects that can be passed to `bind_tools()`. `MultiServerMCPClient` connects to one or more MCP servers over stdio or HTTP.
+
+**Pattern (MEDIUM confidence — from official github.com/langchain-ai/langchain-mcp-adapters):**
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+client = MultiServerMCPClient({
+    "tools": {
+        "transport": "http",
+        "url": "http://mcp:8001/mcp",
+    }
+})
+tools = await client.get_tools()
+llm_with_tools = llm.bind_tools(tools)
+```
+
+- `get_tools()` returns a list of LangChain `BaseTool` — these are compatible with `ToolNode([...])`.
+- Transport must be `"http"` (streamable-http) for the Docker service scenario. `"stdio"` is only for local CLI subprocesses.
+- The MCP client session must stay open during all tool calls. Manage via async context manager or application startup/shutdown lifecycle (same pattern as `db_pools` in the arq worker context).
+
+**Complexity:** Medium — the adapter library handles protocol details. Main complexity is lifecycle: create `MultiServerMCPClient` once at startup, share the `tools` list across agents that need it.
+
+---
+
+### 4. config.yaml Tool-to-Agent Routing
+
+**What it is:** A YAML config file that declares which tools exist, which are enabled, and which agents can use which tools. This decouples agent configuration from server topology.
+
+**Is this a known pattern?** Partially. Google MCP Toolbox uses multi-document YAML (`kind: source` / `kind: tool` blocks). For this project, a flat single-document schema is sufficient and simpler:
+
+```yaml
+# mcp/config.yaml
+server_url: "http://mcp:8001/mcp"
+
+tools:
+  web_search:
+    description: "Real-time web search via Tavily"
+    enabled: true
+  db_query:
+    description: "Read-only PostgreSQL SELECT query"
+    enabled: true
+  claude_code:
+    description: "Execute Claude Code CLI"
+    enabled: false  # disabled by default; enable per-agent after spike
+
+agent_tools:
+  research-assistant:
+    - web_search
+  sql-analyst:
+    - db_query
+  code-reviewer:
+    - claude_code
+    - web_search
+```
+
+**Behavior:** At startup (FastAPI lifespan or arq worker startup), a new `ToolRegistry` class reads `config.yaml`, loads all `enabled: true` tools from the MCP server via `MultiServerMCPClient`, and returns per-agent filtered tool lists. Only `agent_tools` entries are given to each `SubAgent` — no agent gets tools it has not been explicitly granted.
+
+**Integration point:** `SubAgentRegistry` initializes `SubAgent` objects with a `tools: list[BaseTool]` parameter (currently absent). `ToolRegistry` provides this list based on the agent name from `config.yaml`.
+
+**Complexity:** Low for the config format; Medium for the new `ToolRegistry` class and `SubAgent` constructor extension.
 
 ---
 
 ## Differentiators
 
-Features that make this more useful than typing into the raw Copilot CLI.
+Features that make the tool platform genuinely useful beyond the minimum viable wiring.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Model selector dropdown | Copilot exposes GPT-4.1, Claude Sonnet 4.x, Gemini 2.5 Pro, and more; switching per-conversation is genuinely useful | Low | Dropdown in the header; selected model stored in component state and passed to `ChatCopilot(model=...)` on each invocation |
-| Session sidebar (conversation list) | Named chat sessions let you return to a prior context without losing it | High | Requires persistence (SQLite or JSON file); worth deferring to v2 unless persistence is trivial |
-| Token expiry detection + re-auth prompt | Copilot `ghu_` tokens expire; silent 401 errors cause confusion | Medium | Detect auth error from backend, surface "Session expired — re-authenticate" button that triggers Device Flow again |
-| Conversation title auto-generation | Sidebar sessions need names; asking the model to summarize in 5 words is low cost | Medium | Requires sidebar to be built first; low priority without session persistence |
-| Copy response button | Code-heavy responses are almost always copied somewhere; one click > highlight+copy | Low | Per-message copy icon; clipboard API |
-| Syntax-highlighted code blocks with language label | Code is the primary output for a developer tool; raw monospace is not enough | Low | Handled by `react-syntax-highlighter` with Prism; add language label from fenced-code info string |
+### 5. Web Search Tool (Tavily)
 
-**For v1, ship:** model selector, inline error with re-auth trigger, copy button, syntax-highlighted code blocks.
+**What it is:** An MCP tool wrapping the Tavily Search API that returns structured web search results for real-time information retrieval.
 
-**Defer:** session sidebar, auto-generated titles (depend on persistence layer not in v1 scope).
+**Response shape (HIGH confidence — from docs.tavily.com):**
+
+```json
+{
+  "query": "...",
+  "answer": "LLM-synthesized answer (when include_answer=true)",
+  "results": [
+    {
+      "title": "Page title",
+      "url": "https://...",
+      "content": "Extracted text snippet (~200 words)",
+      "score": 0.97
+    }
+  ],
+  "response_time": 1.2
+}
+```
+
+**Best practice for LLM consumption:** Use `include_answer=True` — the `answer` field is a pre-synthesized summary the LLM can directly cite, avoiding the need to parse raw snippets. For the `results` array, pass `title + url + content` only; do NOT pass `raw_content` (full HTML/markdown — too large, increases latency and token usage). Recommended MCP tool return shape:
+
+```python
+return {
+    "answer": response["answer"],   # direct summary for the LLM
+    "sources": [                    # for citation in output
+        {"title": r["title"], "url": r["url"], "snippet": r["content"]}
+        for r in response["results"]
+    ]
+}
+```
+
+**Configuration:**
+- `TAVILY_API_KEY` environment variable → Docker Compose environment secret
+- Default: `max_results=5`, `search_depth="basic"`, `include_answer=True`
+- Cost: free tier is 1000 credits/month. `"basic"` depth = 1 credit/search; `"advanced"` = 2 credits.
+
+**Complexity:** Low — Tavily has an official Python SDK (`tavily-python`). Response shape is clean and well-documented.
+
+---
+
+### 6. DB Query Tool (PostgreSQL SELECT-only)
+
+**What it is:** An MCP tool that executes SELECT-only SQL against the application's PostgreSQL instance, returning rows as JSON.
+
+**Reuse opportunity (HIGH confidence — code exists in codebase):**
+- `is_select_only()` from `app/jobs/handlers/iframe_rpc_handler.py` — strips comments, rejects multi-statement, checks first token. Reuse as-is.
+- `_json_default()` from the same file — serializes `datetime` → ISO 8601, `Decimal` → `float`. Reuse as-is.
+- Recommended: extract both to `app/utils/sql_safety.py` so both the iframe handler and the MCP tool can import them.
+
+**Key behaviors:**
+- Strip SQL comments before check (already in `is_select_only`)
+- Reject multi-statement input (semicolon in body after strip)
+- Accept only `SELECT` and `WITH` as first token
+- Enforce row count limit (add `FETCH FIRST 100 ROWS ONLY` if not present, or post-fetch slice)
+- Pool connection from `DATABASE_URL` environment variable
+
+**MCP tool signature:**
+
+```python
+@mcp.tool(timeout=30)
+async def db_query(sql: str) -> dict:
+    """Execute a read-only SQL SELECT query against the application PostgreSQL database.
+    Returns {'rows': [...]} with results as list of dicts.
+    Only SELECT and WITH statements are accepted."""
+```
+
+**Schema exposure for LLM:** The LLM needs table/column names to write useful queries. Options:
+- (A) Include schema documentation in the agent's system prompt — simplest, works now.
+- (B) Add a separate `db_schema()` MCP tool returning `INFORMATION_SCHEMA` data — more powerful but adds a tool-call round-trip.
+- Recommendation: start with (A) for MVP; (B) is a v5.1 enhancement.
+
+**Complexity:** Low — logic already exists and is production-tested. Main work is extracting shared utils and wiring pool management in the MCP server.
+
+---
+
+### 7. Claude Code CLI Tool
+
+**What it is:** An MCP tool that executes the `claude` CLI as an async subprocess, sends a prompt non-interactively, and captures structured JSON output.
+
+**Communication pattern (MEDIUM confidence — from Anthropic Agent SDK docs and GitHub issue #771):**
+
+```python
+import asyncio, json
+from fastmcp import ToolError
+
+@mcp.tool(timeout=150)
+async def claude_code(prompt: str, working_directory: str = "/tmp") -> dict:
+    """Execute a Claude Code task non-interactively.
+    Returns {'response': '...', 'exit_code': 0}."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "claude", "--print", "--output-format", "json",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=working_directory,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(input=prompt.encode()),
+            timeout=120,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        raise ToolError("Claude Code timed out after 120 seconds")
+    if proc.returncode != 0:
+        raise ToolError(f"claude exited {proc.returncode}: {stderr.decode()[:500]}")
+    return json.loads(stdout)
+```
+
+**Key constraints and risks:**
+- `claude` CLI must be installed inside the MCP Docker container. This requires a custom Dockerfile with Node.js + `npm install -g @anthropic-ai/claude-code`. Non-trivial image build.
+- `--output-format json` produces structured output; `--print` disables interactive mode. Verify exact output format against the installed CLI version before implementing.
+- The MCP `timeout` (150s) must exceed the subprocess `asyncio.wait_for` timeout (120s) plus a small buffer.
+- GitHub issue #771 confirms Python subprocess works correctly for spawning Claude Code. Node.js spawning has issues, but that is not relevant here.
+- The `working_directory` parameter scopes what files Claude Code can read/modify. Set carefully — do not default to the project root without explicit user intent.
+- stdout format: may be JSON-lines (one object per line) or a single JSON object. Must be verified against the installed CLI version before the tool can be finalized.
+
+**Recommendation: spike-first.** Build a standalone script that installs `claude` in Docker and captures its output format before integrating into the MCP server. Mark as `enabled: false` in `config.yaml` until the spike is done.
+
+**Complexity:** High — Docker image build, output format verification, timeout layering, error handling. Do not include in initial MVP phases; implement after web search and DB query tools are stable.
 
 ---
 
 ## Anti-Features
 
-Things to deliberately NOT build in v1. These are traps, not features.
+Do NOT build these in v5.0.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| User accounts / login screen | Single-user personal tool; a login form adds friction and complexity with zero security benefit when the app is localhost-only | Trust localhost; token lives in `~/.copilot_sdk/token.enc` |
-| Multi-user token store (Redis) | Explicitly out of scope in PROJECT.md; premature for a solo tool | Design the auth manager so it can be swapped later (already done via `CopilotAuthManager`) |
-| Streaming responses | Copilot SDK does not support it; building fake streaming (progressive reveal) misleads users about what the system is doing | Show a loading indicator; display full response when ready |
-| Conversation search | Requires a persistence + indexing layer; not needed until there are >20 sessions | Defer until session list exists |
-| Prompt templates / system prompt editor | Adds UI surface and cognitive overhead for a tool you control; edit the server config directly | Hard-code sensible system prompt in the LangGraph graph; expose as env var at most |
-| File upload / image input | Copilot SDK `send_and_wait` takes a prompt string; multimodal input requires different API surface | Not blocked, just not in scope; add when SDK exposes it |
-| Export conversation (PDF / Markdown) | Nice but zero-session-value: you can select-all and copy | Copy-message button covers 90% of the need |
-| Dark/light mode toggle | Personal tool; set it once via OS preference and `prefers-color-scheme` media query | Respect OS theme automatically; no toggle needed |
-| Rate limit display / token usage counter | Copilot SDK response object does not expose token counts in Technical Preview | Omit; add when the SDK surfaces usage data |
-| Regenerate / edit message branching | Increases state complexity significantly (message tree vs. message list) | Simple linear history is fine for a personal tool |
+| Give all tools to all agents | Creates LLM confusion, wastes tokens on irrelevant tools, security risk (any agent gets DB access) | `agent_tools` allowlist in `config.yaml` — per-agent explicit grant |
+| Streaming tool results over SSE | Copilot SDK does not support streaming (confirmed Out of Scope in PROJECT.md) | Return complete result after tool loop finishes |
+| Tool result caching | Premature optimization; Tavily and db_query are fast enough for 200-user scale | Add in v5.1 if profiling shows a need |
+| Forced parallel tool execution | LangGraph `ToolNode` supports parallel tool calls if LLM emits multiple `tool_calls` in one message, but Copilot SDK behavior with parallel calls is unverified | Let `ToolNode` handle it automatically; do not force it |
+| Re-implementing is_select_only | Already production-tested in v4.0 | Import from `iframe_rpc_handler` or extract to `app/utils/sql_safety.py` |
+| MCP tool for Copilot AI calls | Copilot SDK is already in `app/providers/copilot.py` — wrapping it in MCP adds a round-trip for no gain | Call `ChatCopilot` directly from `SubAgent`; MCP is for external tools only |
 
 ---
 
 ## Feature Dependencies
 
 ```
-auth (Device Flow + token storage)
-  └─ chat backend (FastAPI + LangGraph + ChatCopilot)
-       ├─ send/receive flow
-       │    ├─ loading indicator
-       │    ├─ inline error display
-       │    │    └─ re-auth trigger (token expiry handling)
-       │    └─ auto-scroll
-       ├─ multi-turn thread (LangGraph state)
-       │    └─ message history display
-       │         └─ markdown rendering
-       │              └─ code block highlighting
-       │              └─ copy button
-       └─ model selector (per-invocation model param)
+FastMCP Server (Docker service)
+    ↑ required by
+langchain-mcp-adapters Client (MultiServerMCPClient)
+    ↑ required by
+SubAgent bind_tools + ToolNode refactor
+    ↑ required by
+Web Search Tool / DB Query Tool / Claude Code Tool
 
-new chat button
-  └─ resets LangGraph state + clears message list
+config.yaml Tool Registry
+    ↑ required by
+Per-agent tool filtering (agent_tools mapping)
+    ↑ feeds into
+SubAgent constructor (tools: list[BaseTool])
+
+is_select_only() + _json_default() (existing, v4.0)
+    ↑ reused by
+DB Query Tool (import from shared utils)
 ```
-
-Features with no upstream dependencies (can be built in parallel or first):
-- keyboard send shortcut
-- auto-scroll
-- loading indicator
-- markdown/syntax rendering (pure frontend, mockable)
 
 ---
 
 ## MVP Recommendation
 
-**Phase 1 — Backend core:** `ChatCopilot` provider + Device Flow auth + LangGraph graph with
-thread state. No UI. Validate that a conversation with context actually works end-to-end
-via a Python REPL or CLI script.
+Build in this order:
 
-**Phase 2 — Minimal UI:** FastAPI endpoint + React chat UI with:
-- Message history display (user + assistant bubbles)
-- Send / receive flow with loading indicator
-- Markdown + syntax highlighting in assistant bubbles
-- Keyboard send (Enter / Shift+Enter)
-- Auto-scroll
-- Inline error display
-- New chat button
-- Auth status in header with Device Flow trigger
+1. **FastMCP Server + stub tool** — proves the Docker service architecture works; `MultiServerMCPClient.get_tools()` returns LangChain tools. A no-op `ping` tool suffices.
+2. **LangGraph bind_tools integration in one SubAgent** — `research-assistant` gets tool support; validates the inner `StateGraph`, `ToolNode`, `tools_condition`, `recursion_limit=10`, and error handling.
+3. **Web Search Tool (Tavily)** — highest value, lowest complexity, proves end-to-end tool execution in production.
+4. **config.yaml Tool Registry** — enables per-agent tool control without code changes; needed before adding more tools.
+5. **DB Query Tool** — most logic already exists; low risk; can reuse v4.0 SQL safety code.
+6. **Claude Code CLI Tool** — do a spike first (Docker image + output format). Implement after the other tools are stable.
 
-This is already a complete, non-broken tool at Phase 2.
-
-**Phase 3 — Quality of life:** Add model selector dropdown, token-expiry re-auth prompt,
-and copy-message button. These are the differentiators that make it better than a CLI
-but require the Phase 2 skeleton to be stable first.
-
-**Deliberately defer to v2 or later:**
-- Session persistence (SQLite)
-- Conversation sidebar + session list
-- Auto-generated session titles
-- Any feature that requires the Copilot SDK to expose streaming or token usage
+**Defer to v5.1:** Claude Code tool (spike-first), tool result caching, DB schema discovery tool.
 
 ---
 
-## Notes on Copilot-Specific Constraints
+## Complexity Summary
 
-1. **No streaming.** The SDK's `send_and_wait` is blocking and returns the full response.
-   The UI must show a spinner for the entire round-trip (typically 2-15 seconds for long
-   responses). Do not try to fake token-by-token streaming.
-
-2. **Model list is dynamic.** Several Copilot models are marked "preview" or have
-   deprecation dates (e.g. some GPT-5.1 variants deprecated 2026-04-01). The model
-   selector should either hard-code a curated list (gpt-4.1, claude-sonnet-4-5,
-   gemini-2.5-pro) or fetch from a config file, not from training-time assumptions.
-   HIGH confidence: gpt-4.1 is the current default and generally available.
-
-3. **Auth token has no expiry signal.** The `ghu_` token has no embedded expiry claim
-   (unlike a JWT). Expiry is detected only when the API returns a 401/auth-error. The
-   error-handling path must recognise this and surface a re-auth button, not just log an
-   error.
-
-4. **SDK is Technical Preview.** Wrap all SDK calls behind a thin service layer
-   (`CopilotAuthManager`, `ChatCopilot`). If the SDK changes its interface, only those
-   files need updating, not the graph or the HTTP layer.
+| Feature | Complexity | Primary Risk |
+|---------|------------|-------------|
+| FastMCP Server (Docker service) | Medium | Container networking, lifecycle management |
+| langchain-mcp-adapters client | Medium | Session lifecycle in async context |
+| LangGraph bind_tools + ToolNode refactor | High | SubAgent.run() rewrite, recursion_limit tuning, OrchestratorGraph compat |
+| config.yaml Tool Registry | Medium | New ToolRegistry class, SubAgent constructor extension |
+| Tavily web search tool | Low | API key management, credit cost awareness |
+| DB query tool | Low | Extract shared utils, pool wiring in MCP server |
+| Claude Code CLI tool | High | Docker image build, output format verification, timeout layering |
 
 ---
 
 ## Sources
 
-- [LibreChat GitHub — feature list](https://github.com/danny-avila/LibreChat)
-- [Open WebUI vs AnythingLLM vs LibreChat 2026 — ToolHalla](https://toolhalla.ai/blog/open-webui-vs-anythingllm-vs-librechat-2026)
-- [AI Chat UI Best Practices — DEV Community](https://dev.to/greedy_reader/ai-chat-ui-best-practices-designing-better-llm-interfaces-18jj)
-- [react-markdown security and styling guide 2025 — Strapi](https://strapi.io/blog/react-markdown-complete-guide-security-styling)
-- [Markdown chatbot with memoisation — Vercel AI SDK cookbook](https://ai-sdk.dev/cookbook/next/markdown-chatbot-with-memoization)
-- [GitHub Copilot supported models — GitHub Docs](https://docs.github.com/en/copilot/reference/ai-models/supported-models)
-- [GPT-4.1 now default in GitHub Copilot — GitHub Changelog](https://github.blog/changelog/2025-05-08-openai-gpt-4-1-is-now-generally-available-in-github-copilot-as-the-new-default-model/)
-- [Interacting with LLMs with Minimal Chat — Eugene Yan](https://eugeneyan.com/writing/llm-ux/)
-- [LLM Chat UI Concepts 2025 — Daniel Corin](https://www.danielcorin.com/posts/2025/llm-chat-ui-concepts/)
-- [ChatGPT history UX case study — Ellie Kesha](https://shooka95k.com/portfolio-items/chat-gpt-history-and-chat-management-ux-case-study/)
-- [Error Handling and Retries for LLM calls 2026 — Medium](https://medium.com/@sonitanishk2003/error-handling-retries-making-llm-calls-reliable-ee7722fc2ea9)
+- LangGraph ToolNode + tools_condition pattern: [Software Mansion — Building Agents with LangGraph Part 2](https://swmansion.com/blog/building-agents-with-langgraph-part-2-4-adding-tools-a7955432c220)
+- LangGraph recursion_limit default=25: [LangGraph GRAPH_RECURSION_LIMIT docs](https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT), confirmed in [Discussion #1725](https://github.com/langchain-ai/langgraph/discussions/1725) and [Issue #6731](https://github.com/langchain-ai/langgraph/issues/6731)
+- FastMCP @mcp.tool: [gofastmcp.com/servers/tools](https://gofastmcp.com/servers/tools) — HIGH confidence, official docs
+- langchain-mcp-adapters MultiServerMCPClient: [github.com/langchain-ai/langchain-mcp-adapters](https://github.com/langchain-ai/langchain-mcp-adapters) — MEDIUM confidence
+- Tavily response shape and best practices: [docs.tavily.com](https://docs.tavily.com/documentation/api-reference/endpoint/search) — HIGH confidence, official API reference
+- Claude Code CLI subprocess from Python: [Anthropic Agent SDK Python docs](https://platform.claude.com/docs/en/agent-sdk/python), [GitHub issue #771 claude-code](https://github.com/anthropics/claude-code/issues/771) — MEDIUM confidence
+- Config-driven tool routing patterns: [Google MCP Toolbox Codelabs](https://codelabs.developers.google.com/agentic-rag-toolbox-cloudsql), [teddynote-lab/langgraph-mcp-agents](https://github.com/teddynote-lab/langgraph-mcp-agents) — MEDIUM confidence
