@@ -19,7 +19,7 @@ import jwt
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
@@ -365,6 +365,8 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
         if state.values and "messages" in state.values:
             messages = []
             for msg in state.values["messages"]:
+                if isinstance(msg, SystemMessage):
+                    continue  # システムプロンプトはチャット履歴に表示しない
                 role = "user" if isinstance(msg, HumanMessage) else "ai"
                 entry: dict = {"role": role, "content": msg.content}
                 sender = getattr(msg, "name", None)
