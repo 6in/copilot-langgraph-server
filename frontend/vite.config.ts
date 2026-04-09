@@ -29,6 +29,17 @@ export default defineConfig({
             '',
           ),
       },
+      // Proxy iframe-rpc.js (static file served by FastAPI at /iframe-rpc.js).
+      // Required so iframes can import the ESM library in dev via Vite dev server.
+      [`${process.env.VITE_APP_BASE ?? ''}/iframe-rpc.js`]: {
+        target: process.env.API_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(
+            new RegExp('^' + (process.env.VITE_APP_BASE ?? '')),
+            '',
+          ),
+      },
     },
   },
 });
