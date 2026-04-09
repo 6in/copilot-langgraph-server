@@ -3,7 +3,7 @@
 // Phase 15: right-side panel rendered conditionally in ChatApp when canvasApp state is non-null.
 // Security: iframe sandbox="allow-scripts allow-forms" only — NO allow-same-origin (XSS prevention, T-15-08).
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import type { CanvasAppInfo } from '../types';
@@ -22,21 +22,6 @@ interface CanvasPaneProps {
 }
 
 type TabId = 'editor' | 'preview';
-
-/**
- * Injects an inline <script> containing the RPC client library into the HTML string.
- * Inserts immediately after <head> (or any <head ...>) when present;
- * prepends to the document otherwise.
- * Defined at module level for testability and to avoid re-creation on each render.
- */
-function injectRpcScript(html: string, script: string): string {
-  const scriptTag = `<script>${script}</script>`;
-  // Match <head> with optional attributes, e.g. <head lang="ja">
-  if (/<head(\s[^>]*)?>/.test(html)) {
-    return html.replace(/<head(\s[^>]*)?>/, (match) => `${match}${scriptTag}`);
-  }
-  return scriptTag + html;
-}
 
 export function CanvasPane({
   canvasApp,
@@ -144,21 +129,6 @@ export function CanvasPane({
     return () => window.removeEventListener('message', handleIframeMessage);
   }, [handleIframeMessage]);
 
-  // Fetch iframe-rpc.js at mount time and store as inline script string.
-  // Served at /iframe-rpc.js via FastAPI app.mount("/", StaticFiles(...)).
-  const [rpcScript, setRpcScript] = useState<string | null>(null);
-  useEffect(() => {
-    fetch(`${appBase}/iframe-rpc.js`)
-      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.text(); })
-      .then(code => setRpcScript(code))
-      .catch(err => console.warn('[CanvasPane] Failed to load iframe-rpc.js:', err));
-  }, [appBase]);
-
-  // Memoize the injected srcDoc to avoid re-running string injection on every render.
-  const previewSrcDoc = useMemo(
-    () => rpcScript !== null ? injectRpcScript(htmlContent, rpcScript) : htmlContent,
-    [htmlContent, rpcScript]
-  );
 
   const focusVisibleStyle = `
     button:focus-visible {
@@ -426,7 +396,7 @@ export function CanvasPane({
       >
         <iframe
           ref={iframeRef}
-          srcDoc={previewSrcDoc}
+          srcDoc={htmlContent}
           sandbox="allow-scripts allow-forms"
           title="Canvas app preview"
           style={{ width: '100%', height: '100%', border: 'none' }}
