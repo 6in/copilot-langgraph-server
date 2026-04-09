@@ -4,7 +4,7 @@ import os
 import re
 
 import psycopg
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.graph.builder import build_canvas_graph, build_graph
@@ -63,21 +63,25 @@ class LangGraphHandler(TaskHandler):
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 graph = build_canvas_graph(llm, checkpointer) if gem_type == "canvas" else build_graph(llm, checkpointer)
                 github_login = job.get("github_login", "unknown")
-                config = {"configurable": {"thread_id": thread_id, "github_login": github_login}}
-
-                await notifier.progress("thinking")
-
                 # knowledge が空でなければ system_prompt に結合（Todo 7）
                 if system_prompt and knowledge:
                     system_prompt = system_prompt + "\n\n## 知識\n" + knowledge
                 elif knowledge and not system_prompt:
                     system_prompt = "## 知識\n" + knowledge
 
-                # メッセージリストを構築（SystemMessage があれば先頭に追加）
-                messages_input: list = []
-                if system_prompt:
-                    messages_input.append(SystemMessage(content=system_prompt))
-                messages_input.append(HumanMessage(content=prompt))
+                # SystemMessage は state に含めない — config 経由で渡して chatbot_node が動的注入
+                config = {
+                    "configurable": {
+                        "thread_id": thread_id,
+                        "github_login": github_login,
+                        "system_prompt": system_prompt or "",
+                    }
+                }
+
+                await notifier.progress("thinking")
+
+                # HumanMessage のみ state に追加（SystemMessage は含めない）
+                messages_input: list = [HumanMessage(content=prompt)]
 
                 result = await graph.ainvoke(
                     {"messages": messages_input},
