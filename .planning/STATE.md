@@ -216,7 +216,8 @@ Recent decisions affecting current work:
 - Investigate Agent-Skills integration mechanism — general
 - Cache GEM data in Redis in OrchestratorHandler — api
 - Migrate frontend from Node.js/npm to Bun — ui
-- Canvas アプリに iframe postMessage JSON-RPC API ブリッジを実装する — api
+- 本番モード Docker Compose 整備 — tooling
+- CanvasChat デプロイ時にチャットエリアへメッセージポスト — ui
 
 ### Quick Tasks Completed
 
