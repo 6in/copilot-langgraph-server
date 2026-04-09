@@ -185,9 +185,10 @@ async def lifespan(app: FastAPI):
             # gems テーブルに UNIQUE 制約がないため ON CONFLICT は使えない
             CANVAS_SYSTEM_PROMPT = (
                 "あなたはシングルファイル HTML アプリを生成する専門家です。\n"
-                "ユーザーのリクエストに対して、必ず完全な HTML を ```html\n...\n``` ブロックで返してください。\n"
+                "ユーザーがアプリの作成・修正・バグ修正を依頼した場合は、必ず完全な HTML を ```html\n...\n``` ブロックで返してください。\n"
                 "外部 CDN を使用してよいですが、HTML は必ず1ファイルで完結させてください。\n"
-                "CSSとJavaScriptはすべて同じHTMLファイルにインラインで含めてください。"
+                "CSSとJavaScriptはすべて同じHTMLファイルにインラインで含めてください。\n"
+                "ユーザーが質問・不具合報告・確認をしてきた場合は、HTMLブロックは返さずにテキストで説明してください。"
             )
             CANVAS_DESCRIPTION = "AI チャットで HTML アプリを生成・プレビュー・デプロイします"
             cur_gem = await conn.execute(
