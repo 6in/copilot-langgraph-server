@@ -1,7 +1,7 @@
 # Canvas アプリ開発ガイド — iframe RPC API
 
-Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB などのバックエンド API を呼び出せます。
-このライブラリは Canvas プレビュー時に自動注入されるため、**HTML 側でのスクリプト読み込みは不要**です。
+Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI・DB などのバックエンド API を呼び出せます。
+`$URL_PREFIX/iframe-rpc.js` を ES module として import して使います。`$URL_PREFIX` は Canvas プレビュー時に自動置換されます。
 
 ---
 
@@ -57,9 +57,9 @@ Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB
 
 | メソッド | シグネチャ | 戻り値 |
 |---------|-----------|--------|
-| `RPC.ai` | `(prompt: string, timeoutMs?: number)` | `{ responseText: string }` |
-| `RPC.query` | `(poolName: string, sql: string, timeoutMs?: number)` | `{ rows: object[] }` |
-| `RPC.call` | `(method: string, params: object, timeoutMs?: number)` | `object` |
+| `ai` | `(prompt: string, timeoutMs?: number)` | `{ responseText: string }` |
+| `query` | `(poolName: string, sql: string, timeoutMs?: number)` | `{ rows: object[] }` |
+| `call` | `(method: string, params: object, timeoutMs?: number)` | `object` |
 
 - エラー時は `Promise.reject(new Error(...))` — `try/catch` で処理する
 - `RPC.ai` のデフォルトタイムアウト: 60秒、`RPC.query`: 30秒
