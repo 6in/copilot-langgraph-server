@@ -4,7 +4,7 @@ import os
 import re
 
 import psycopg
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.graph.builder import build_canvas_graph, build_graph
@@ -15,10 +15,10 @@ from app.providers.copilot import ChatCopilot
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 
 
-def extract_html(text: str) -> str:
-    """AI 出力からHTMLコードブロックを抽出する。```html で囲まれた部分を返す。"""
+def extract_html(text: str) -> str | None:
+    """AI 出力からHTMLコードブロックを抽出する。見つからない場合は None を返す。"""
     m = re.search(r"```html\n(.*?)```", text, re.DOTALL)
-    return m.group(1).strip() if m else text
+    return m.group(1).strip() if m else None
 
 
 async def _get_gem_info(thread_id: str, db_uri: str) -> tuple[str | None, str | None, str | None, str | None, str | None]:
@@ -63,21 +63,25 @@ class LangGraphHandler(TaskHandler):
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 graph = build_canvas_graph(llm, checkpointer) if gem_type == "canvas" else build_graph(llm, checkpointer)
                 github_login = job.get("github_login", "unknown")
-                config = {"configurable": {"thread_id": thread_id, "github_login": github_login}}
-
-                await notifier.progress("thinking")
-
                 # knowledge が空でなければ system_prompt に結合（Todo 7）
                 if system_prompt and knowledge:
                     system_prompt = system_prompt + "\n\n## 知識\n" + knowledge
                 elif knowledge and not system_prompt:
                     system_prompt = "## 知識\n" + knowledge
 
-                # メッセージリストを構築（SystemMessage があれば先頭に追加）
-                messages_input: list = []
-                if system_prompt:
-                    messages_input.append(SystemMessage(content=system_prompt))
-                messages_input.append(HumanMessage(content=prompt))
+                # SystemMessage は state に含めない — config 経由で渡して chatbot_node が動的注入
+                config = {
+                    "configurable": {
+                        "thread_id": thread_id,
+                        "github_login": github_login,
+                        "system_prompt": system_prompt or "",
+                    }
+                }
+
+                await notifier.progress("thinking")
+
+                # HumanMessage のみ state に追加（SystemMessage は含めない）
+                messages_input: list = [HumanMessage(content=prompt)]
 
                 result = await graph.ainvoke(
                     {"messages": messages_input},
@@ -88,29 +92,33 @@ class LangGraphHandler(TaskHandler):
                 # Canvas Gem の場合: HTML 抽出 + canvas_apps upsert + JSON result
                 if gem_type == "canvas":
                     html = extract_html(final_text)
-                    app_id_str: str | None = None
-                    try:
-                        async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
-                            async with conn.cursor() as cur:
-                                await cur.execute(
-                                    """INSERT INTO canvas_apps (thread_id, github_login, name, html, source)
-                                       VALUES (%s, %s, %s, %s, 'canvas')
-                                       ON CONFLICT (thread_id, github_login)
-                                       DO UPDATE SET html = EXCLUDED.html, name = EXCLUDED.name
-                                       RETURNING app_id""",
-                                    (thread_id, github_login, gem_name or "Canvas App", html),
-                                )
-                                row = await cur.fetchone()
-                                if row:
-                                    app_id_str = str(row[0])
-                            await conn.commit()
-                    except Exception:
-                        pass  # upsert 失敗は致命的ではない — テキストとして返す
-
-                    if app_id_str:
-                        result_payload = json.dumps({"type": "canvas", "app_id": app_id_str, "html": html})
-                    else:
+                    if html is None:
+                        # AI が HTML ブロックを返さなかった場合（説明・エラー等）→ テキストとして返す
                         result_payload = final_text
+                    else:
+                        app_id_str: str | None = None
+                        try:
+                            async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
+                                async with conn.cursor() as cur:
+                                    await cur.execute(
+                                        """INSERT INTO canvas_apps (thread_id, github_login, name, html, source)
+                                           VALUES (%s, %s, %s, %s, 'canvas')
+                                           ON CONFLICT (thread_id, github_login)
+                                           DO UPDATE SET html = EXCLUDED.html, name = EXCLUDED.name
+                                           RETURNING app_id""",
+                                        (thread_id, github_login, gem_name or "Canvas App", html),
+                                    )
+                                    row = await cur.fetchone()
+                                    if row:
+                                        app_id_str = str(row[0])
+                                await conn.commit()
+                        except Exception:
+                            pass  # upsert 失敗は致命的ではない — テキストとして返す
+
+                        if app_id_str:
+                            result_payload = json.dumps({"type": "canvas", "app_id": app_id_str, "html": html})
+                        else:
+                            result_payload = final_text
                 else:
                     result_payload = final_text
 

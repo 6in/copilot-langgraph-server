@@ -5,6 +5,7 @@ Run with: uv run arq app.jobs.worker.WorkerSettings
 Incoming jobs carry a `task_type` field that selects the handler:
   - "langgraph" (default) — LangGraph chat via ChatCopilot
   - "orchestrator" — OrchestratorGraph multi-agent routing via SubAgentRegistry
+  - "iframe_app_api" — iframe JSON-RPC bridge (Phase 18)
   - Future task types are registered in TASK_HANDLERS below.
 
 All handlers implement TaskHandler.handle(ctx, job) -> dict.
@@ -12,24 +13,29 @@ Backward compatibility: jobs without task_type default to "langgraph".
 """
 import os
 
+import yaml
 from arq.connections import RedisSettings
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from redis.asyncio import Redis
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.handlers.debate_handler import DebateHandler
+from app.jobs.handlers.iframe_rpc_handler import IframeRpcHandler
 from app.jobs.handlers.langgraph_handler import LangGraphHandler
 from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 from app.jobs.job_store import JobStore
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+DB_POOLS_CONFIG = os.getenv("DB_POOLS_CONFIG", "config/db_pools.yaml")
 
 # Registry: task_type → handler instance
 TASK_HANDLERS: dict[str, TaskHandler] = {
     "langgraph": LangGraphHandler(),
     "orchestrator": OrchestratorHandler(),
     "debate": DebateHandler(),  # Phase 17: 討論チャット
+    "iframe_app_api": IframeRpcHandler(),  # Phase 18: iframe JSON-RPC bridge
 }
 
 
@@ -45,9 +51,24 @@ async def startup(ctx: dict) -> None:
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         await checkpointer.setup()
 
+    # Phase 18: DB connection pools for iframe-rpc QUERY method
+    ctx["db_pools"] = {}
+    try:
+        with open(DB_POOLS_CONFIG) as f:
+            pools_cfg = yaml.safe_load(f) or {}
+        for name, cfg in pools_cfg.get("pools", {}).items():
+            pool = AsyncConnectionPool(conninfo=cfg["dsn"], open=False, min_size=1, max_size=5)
+            await pool.open(wait=True, timeout=30.0)
+            ctx["db_pools"][name] = pool
+    except FileNotFoundError:
+        pass  # No config file — QUERY method unavailable (non-fatal)
+
 
 async def shutdown(ctx: dict) -> None:
     """arq on_shutdown: close Redis connection."""
+    # Phase 18: Close DB pools
+    for pool in ctx.get("db_pools", {}).values():
+        await pool.close()
     await ctx["redis_client"].aclose()
 
 
@@ -71,6 +92,9 @@ async def process_chat(
     pattern: str = "debate",
     max_turns: int = 3,
     current_turn: int = 0,
+    # Phase 18: iframe JSON-RPC bridge
+    rpc_method: str | None = None,
+    rpc_params: dict | None = None,
 ) -> dict:
     """arq job function: route to the appropriate handler by task_type.
 
@@ -105,6 +129,9 @@ async def process_chat(
         "pattern": pattern,
         "max_turns": max_turns,
         "current_turn": current_turn,
+        # Phase 18
+        "rpc_method": rpc_method,
+        "rpc_params": rpc_params,
     }
     return await handler.handle(ctx, job)
 

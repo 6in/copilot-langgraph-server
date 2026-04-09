@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 
-from app.api.routes import agents, apps, auth, canvas, chat, gems, health, jobs, me
+from app.api.routes import agents, apps, auth, canvas, chat, gems, health, iframe_rpc, jobs, me
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
 from app.jobs.job_store import JobStore
@@ -69,7 +69,8 @@ async def lifespan(app: FastAPI):
                 """INSERT INTO applications (app_id, display_name, enabled, created_at) VALUES
                        ('chat',      'Chat',        true, now()),
                        ('superchat', 'SuperChat',   true, now()),
-                       ('debate',    'Debate Chat', true, now())
+                       ('debate',    'Debate Chat', true, now()),
+                       ('canvas',    'Canvas Chat', true, now())
                    ON CONFLICT DO NOTHING"""
             )
 
@@ -180,14 +181,62 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS canvas_apps_github_login_idx ON canvas_apps(github_login)"
             )
 
-            # Phase 16: Canvas 専用 Gem の自動登録（冪等 — SELECT → INSERT パターン）
-            # gems テーブルに UNIQUE 制約がないため ON CONFLICT は使えない
-            CANVAS_SYSTEM_PROMPT = (
-                "あなたはシングルファイル HTML アプリを生成する専門家です。\n"
-                "ユーザーのリクエストに対して、必ず完全な HTML を ```html\n...\n``` ブロックで返してください。\n"
-                "外部 CDN を使用してよいですが、HTML は必ず1ファイルで完結させてください。\n"
-                "CSSとJavaScriptはすべて同じHTMLファイルにインラインで含めてください。"
-            )
+            # Canvas 専用 Gem の自動登録・更新（起動のたびに system_prompt を最新化）
+            # $URL_PREFIX は CanvasPane が appBase に置換する — プロンプト内にそのまま記述してよい
+            CANVAS_SYSTEM_PROMPT = """\
+あなたはシングルファイル HTML アプリを生成する専門家です。
+
+## 応答ルール
+- ユーザーがアプリの作成・修正・バグ修正を依頼した場合は、必ず完全な HTML を ```html\\n...\\n``` ブロックで返してください。
+- 外部 CDN を使用してよいですが、HTML は必ず1ファイルで完結させてください。
+- CSS と JavaScript はすべて同じ HTML ファイルにインラインで含めてください。
+- ユーザーが質問・不具合報告・確認をしてきた場合は、HTML ブロックは返さずにテキストで説明してください。
+
+## ベーステンプレート（新規作成時の出発点）
+
+新しい Canvas アプリを作る際は必ず以下のテンプレートを基に HTML を生成してください。
+`$URL_PREFIX` は Canvas プレビュー時に自動置換されます。そのまま記述してください。
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas App</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 16px; }
+  </style>
+</head>
+<body>
+
+  <!-- コンテンツをここに記述 -->
+
+  <script type="module">
+    import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
+
+    // AI 呼び出し例
+    // const res = await ai('こんにちは！');
+    // console.log(res.responseText);
+
+    // DB クエリ例（SELECT のみ有効）
+    // const res = await query('default', 'SELECT current_timestamp AS now');
+    // console.log(res.rows);
+  </script>
+</body>
+</html>
+```
+
+## RPC API リファレンス
+| メソッド | シグネチャ | 戻り値 |
+|---------|-----------|-------|
+| `ai` | `(prompt: string, timeoutMs?: number)` | `{ responseText: string }` |
+| `query` | `(poolName: string, sql: string, timeoutMs?: number)` | `{ rows: object[] }` |
+| `call` | `(method: string, params: object, timeoutMs?: number)` | `object` |
+
+- エラー時は `Promise.reject(new Error(...))` — `try/catch` で処理すること
+- `query` は SELECT 文のみ有効（INSERT/UPDATE/DELETE は拒否される）
+"""
             CANVAS_DESCRIPTION = "AI チャットで HTML アプリを生成・プレビュー・デプロイします"
             cur_gem = await conn.execute(
                 "SELECT gem_id FROM gems WHERE github_login = '_canvas_system_' AND type = 'canvas' LIMIT 1"
@@ -203,6 +252,11 @@ async def lifespan(app: FastAPI):
                 new_gem = await cur_gem2.fetchone()
                 canvas_gem_id = str(new_gem[0])
             else:
+                # 起動のたびに system_prompt を最新化（コード変更が即反映される）
+                await conn.execute(
+                    "UPDATE gems SET system_prompt = %s, description = %s WHERE gem_id = %s",
+                    (CANVAS_SYSTEM_PROMPT, CANVAS_DESCRIPTION, existing_gem[0]),
+                )
                 canvas_gem_id = str(existing_gem[0])
 
             await conn.commit()
@@ -290,6 +344,7 @@ app.include_router(apps.router)
 app.include_router(health.router)
 app.include_router(gems.router)
 app.include_router(canvas.router)
+app.include_router(iframe_rpc.router)
 
 # React UI — mount BEFORE the "/" catch-all or it will never be reached.
 # Guard: only mount if frontend/dist/ exists (avoids startup crash before first build).
@@ -300,6 +355,19 @@ if os.path.isdir("frontend/dist"):
 # Canvas deployed apps — must be before "/" catch-all
 os.makedirs("./static/apps", exist_ok=True)
 app.mount("/apps", StaticFiles(directory="./static/apps", html=True), name="canvas_apps")
+
+# /js/ — public JS libraries served with Access-Control-Allow-Origin: * so srcdoc iframes
+# (origin: null) can import ES modules without CORS errors.
+# Must be registered as an explicit route BEFORE the "/" StaticFiles catch-all.
+from fastapi.responses import FileResponse as _FileResponse
+from fastapi import HTTPException as _HTTPException
+
+@app.get("/js/{filename:path}")
+async def serve_js(filename: str):
+    path = f"static/js/{filename}"
+    if not os.path.isfile(path):
+        raise _HTTPException(status_code=404)
+    return _FileResponse(path, headers={"Access-Control-Allow-Origin": "*"})
 
 # Static files LAST — serves index.html for any non-API path
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

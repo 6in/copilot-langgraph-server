@@ -235,6 +235,13 @@ Recent decisions affecting current work:
 | 260403-auth | Integrate CopilotAuthManager into super-agent-sample: standalone auth_manager.py, replace github_token env var with auth_manager= in all ChatCopilot instantiations | 2026-04-03 | 3be4e4c | [260403-auth-super-agent-sample](.planning/quick/260403-auth-super-agent-sample/) |
 | 260404-eoj | SuperChat UI: GET /api/agents endpoint, agents[] POST /api/chat field, OrchestratorHandler agent filtering, SuperChatApp with toggle chip UI | 2026-04-04 | 13c0c19 | [260404-eoj-superchat-ui](.planning/quick/260404-eoj-superchat-ui/) |
 | 260406-f9k | langgraph_handler.py の config[configurable] に github_login を追加して、LangGraph グラフ実行時にユーザー情報が渡るようにする | 2026-04-06 | 504b835 | [260406-f9k-langgraph-handler-py-config-configurable](.planning/quick/260406-f9k-langgraph-handler-py-config-configurable/) |
+| 260409-fh8 | static/iframe-rpc.js ライブラリ作成 + CanvasPane インライン注入 | 2026-04-09 | 6201a90 | [260409-fh8-static-iframe-rpc-js-canvaspane](.planning/quick/260409-fh8-static-iframe-rpc-js-canvaspane/) |
+| 260409-g6g | Canvas chat: extract_htmlフォールバックでテキスト説明がコードエディタに表示される不具合修正 | 2026-04-09 | 053d120 | [260409-g6g-canvas-chat-extract-html](.planning/quick/260409-g6g-canvas-chat-extract-html/) |
+| 260409-gab | Vite プロキシに iframe-rpc.js を追加して開発環境で FastAPI static ファイルを取得できるようにする | 2026-04-09 | 138f1ac | [260409-gab-vite-iframe-rpc-js-fastapi-static](.planning/quick/260409-gab-vite-iframe-rpc-js-fastapi-static/) |
+| 260409-gd5 | CANVAS_SYSTEM_PROMPT にベーステンプレートHTML埋め込み + 起動時 gems 上書き更新 | 2026-04-09 | 2e02a32 | [260409-gd5-canvas-system-prompt-html-gems](.planning/quick/260409-gd5-canvas-system-prompt-html-gems/) |
+| 260409-gm0 | CanvasPane srcdoc CORS修正: iframe-rpc.js インライン展開で null オリジン問題を解消 | 2026-04-09 | 001e1e1 | [260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js](.planning/quick/260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js/) |
+| 260409-gu8 | iframe-rpc.js を static/js/ に移動、FastAPI /js/ CORS ルート追加、CanvasPane リバート | 2026-04-09 | 5fab659 | [260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-](.planning/quick/260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-/) |
+| 260409-h78 | CanvasChatApp 送信時に現在の HTML をプロンプトに自動埋め込み (onHtmlChange コールバック) | 2026-04-09 | 9f7b00e | [260409-h78-canvaschatapp-html](.planning/quick/260409-h78-canvaschatapp-html/) |
 
 ### Blockers/Concerns
 
@@ -242,7 +249,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-07
+Last activity: 2026-04-09 - Completed quick task 260409-g6g: Canvas chat extract_html フォールバック不具合修正
 Last session: 2026-04-07T09:00:00.000Z
 Stopped at: Phase 16 main にマージ完了。ブランチ削除済み。
 Resume file: none

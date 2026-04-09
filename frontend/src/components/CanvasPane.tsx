@@ -3,10 +3,11 @@
 // Phase 15: right-side panel rendered conditionally in ChatApp when canvasApp state is non-null.
 // Security: iframe sandbox="allow-scripts allow-forms" only — NO allow-same-origin (XSS prevention, T-15-08).
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import type { CanvasAppInfo } from '../types';
+import { postIframeRpc, streamJob, getJob } from '../api/client';
 
 interface CanvasPaneProps {
   canvasApp: CanvasAppInfo;
@@ -17,6 +18,8 @@ interface CanvasPaneProps {
   onSave: (appId: string, html: string) => void;
   onDeploy: (appId: string) => void;
   onClose: () => void;
+  onHtmlChange?: (html: string) => void;
+  style?: React.CSSProperties;
 }
 
 type TabId = 'editor' | 'preview';
@@ -30,6 +33,8 @@ export function CanvasPane({
   onSave,
   onDeploy,
   onClose,
+  onHtmlChange,
+  style,
 }: CanvasPaneProps) {
   const theme = useCurrentTheme();
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
@@ -40,10 +45,92 @@ export function CanvasPane({
   // VITE_APP_BASE is baked in at build time (e.g. '/orochi'); strip trailing slash.
   const appBase = (import.meta.env.VITE_APP_BASE as string ?? '').replace(/\/$/, '');
 
+  // D-19: iframeRef for postMessage reply target
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   // Sync htmlContent when canvasApp.html changes (e.g. after save)
   useEffect(() => {
     setHtmlContent(canvasApp.html);
   }, [canvasApp.html]);
+
+  // D-01: postMessage handler for iframe JSON-RPC bridge
+  const handleIframeMessage = useCallback(async (e: MessageEvent) => {
+    // D-02: Origin validation
+    // Deployed apps at /apps/{id}/ share window.location.origin.
+    // srcDoc preview iframe has origin 'null' (string) — allow both.
+    if (e.origin !== window.location.origin && e.origin !== 'null') return;
+
+    // JSON-RPC format check (T-18-10)
+    const msg = e.data as Record<string, unknown>;
+    if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0') return;
+
+    const { id, method, params } = msg as { id: string; method: string; params?: Record<string, unknown> };
+    if (!id || !method) return;
+
+    try {
+      // D-04: POST /api/iframe-rpc to enqueue job
+      const { job_id } = await postIframeRpc(id, method, params);
+
+      // D-04: SSE で完了を待つ
+      const result = await new Promise<string>((resolve, reject) => {
+        const es = streamJob(job_id);
+
+        const timer = setTimeout(() => {
+          es.close();
+          reject(new Error('RPC timeout'));
+        }, 60000);
+
+        es.onmessage = async (ev: MessageEvent) => {
+          try {
+            const event = JSON.parse(ev.data as string) as { status: string };
+            if (event.status === 'done') {
+              clearTimeout(timer);
+              es.close();
+              const job = await getJob(job_id);
+              resolve(job.result ?? '{"result":false,"error":"No result"}');
+            }
+            // status === 'thinking' → keep waiting
+          } catch {
+            // Malformed SSE — ignore, keep listening
+          }
+        };
+
+        es.onerror = () => {
+          clearTimeout(timer);
+          es.close();
+          reject(new Error('SSE connection failed'));
+        };
+      });
+
+      // Parse result and send back to iframe
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(result);
+      } catch {
+        parsed = { result: false, error: 'Invalid response format' };
+      }
+
+      // D-05: Return with matching JSON-RPC id
+      // targetOrigin '*' required for srcDoc iframe (null origin) — T-18-11 accepted risk
+      iframeRef.current?.contentWindow?.postMessage(
+        { jsonrpc: '2.0', id, ...((parsed && typeof parsed === 'object') ? parsed : { result: parsed }) },
+        '*'
+      );
+    } catch (err) {
+      // Send error back to iframe
+      iframeRef.current?.contentWindow?.postMessage(
+        { jsonrpc: '2.0', id, result: false, error: err instanceof Error ? err.message : 'Unknown error' },
+        '*'
+      );
+    }
+  }, []);
+
+  // D-01: Register/unregister postMessage listener
+  useEffect(() => {
+    window.addEventListener('message', handleIframeMessage);
+    return () => window.removeEventListener('message', handleIframeMessage);
+  }, [handleIframeMessage]);
+
 
   const focusVisibleStyle = `
     button:focus-visible {
@@ -88,6 +175,7 @@ export function CanvasPane({
         background: '#ffffff',
         flexShrink: 0,
         overflow: 'hidden',
+        ...style,
       }}
     >
       <style>{focusVisibleStyle}</style>
@@ -254,7 +342,7 @@ export function CanvasPane({
             language="html"
             value={htmlContent}
             theme={monacoTheme}
-            onChange={(val) => setHtmlContent(val ?? '')}
+            onChange={(val) => { setHtmlContent(val ?? ''); onHtmlChange?.(val ?? ''); }}
             options={{
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
@@ -309,7 +397,8 @@ export function CanvasPane({
         }}
       >
         <iframe
-          srcDoc={htmlContent}
+          ref={iframeRef}
+          srcDoc={htmlContent.replace(/\$URL_PREFIX/g, appBase)}
           sandbox="allow-scripts allow-forms"
           title="Canvas app preview"
           style={{ width: '100%', height: '100%', border: 'none' }}

@@ -29,6 +29,16 @@ export default defineConfig({
             '',
           ),
       },
+      // Proxy /js/ — public JS libraries (e.g. iframe-rpc.js) served by FastAPI with CORS.
+      [`${process.env.VITE_APP_BASE ?? ''}/js`]: {
+        target: process.env.API_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(
+            new RegExp('^' + (process.env.VITE_APP_BASE ?? '')),
+            '',
+          ),
+      },
     },
   },
 });

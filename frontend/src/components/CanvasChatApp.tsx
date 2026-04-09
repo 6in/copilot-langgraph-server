@@ -65,18 +65,32 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   const [canvasPaneWidth, setCanvasPaneWidth] = useState(CANVAS_PANE_DEFAULT);
   const canvasDragStartX = useRef<number | null>(null);
   const canvasDragStartWidth = useRef<number>(CANVAS_PANE_DEFAULT);
+  // ドラッグ中フラグ — iframe がマウスイベントを奪うのを防ぐオーバーレイ制御に使う
+  const [isResizing, setIsResizing] = useState(false);
 
   // Canvas 状態管理
   const { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, loadCanvasForThread } = useCanvas();
+
+  // エディタの現在の HTML（AI生成 or ユーザー手動編集）を追跡
+  // 送信時にこれをプロンプトに埋め込むことで、AI が常に最新 HTML をベースに修正できる
+  const [currentHtml, setCurrentHtml] = useState<string | null>(null);
 
   // スレッド切り替え時に最新の canvas app を復元（Todo #2）
   useEffect(() => {
     if (!activeThreadId) {
       setCanvasApp(null);
+      setCurrentHtml(null);
       return;
     }
     loadCanvasForThread(activeThreadId);
   }, [activeThreadId, loadCanvasForThread, setCanvasApp]);
+
+  // DB からスレッドの canvasApp が復元されたとき currentHtml を初期化する
+  // app_id が変わったとき（＝別スレッドに切り替え）のみ実行し、ユーザー編集を上書きしない
+  useEffect(() => {
+    if (canvasApp?.html) setCurrentHtml(canvasApp.html);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasApp?.app_id]);
 
   const handleNewChat = async () => {
     await createNewThread();
@@ -100,7 +114,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     gemId: canvasGemId,
     setMessages,
     refreshThreads,
-    onCanvasResponse: setCanvasApp,
+    onCanvasResponse: (app) => { setCanvasApp(app); setCurrentHtml(app.html); },
   });
 
   const handleSend = async (text: string) => {
@@ -108,7 +122,11 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     if (!threadId) {
       threadId = await createNewThread();
     }
-    await sendMessage(text, threadId);
+    // エディタに HTML があればプロンプトに埋め込む — AI が常に最新 HTML をベースに修正できる
+    const prompt = currentHtml
+      ? `${text}\n\n（現在の HTML）\n\`\`\`html\n${currentHtml}\n\`\`\``
+      : text;
+    await sendMessage(prompt, threadId);
     await refreshThreads();
   };
 
@@ -140,6 +158,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     e.preventDefault();
     canvasDragStartX.current = e.clientX;
     canvasDragStartWidth.current = canvasPaneWidth;
+    setIsResizing(true); // オーバーレイ表示: iframe のマウスイベント奪取を防ぐ
 
     const onMouseMove = (ev: MouseEvent) => {
       if (canvasDragStartX.current === null) return;
@@ -151,6 +170,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
 
     const onMouseUp = () => {
       canvasDragStartX.current = null;
+      setIsResizing(false); // オーバーレイ非表示
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -161,6 +181,12 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {/* ドラッグ中オーバーレイ: iframe がマウスイベントを奪うのを防ぐ */}
+      {isResizing && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, cursor: 'col-resize',
+        }} />
+      )}
       {/* Canvas ヘッダーバー (UI-SPEC: "🎨 Canvas") */}
       <div
         style={{
@@ -262,6 +288,8 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
               onSave={saveCanvas}
               onDeploy={deployCanvas}
               onClose={() => {}}
+              onHtmlChange={setCurrentHtml}
+              style={{ minWidth: `${CANVAS_PANE_MIN}px`, width: `${canvasPaneWidth}px` }}
             />
           ) : (
             <div

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
@@ -83,8 +84,10 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
         builder.add_edge("tools", "chatbot")
     """
 
-    async def chatbot_node(state: MessagesState) -> dict:
-        response = await llm.ainvoke([SYSTEM_PROMPT] + state["messages"])
+    async def chatbot_node(state: MessagesState, config: RunnableConfig) -> dict:
+        gem_system_prompt = (config or {}).get("configurable", {}).get("system_prompt", "")
+        extra_system = [SystemMessage(content=gem_system_prompt)] if gem_system_prompt else []
+        response = await llm.ainvoke([SYSTEM_PROMPT] + extra_system + state["messages"])
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)
@@ -103,8 +106,10 @@ def build_canvas_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
     placeholder so only the most recent HTML is sent as context.
     """
 
-    async def chatbot_node(state: MessagesState) -> dict:
-        response = await llm.ainvoke([SYSTEM_PROMPT] + _trim_html_history(state["messages"]))
+    async def chatbot_node(state: MessagesState, config: RunnableConfig) -> dict:
+        gem_system_prompt = (config or {}).get("configurable", {}).get("system_prompt", "")
+        extra_system = [SystemMessage(content=gem_system_prompt)] if gem_system_prompt else []
+        response = await llm.ainvoke([SYSTEM_PROMPT] + extra_system + _trim_html_history(state["messages"]))
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)

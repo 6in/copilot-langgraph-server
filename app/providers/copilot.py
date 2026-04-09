@@ -45,7 +45,7 @@ class ChatCopilot(BaseChatModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    model: str = "claude-sonnet-4.5"
+    model: str = "gpt-4.1"
     github_token: Optional[str] = None
     auth_manager: Optional[Any] = None
 

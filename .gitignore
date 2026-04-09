@@ -51,3 +51,6 @@ work/
 # React frontend build artifacts
 frontend/dist/
 frontend/node_modules/
+
+# DB pool config (contains DSN credentials)
+config/db_pools.yaml
