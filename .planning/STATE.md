@@ -236,6 +236,7 @@ Recent decisions affecting current work:
 | 260404-eoj | SuperChat UI: GET /api/agents endpoint, agents[] POST /api/chat field, OrchestratorHandler agent filtering, SuperChatApp with toggle chip UI | 2026-04-04 | 13c0c19 | [260404-eoj-superchat-ui](.planning/quick/260404-eoj-superchat-ui/) |
 | 260406-f9k | langgraph_handler.py の config[configurable] に github_login を追加して、LangGraph グラフ実行時にユーザー情報が渡るようにする | 2026-04-06 | 504b835 | [260406-f9k-langgraph-handler-py-config-configurable](.planning/quick/260406-f9k-langgraph-handler-py-config-configurable/) |
 | 260409-fh8 | static/iframe-rpc.js ライブラリ作成 + CanvasPane インライン注入 | 2026-04-09 | 6201a90 | [260409-fh8-static-iframe-rpc-js-canvaspane](.planning/quick/260409-fh8-static-iframe-rpc-js-canvaspane/) |
+| 260409-g6g | Canvas chat: extract_htmlフォールバックでテキスト説明がコードエディタに表示される不具合修正 | 2026-04-09 | 053d120 | [260409-g6g-canvas-chat-extract-html](.planning/quick/260409-g6g-canvas-chat-extract-html/) |
 
 ### Blockers/Concerns
 
@@ -243,7 +244,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-09 - Completed quick task 260409-fh8: static/iframe-rpc.js ライブラリ作成 + CanvasPane インライン注入
+Last activity: 2026-04-09 - Completed quick task 260409-g6g: Canvas chat extract_html フォールバック不具合修正
 Last session: 2026-04-07T09:00:00.000Z
 Stopped at: Phase 16 main にマージ完了。ブランチ削除済み。
 Resume file: none
