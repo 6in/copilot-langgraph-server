@@ -3,25 +3,27 @@
 POST /api/iframe-rpc — receives JSON-RPC request from parent frame (CanvasPane or
 hosted shell), enqueues as arq job with task_type='iframe_app_api', returns job_id.
 
-Phase 19 change (D-07): JWT authentication removed. The endpoint is now publicly
-accessible so that hosted Canvas apps at /apps/{app_id} can call it without a
-session cookie. The github_token is retrieved from auth_manager on the server side.
+JWT Cookie 認証を使用。parent-bridge.js が credentials: 'include' でリクエストするため、
+ブラウザが自動的に JWT Cookie を送信する。github_token は JWT ペイロードから復号して取得。
 
 Flow:
   1. iframe-rpc.js (in iframe) sends postMessage to parent frame.
-  2. parent-bridge.js (in parent frame) POSTs to /api/iframe-rpc.
+  2. parent-bridge.js (in parent frame) POSTs to /api/iframe-rpc (with JWT Cookie).
   3. This endpoint enqueues an arq job of type 'iframe_app_api'.
-  4. parent-bridge.js polls GET /api/job/{id} via SSE for completion.
+  4. parent-bridge.js polls GET /api/chat/{id}/stream via SSE for completion.
   5. On done, parent-bridge.js replies to the iframe via postMessage.
 
 Security note (T-19-04):
-  JWT auth removed as an accepted risk (D-07). Only SELECT + AI one-shot
-  operations are supported; write operations are rejected by IframeRpcHandler.
+  JWT Cookie 認証により、呼び出し元ユーザーの Copilot トークンを使用。
+  Only SELECT + AI one-shot operations are supported; write operations are
+  rejected by IframeRpcHandler.
 """
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+
+from app.api.routes.chat import get_github_token, get_jwt_payload
 
 router = APIRouter(prefix="/api", tags=["iframe-rpc"])
 
@@ -40,6 +42,8 @@ class IframeRpcResponse(BaseModel):
 async def iframe_rpc(
     request: Request,
     body: IframeRpcRequest,
+    github_token: str = Depends(get_github_token),
+    payload: dict = Depends(get_jwt_payload),
 ):
     """Enqueue a JSON-RPC request from an iframe Canvas app.
 
@@ -47,17 +51,16 @@ async def iframe_rpc(
     arq worker as task_type='iframe_app_api'. The worker's IframeRpcHandler
     processes QUERY (SELECT-only DB) and AI (ChatCopilot one-shot) methods.
 
-    Returns a job_id for polling via GET /api/job/{job_id}.
+    Returns a job_id for polling via GET /api/chat/{job_id}/stream.
 
-    No JWT auth required (D-07). github_token fetched from auth_manager.
+    JWT Cookie 認証。parent-bridge.js が credentials: 'include' で送信するため
+    ブラウザが自動的に Cookie を付与する。
     """
     from arq import ArqRedis
 
     arq_redis: ArqRedis = request.app.state.arq_redis
-    auth_manager = request.app.state.auth_manager
     job_id = str(uuid.uuid4())
-    github_login = "anonymous"  # D-07: JWT 認証不要化、ログ用固定値
-    github_token = auth_manager.load_token() or ""
+    github_login = payload.get("github_login", "unknown")
 
     await arq_redis.enqueue_job(
         "process_chat",
