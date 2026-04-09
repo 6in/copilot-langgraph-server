@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Agent Platform Phases
+milestone: v4.0
+milestone_name: Canvas API Bridge
 status: executing
-stopped_at: Phase 16 main にマージ完了。ブランチ削除済み。
-last_updated: "2026-04-07T09:45:31.425Z"
-last_activity: 2026-04-07
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-04-09T05:49:10.446Z"
+last_activity: 2026-04-09
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 41
-  completed_plans: 45
-  percent: 100
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04 after v3.0 roadmap)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 17 完了 — DebateChatApp (マルチエージェント討論チャット) — main にマージ済み
+**Current focus:** Phase 19 — canvas-apps-app-id-iframe-phase-18-rpc
 
 ## Current Position
 
-Phase: 17 (DebateChatApp — マルチエージェント討論チャット) — COMPLETE
-Plan: 3 of 3
+Phase: 19 (canvas-apps-app-id-iframe-phase-18-rpc) — EXECUTING
+Plan: 2 of 2
 Milestone: v3.0 COMPLETE (2026-04-06)
 Next: v4.0 — Phase 17 (DebateChatApp) — 未着手
-Status: Executing Phase 16
+Status: Ready to execute
 
 Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 
@@ -86,6 +86,7 @@ Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
 | Phase 13-scalable-routing P01 | 8min | 2 tasks | 5 files |
 | Phase 13-scalable-routing P02 | 3min | 2 tasks | 3 files |
 | Phase 15-gem-canvas P04 | 0 | 3 tasks | 4 files |
+| Phase 19 P01 | 15min | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,9 @@ Recent decisions affecting current work:
 - [Phase 13-scalable-routing]: stage field in all routing log entries — 'keyword' or 'llm' enables post-hoc routing analysis (D-04, ROUTING-03)
 - [Phase 15-04]: CanvasPane iframe: sandbox=allow-scripts+allow-forms のみ — allow-same-origin は XSS防止のため除外
 - [Phase 15-04]: useChat に gemId/onCanvasResponse を追加し Canvas レスポンス (type=canvas JSON) を検出して CanvasPane を自動表示
+- [Phase 19]: parent-bridge.js uses e.source (not iframeRef) — shared relay logic between Shell and CanvasPane
+- [Phase 19]: iframe_rpc.py JWT auth removed (D-07): github_token from auth_manager.load_token()
+- [Phase 19]: hosted_apps.router registered before /apps StaticFiles (D-02) for dynamic route priority
 
 ### Roadmap Evolution
 
@@ -250,7 +254,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-09 - Completed quick task 260409-g6g: Canvas chat extract_html フォールバック不具合修正
-Last session: 2026-04-07T09:00:00.000Z
-Stopped at: Phase 16 main にマージ完了。ブランチ削除済み。
-Resume file: none
+Last activity: 2026-04-09
+Last session: 2026-04-09T05:49:10.443Z
+Stopped at: Completed 19-01-PLAN.md
+Resume file: None

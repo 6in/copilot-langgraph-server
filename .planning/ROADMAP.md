@@ -90,8 +90,8 @@ Plans:
 **Goal:** デプロイ済み Canvas アプリを `/apps/{app_id}/` URL で独立ホスティング。Phase 18 の iframe postMessage JSON-RPC ブリッジが動作するホスティングシェルを FastAPI 動的ルートで配信する。
 **Requirements**: [D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13]
 **Depends on:** Phase 18
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 19-01-PLAN.md — hosted_apps.py 実装 + iframe_rpc JWT 認証削除 + main.py 登録
+- [x] 19-01-PLAN.md — hosted_apps.py 実装 + iframe_rpc JWT 認証削除 + main.py 登録
 - [ ] 19-02-PLAN.md — 自動検証 + 動作確認チェックポイント
