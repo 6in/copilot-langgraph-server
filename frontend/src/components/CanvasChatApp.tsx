@@ -71,14 +71,26 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   // Canvas 状態管理
   const { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, loadCanvasForThread } = useCanvas();
 
+  // エディタの現在の HTML（AI生成 or ユーザー手動編集）を追跡
+  // 送信時にこれをプロンプトに埋め込むことで、AI が常に最新 HTML をベースに修正できる
+  const [currentHtml, setCurrentHtml] = useState<string | null>(null);
+
   // スレッド切り替え時に最新の canvas app を復元（Todo #2）
   useEffect(() => {
     if (!activeThreadId) {
       setCanvasApp(null);
+      setCurrentHtml(null);
       return;
     }
     loadCanvasForThread(activeThreadId);
   }, [activeThreadId, loadCanvasForThread, setCanvasApp]);
+
+  // DB からスレッドの canvasApp が復元されたとき currentHtml を初期化する
+  // app_id が変わったとき（＝別スレッドに切り替え）のみ実行し、ユーザー編集を上書きしない
+  useEffect(() => {
+    if (canvasApp?.html) setCurrentHtml(canvasApp.html);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasApp?.app_id]);
 
   const handleNewChat = async () => {
     await createNewThread();
@@ -102,7 +114,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     gemId: canvasGemId,
     setMessages,
     refreshThreads,
-    onCanvasResponse: setCanvasApp,
+    onCanvasResponse: (app) => { setCanvasApp(app); setCurrentHtml(app.html); },
   });
 
   const handleSend = async (text: string) => {
@@ -110,7 +122,11 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     if (!threadId) {
       threadId = await createNewThread();
     }
-    await sendMessage(text, threadId);
+    // エディタに HTML があればプロンプトに埋め込む — AI が常に最新 HTML をベースに修正できる
+    const prompt = currentHtml
+      ? `${text}\n\n（現在の HTML）\n\`\`\`html\n${currentHtml}\n\`\`\``
+      : text;
+    await sendMessage(prompt, threadId);
     await refreshThreads();
   };
 
@@ -272,6 +288,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
               onSave={saveCanvas}
               onDeploy={deployCanvas}
               onClose={() => {}}
+              onHtmlChange={setCurrentHtml}
               style={{ minWidth: `${CANVAS_PANE_MIN}px`, width: `${canvasPaneWidth}px` }}
             />
           ) : (

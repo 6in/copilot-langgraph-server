@@ -18,6 +18,7 @@ interface CanvasPaneProps {
   onSave: (appId: string, html: string) => void;
   onDeploy: (appId: string) => void;
   onClose: () => void;
+  onHtmlChange?: (html: string) => void;
   style?: React.CSSProperties;
 }
 
@@ -32,6 +33,7 @@ export function CanvasPane({
   onSave,
   onDeploy,
   onClose,
+  onHtmlChange,
   style,
 }: CanvasPaneProps) {
   const theme = useCurrentTheme();
@@ -340,7 +342,7 @@ export function CanvasPane({
             language="html"
             value={htmlContent}
             theme={monacoTheme}
-            onChange={(val) => setHtmlContent(val ?? '')}
+            onChange={(val) => { setHtmlContent(val ?? ''); onHtmlChange?.(val ?? ''); }}
             options={{
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
