@@ -1,5 +1,17 @@
 # Milestones
 
+## v4.0 Canvas API Bridge (Shipped: 2026-04-09)
+
+**Phases completed:** 2 phases, 5 plans, 7 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- One-liner:
+- One-liner:
+
+---
+
 ## v3.0 Agent Platform (Shipped: 2026-04-07)
 
 **Phases completed:** 12 phases, 41 plans, 45 tasks
