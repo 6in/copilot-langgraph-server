@@ -84,3 +84,13 @@ Plans:
 - [x] 18-01-PLAN.md — IframeRpcHandler + POST /api/iframe-rpc エンドポイント + テスト
 - [x] 18-02-PLAN.md — arq ワーカー拡張 + DB プール管理 + config 設定
 - [x] 18-03-PLAN.md — CanvasPane postMessage リスナー + iframe JSON-RPC ブリッジ
+
+### Phase 19: Canvas アプリのデプロイ＆ホスティング機能（/apps/{app-id}/ ルーティング、iframe ホスティングシェル、Phase 18 RPC ブリッジ流用）
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 18
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 19 to break down)

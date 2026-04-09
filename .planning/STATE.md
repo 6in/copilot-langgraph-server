@@ -202,6 +202,7 @@ Recent decisions affecting current work:
 - Phase 15.1 inserted after Phase 15: Gem + Canvas 後処理 — デプロイフロー改善・Gem UX 強化 (URGENT)
 - Phase 16 added: Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ（Gem の Canvas モードとは分離した独立アプリ）
 - Phase 18 added: Canvas iframe postMessage JSON-RPC API ブリッジ実装 — iframe内JSからDB・AI・WebAPIを呼び出せる仕組み（Web Worker通信レイヤー分離、psycopg3+psycopg_pool、既存SSEフロー流用）
+- Phase 19 added: Canvas アプリのデプロイ＆ホスティング機能（/apps/{app-id}/ ルーティング、iframe ホスティングシェル、Phase 18 RPC ブリッジ流用）
 
 ### Pending Todos
 
