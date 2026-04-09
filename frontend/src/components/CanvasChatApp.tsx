@@ -65,6 +65,8 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   const [canvasPaneWidth, setCanvasPaneWidth] = useState(CANVAS_PANE_DEFAULT);
   const canvasDragStartX = useRef<number | null>(null);
   const canvasDragStartWidth = useRef<number>(CANVAS_PANE_DEFAULT);
+  // ドラッグ中フラグ — iframe がマウスイベントを奪うのを防ぐオーバーレイ制御に使う
+  const [isResizing, setIsResizing] = useState(false);
 
   // Canvas 状態管理
   const { canvasApp, setCanvasApp, isSaving, isDeploying, deployUrl, deployError, saveCanvas, deployCanvas, loadCanvasForThread } = useCanvas();
@@ -140,6 +142,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     e.preventDefault();
     canvasDragStartX.current = e.clientX;
     canvasDragStartWidth.current = canvasPaneWidth;
+    setIsResizing(true); // オーバーレイ表示: iframe のマウスイベント奪取を防ぐ
 
     const onMouseMove = (ev: MouseEvent) => {
       if (canvasDragStartX.current === null) return;
@@ -151,6 +154,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
 
     const onMouseUp = () => {
       canvasDragStartX.current = null;
+      setIsResizing(false); // オーバーレイ非表示
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -161,6 +165,12 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {/* ドラッグ中オーバーレイ: iframe がマウスイベントを奪うのを防ぐ */}
+      {isResizing && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, cursor: 'col-resize',
+        }} />
+      )}
       {/* Canvas ヘッダーバー (UI-SPEC: "🎨 Canvas") */}
       <div
         style={{
