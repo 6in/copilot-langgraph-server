@@ -23,7 +23,7 @@
 async function _waitForJob(job_id) {
   return new Promise((resolve, reject) => {
     var _prefix = (typeof window.__APP_PREFIX === 'string' ? window.__APP_PREFIX : '');
-    const es = new EventSource(_prefix + '/api/job/' + job_id + '/stream');
+    const es = new EventSource(_prefix + '/api/chat/' + job_id + '/stream');
 
     const timer = setTimeout(function () {
       es.close();
