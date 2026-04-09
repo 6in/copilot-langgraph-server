@@ -396,7 +396,7 @@ export function CanvasPane({
       >
         <iframe
           ref={iframeRef}
-          srcDoc={htmlContent}
+          srcDoc={htmlContent.replace(/\$URL_PREFIX/g, appBase)}
           sandbox="allow-scripts allow-forms"
           title="Canvas app preview"
           style={{ width: '100%', height: '100%', border: 'none' }}
