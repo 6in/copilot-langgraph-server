@@ -10,6 +10,8 @@ Security notes (T-18-01 through T-18-05):
   - pool_name is validated against ctx["db_pools"] keys — unknown pools rejected.
   - github_token is forwarded from the JWT-authenticated HTTP request (T-18-03).
 """
+import datetime
+import decimal
 import json
 import logging
 import re
@@ -22,6 +24,15 @@ from app.providers.copilot import ChatCopilot
 from langchain_core.messages import HumanMessage
 
 logger = logging.getLogger(__name__)
+
+
+def _json_default(obj):
+    """psycopg が返す非 JSON 型を文字列へ変換する。"""
+    if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
+        return obj.isoformat()
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 # Matches block comments (/* ... */) and line comments (-- ...)
 _COMMENT_RE = re.compile(r'/\*.*?\*/|--[^\n]*', re.DOTALL)
@@ -64,7 +75,7 @@ class IframeRpcHandler(TaskHandler):
             else:
                 result = {"result": False, "error": f"Unknown method: {method}"}
 
-            await job_store.save_result(job_id, json.dumps(result))
+            await job_store.save_result(job_id, json.dumps(result, default=_json_default))
             await notifier.done()
         except Exception as e:
             await job_store.save_result(job_id, json.dumps({"result": False, "error": str(e)}))
