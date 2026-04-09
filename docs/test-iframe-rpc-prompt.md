@@ -16,8 +16,6 @@ Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Canvas App</title>
-  <!-- $URL_PREFIX は Canvas プレビュー時に APP_PREFIX（例: /orochi）へ自動置換される -->
-  <script src="$URL_PREFIX/iframe-rpc.js"></script>
   <style>
     /* ここにスタイルを記述 */
     body { font-family: sans-serif; margin: 0; padding: 16px; }
@@ -27,13 +25,14 @@ Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB
 
   <!-- ここにコンテンツを記述 -->
 
-  <script>
-    // window.RPC はライブラリ読み込み後に利用可能（Canvas プレビュー時は自動注入でも補完される）
+  <!-- $URL_PREFIX は Canvas プレビュー時に APP_PREFIX（例: /orochi）へ自動置換される -->
+  <script type="module">
+    import { ai, query } from '$URL_PREFIX/iframe-rpc.js';
 
     // AI 呼び出し例
     async function askAI() {
       try {
-        const res = await RPC.ai('こんにちは！一言で挨拶してください。');
+        const res = await ai('こんにちは！一言で挨拶してください。');
         console.log(res.responseText);
       } catch (e) {
         console.error(e.message);
@@ -43,7 +42,7 @@ Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB
     // DB クエリ例（db_pools.yaml で設定済みのプール名を指定）
     async function queryDB() {
       try {
-        const res = await RPC.query('default', 'SELECT current_timestamp AS now');
+        const res = await query('default', 'SELECT current_timestamp AS now');
         console.log(res.rows);
       } catch (e) {
         console.error(e.message);
@@ -75,8 +74,8 @@ Canvas アプリ（HTML）は、`window.RPC` ライブラリを通じて AI・DB
 ```
 下記の HTML テンプレートをベースに、iframe RPC テストツールを作成してください。
 
-window.RPC は自動注入済みなので import・fetch 不要です。
-postMessage を直接扱う必要はなく、RPC.ai() / RPC.query() を呼ぶだけでOKです。
+`$URL_PREFIX/iframe-rpc.js` を ES module として import して使います。
+postMessage を直接扱う必要はなく、ai() / query() を呼ぶだけでOKです。
 
 ---
 
@@ -92,8 +91,9 @@ postMessage を直接扱う必要はなく、RPC.ai() / RPC.query() を呼ぶだ
   </style>
 </head>
 <body>
-  <script>
-    // window.RPC は自動注入済み
+  <script type="module">
+    import { ai, query } from '$URL_PREFIX/iframe-rpc.js';
+    // ここにロジックを記述
   </script>
 </body>
 </html>
@@ -104,19 +104,19 @@ postMessage を直接扱う必要はなく、RPC.ai() / RPC.query() を呼ぶだ
 
 1. **AI テストパネル**（カード形式）
    - テキストエリア（デフォルト: "日本語で「テスト成功」と一言だけ答えてください"）
-   - 「AIを呼び出す」ボタン — `RPC.ai(prompt)` を呼ぶ
+   - 「AIを呼び出す」ボタン — `ai(prompt)` を呼ぶ
    - 結果表示エリア（responseText を表示）
    - 実行中はボタン無効化 + ローディング表示
 
 2. **QUERY テストパネル**（カード形式）
    - pool_name 入力（デフォルト: "default"）
    - SQL テキストエリア（デフォルト: "SELECT current_timestamp AS now, version() AS pg_version"）
-   - 「クエリ実行」ボタン — `RPC.query(poolName, sql)` を呼ぶ
+   - 「クエリ実行」ボタン — `query(poolName, sql)` を呼ぶ
    - rows を JSON で整形表示
 
 3. **ガードテスト**（カード形式）
    - 「INSERT を試みる（拒否されるはず）」ボタン
-   - `RPC.query('default', 'INSERT INTO test_dummy VALUES (1)')` を呼ぶ
+   - `query('default', 'INSERT INTO test_dummy VALUES (1)')` を呼ぶ
    - catch でエラーを受け取り "✅ 正しく拒否されました: {message}" と表示
 
 4. **ログエリア**
