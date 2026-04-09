@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iframe RPC テストツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      padding: 20px 24px 18px 24px;
+      margin-bottom: 24px;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+      margin-bottom: 12px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      font-size: 1em;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 48px;
+      max-height: 120px;
+    }
+    button {
+      padding: 7px 18px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:disabled {
+      background: #b0b0b0;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 0.98em;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .result.success {
+      background: #e8f5e9;
+      color: #256029;
+      border: 1px solid #b2dfdb;
+    }
+    .result.error {
+      background: #ffebee;
+      color: #b71c1c;
+      border: 1px solid #ffcdd2;
+    }
+    .log-area {
+      background: #222;
+      color: #eee;
+      font-size: 0.97em;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 80px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      white-space: pre-wrap;
+    }
+    .log-success { background: #1b5e20; color: #c8e6c9; }
+    .log-error { background: #b71c1c; color: #ffcdd2; }
+    .log-request { color: #90caf9; }
+    .log-response { color: #fff59d; }
+    .log-time { color: #bdbdbd; }
+    .log-clear-btn {
+      float: right;
+      margin-top: -8px;
+      margin-bottom: 8px;
+      background: #757575;
+      color: #fff;
+      font-size: 0.95em;
+      padding: 4px 12px;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 0; }
+      .card { padding: 12px 6px 10px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- AI テストパネル -->
+    <div class="card" id="ai-card">
+      <h2>AI テストパネル</h2>
+      <div class="row">
+        <textarea id="ai-input" rows="2">日本語で「テスト成功」と一言だけ答えてください</textarea>
+      </div>
+      <div class="row">
+        <button id="ai-btn">AIを呼び出す</button>
+        <span id="ai-loading" style="display:none;">⏳ 実行中...</span>
+      </div>
+      <div id="ai-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- QUERY テストパネル -->
+    <div class="card" id="query-card">
+      <h2>QUERY テストパネル</h2>
+      <div class="row">
+        <input type="text" id="query-pool" value="default" style="max-width:160px;" />
+        <span style="font-size:0.95em;">← プール名</span>
+      </div>
+      <div class="row">
+        <textarea id="query-sql" rows="2">SELECT current_timestamp AS now, version() AS pg_version</textarea>
+      </div>
+      <div class="row">
+        <button id="query-btn">クエリ実行</button>
+        <span id="query-loading" style="display:none;">⏳ 実行中...</span>
+      </div>
+      <div id="query-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- ガードテスト -->
+    <div class="card" id="guard-card">
+      <h2>ガードテスト</h2>
+      <div class="row">
+        <button id="guard-btn">INSERT を試みる（拒否されるはず）</button>
+        <span id="guard-loading" style="display:none;">⏳ 実行中...</span>
+      </div>
+      <div id="guard-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- ログエリア -->
+    <div class="card" id="log-card">
+      <h2 style="display:inline;">ログエリア</h2>
+      <button class="log-clear-btn" id="log-clear-btn">ログをクリア</button>
+      <div id="log-area" class="log-area"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
+
+    // ログ管理
+    const logArea = document.getElementById('log-area');
+    const logClearBtn = document.getElementById('log-clear-btn');
+    let logs = [];
+
+    function addLog(type, method, req, res, isError) {
+      const now = new Date();
+      const time = now.toLocaleTimeString('ja-JP', { hour12: false }) + '.' + now.getMilliseconds().toString().padStart(3, '0');
+      let html = `<span class="log-time">[${time}]</span> `;
+      html += `<span class="log-request">${method} リクエスト:</span> ${JSON.stringify(req)}\n`;
+      if (isError) {
+        html += `<span class="log-error">エラー: ${res}</span>\n`;
+      } else {
+        html += `<span class="log-response">レスポンス:</span> ${typeof res === 'string' ? res : JSON.stringify(res)}\n`;
+      }
+      logs.push(html);
+      if (logs.length > 100) logs = logs.slice(-100);
+      logArea.innerHTML = logs.join('\n');
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+    logClearBtn.onclick = () => {
+      logs = [];
+      logArea.innerHTML = '';
+    };
+
+    // --- AI テストパネル ---
+    const aiInput = document.getElementById('ai-input');
+    const aiBtn = document.getElementById('ai-btn');
+    const aiLoading = document.getElementById('ai-loading');
+    const aiResult = document.getElementById('ai-result');
+
+    aiBtn.onclick = async () => {
+      aiResult.style.display = 'none';
+      aiBtn.disabled = true;
+      aiLoading.style.display = '';
+      const prompt = aiInput.value;
+      addLog('ai', 'ai', { prompt }, '...');
+      try {
+        const res = await ai(prompt);
+        aiResult.textContent = res.responseText;
+        aiResult.className = 'result success';
+        aiResult.style.display = '';
+        addLog('ai', 'ai', { prompt }, res, false);
+      } catch (e) {
+        aiResult.textContent = 'エラー: ' + e.message;
+        aiResult.className = 'result error';
+        aiResult.style.display = '';
+        addLog('ai', 'ai', { prompt }, e.message, true);
+      } finally {
+        aiBtn.disabled = false;
+        aiLoading.style.display = 'none';
+      }
+    };
+
+    // --- QUERY テストパネル ---
+    const queryPool = document.getElementById('query-pool');
+    const querySql = document.getElementById('query-sql');
+    const queryBtn = document.getElementById('query-btn');
+    const queryLoading = document.getElementById('query-loading');
+    const queryResult = document.getElementById('query-result');
+
+    queryBtn.onclick = async () => {
+      queryResult.style.display = 'none';
+      queryBtn.disabled = true;
+      queryLoading.style.display = '';
+      const pool = queryPool.value;
+      const sql = querySql.value;
+      addLog('query', 'query', { pool, sql }, '...');
+      try {
+        const res = await query(pool, sql);
+        queryResult.textContent = JSON.stringify(res.rows, null, 2);
+        queryResult.className = 'result success';
+        queryResult.style.display = '';
+        addLog('query', 'query', { pool, sql }, res, false);
+      } catch (e) {
+        queryResult.textContent = 'エラー: ' + e.message;
+        queryResult.className = 'result error';
+        queryResult.style.display = '';
+        addLog('query', 'query', { pool, sql }, e.message, true);
+      } finally {
+        queryBtn.disabled = false;
+        queryLoading.style.display = 'none';
+      }
+    };
+
+    // --- ガードテスト ---
+    const guardBtn = document.getElementById('guard-btn');
+    const guardLoading = document.getElementById('guard-loading');
+    const guardResult = document.getElementById('guard-result');
+
+    guardBtn.onclick = async () => {
+      guardResult.style.display = 'none';
+      guardBtn.disabled = true;
+      guardLoading.style.display = '';
+      const pool = 'default';
+      const sql = 'INSERT INTO test_dummy VALUES (1)';
+      addLog('guard', 'query', { pool, sql }, '...');
+      try {
+        await query(pool, sql);
+        guardResult.textContent = '❌ 失敗: INSERT が許可されてしまいました';
+        guardResult.className = 'result error';
+        guardResult.style.display = '';
+        addLog('guard', 'query', { pool, sql }, 'INSERT allowed (unexpected)', true);
+      } catch (e) {
+        guardResult.textContent = '✅ 正しく拒否されました: ' + e.message;
+        guardResult.className = 'result success';
+        guardResult.style.display = '';
+        addLog('guard', 'query', { pool, sql }, e.message, false);
+      } finally {
+        guardBtn.disabled = false;
+        guardLoading.style.display = 'none';
+      }
+    };
+  </script>
+</body>
+</html>

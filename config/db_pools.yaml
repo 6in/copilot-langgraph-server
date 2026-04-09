@@ -1,0 +1,5 @@
+# Local development DB pool config.
+# Uses the same postgres instance as the main app.
+pools:
+  default:
+    dsn: postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
