@@ -1,160 +1,175 @@
 # Project Research Summary
 
 **Project:** Copilot LangGraph Chat
-**Domain:** Personal LLM chat web app — custom LangChain provider over GitHub Copilot JSON-RPC SDK
-**Researched:** 2026-03-31
-**Confidence:** MEDIUM-HIGH (core stack HIGH; Copilot SDK specifics LOW due to Technical Preview)
+**Domain:** v5.0 Agent Tool Platform — FastMCP + LangGraph bind_tools 統合（既存プロジェクトへの追加マイルストーン）
+**Researched:** 2026-04-09
+**Confidence:** MEDIUM-HIGH（FastMCP/LangGraph 部分は HIGH; ChatCopilot bind_tools は LOW — 未実装のため実装前に検証必須）
+
+---
 
 ## Executive Summary
 
-This is a single-user, locally-run Python web app that wraps GitHub Copilot as a LangChain-compatible chat provider and exposes it through a browser UI with multi-turn conversation history. The central technical challenge is that the Copilot SDK communicates via JSON-RPC to a bundled CLI binary — not via an OpenAI-compatible HTTP API — so the usual shortcut of pointing `ChatOpenAI` at a custom URL does not apply. A custom `ChatCopilot(BaseChatModel)` implementation is mandatory, and this file is the highest-risk surface in the entire codebase because the SDK is Technical Preview and subject to breaking changes.
+v5.0 は既存の Copilot LangGraph Chat に MCP ベースのツール実行レイヤーを追加するマイルストーンである。中心的な変更は 3 点: (1) FastMCP 3.2.2 を Docker サービス（`mcp-server`）として追加し `streamable-http` transport で公開、(2) `langchain-mcp-adapters` の `MultiServerMCPClient` でワーカーからツールリストを取得、(3) `SubAgent.run()` を LangGraph `bind_tools` + `ToolNode` の ReAct ループに拡張する。既存の `OrchestratorGraph`・`RouterNode`・`AgentState`・全 API ルートは変更しない。追加されるツールは Web 検索（Tavily）、DB クエリ（PostgreSQL SELECT-only）、Claude Code CLI の 3 種で、YAML 設定ファイルでエージェントごとに許可するツールを制御する。
 
-The recommended approach is a four-layer Python monolith: FastAPI web layer → LangGraph graph layer → `ChatCopilot` provider layer → `CopilotAuthManager` auth layer. Each layer communicates only downward. LangGraph's thread-based checkpointing (`MemorySaver` for v1, upgradeable to SQLite without changing the graph) handles multi-turn context automatically once the `add_messages` reducer is in place. The frontend is deliberately vanilla JS served as static files — no build toolchain, no streaming, simple `fetch` POST to `/chat`.
+最大のリスクは `ChatCopilot.bind_tools()` が未実装である点だ。`BaseChatModel.bind_tools()` はデフォルトで `NotImplementedError` を投げるため、Phase 2（bind_tools 統合）の最初のタスクとして `copilot.py` に実装しなければならない。さらに Copilot SDK はプレーンテキストを返すため、LangGraph `ToolNode` が期待する構造化 `tool_calls` が生成されない。推奨アプローチはシステムプロンプトへのツールスキーマ注入 + `_agenerate` 内でのテキスト解析（Approach A）である。これにより PostgreSQL チェックポイントに完全なツール呼び出し履歴が残り、200 名規模の内部利用における監査要件を満たせる。
 
-The primary risks are in Phase 1 (BaseChatModel implementation): Pydantic v2 incompatibility, incorrect async patterns that deadlock inside ASGI, calling private `_agenerate()` directly from graph nodes, and missing the `add_messages` reducer that silently destroys conversation history. All of these are well-documented and preventable with the right signatures and patterns from the start. The SDK isolation boundary (only `app/providers/copilot.py` imports the SDK) is the key architectural constraint that limits the blast radius of any future SDK breaking change.
+その他の注意点: `langchain-mcp-adapters` v0.1.0 で `async with MultiServerMCPClient(...) as client:` パターンが削除されたため、既存チュートリアルのコードは動かない。また `stdio` transport は Docker コンテナ間通信に使えないため `streamable-http` が必須。Claude Code CLI は `CLAUDECODE=1` 環境変数を継承すると即座に失敗するため、subprocess 起動時に env sanitization が必須となる。
 
 ---
 
 ## Key Findings
 
-### Recommended Stack
+### 推奨スタック（v5.0 追加分）
 
-The stack is minimal and strongly opinionated toward async Python. FastAPI + LangGraph is the most documented integration pattern in 2025 and the natural fit: both are natively async, and `await graph.ainvoke()` integrates directly into `async def` FastAPI routes. The only unusual element is the Copilot SDK, which must be pinned to an exact version and isolated behind a single adapter file.
+既存スタック（Python 3.12 / FastAPI / LangGraph 1.1.3 / arq + Redis / PostgreSQL）への追加のみ。既存依存を変更しない。
 
-**Core technologies:**
+**新規追加ライブラリ:**
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Python | 3.12 | Runtime — stable sweet spot for all dependencies |
-| `langgraph` | 1.1.3 | Stateful conversation graph with thread checkpointing |
-| `langchain-core` | 1.2.23 | `BaseChatModel` base class — slim, not full `langchain` |
-| `github-copilot-sdk` | 0.2.0 | Copilot JSON-RPC client — **pin exact, Technical Preview** |
-| `fastapi` | 0.135.2 | Async HTTP API server |
-| `uvicorn[standard]` | 0.42.0 | ASGI server |
-| `langgraph-checkpoint-sqlite` | 3.0.3 | Durable thread persistence (v2 upgrade path) |
-| `cryptography` | 46.0.6 | Fernet token encryption for auth |
-| `httpx` | 0.28.1 | Async HTTP for Device Flow OAuth |
-| Vanilla JS + HTML/CSS | — | Chat UI — no build toolchain needed |
+| `fastmcp` | 3.2.2 | MCP サーバー実装。`@mcp.tool` デコレータ、`streamable_http` transport |
+| `langchain-mcp-adapters` | 0.2.2 | `MultiServerMCPClient` で MCP ツール → LangChain `BaseTool` 変換 |
+| `tavily-python` | 0.5.x | `AsyncTavilyClient` による非同期 Web 検索 |
+| `psycopg[binary]` | 3.x | DB クエリツール（既存ライブラリ、追加不要） |
 
-**Excluded by design:** React/HTMX (unjustified complexity for single-user tool), `langchain` full package (use `langchain-core` only), `requests` (sync, would block ASGI event loop), Redis (out of scope per PROJECT.md).
+**追加しないライブラリ:** `langchain` フルパッケージ（langchain-core で bind_tools / ToolNode は動く）、`mcp` 低レベルライブラリ（fastmcp が包含）、`requests` / `aiohttp`（httpx が既存）
 
-See `.planning/research/STACK.md` for full rationale and pyproject.toml template.
+**Transport:** `streamable-http` 一択。`stdio` は Docker コンテナ間通信不可、`sse` はセッションアフィニティ問題あり。
 
-### Expected Features
+詳細は `.planning/research/STACK.md` を参照。
 
-**Must have (table stakes) — v1:**
-- Message history display — user/assistant bubbles, chronological scroll
-- Multi-turn thread with context accumulation — LangGraph `add_messages` state
-- Send/receive flow with loading indicator — disable input during LLM call (2-15s round-trip)
-- New chat button — resets thread, starts fresh LangGraph state
-- Markdown + syntax-highlighted code rendering in assistant bubbles
-- Inline error display — auth errors must surface re-auth trigger, not a generic 500
-- Device Flow auth trigger + status display — gates the entire app
-- Keyboard send (Enter / Shift+Enter for newline)
-- Auto-scroll to latest message
+### v5.0 追加フィーチャー
 
-**Should have — include in v1 for quality of life:**
-- Model selector dropdown (gpt-4.1, claude-sonnet-4-5, gemini-2.5-pro curated list)
-- Token expiry detection with re-auth prompt (not just a 401 log)
-- Copy response button (per-message clipboard API)
+**必須（Table Stakes）:**
+1. **LangGraph bind_tools + ToolNode ReAct ループ** — SubAgent 内部に mini-graph（agent ↔ ToolNode ループ）を構築。外側の OrchestratorGraph 構造は変更しない。`recursion_limit=10`（最大 5 ツール呼び出しラウンド）。
+2. **FastMCP Server（Docker サービス）** — `mcp_server/` ディレクトリに独立 Docker サービス。`@mcp.tool` デコレータでツール定義。ポート 8001 は内部ネットワークのみ（ホスト公開なし）。
+3. **langchain-mcp-adapters Client** — `OrchestratorHandler.handle()` 内で `MultiServerMCPClient.get_tools()` を呼び出し。arq `startup()` で初期化してコンテキストに保持するほうが効率的（P4 参照）。
+4. **config.yaml ツールルーティング** — エージェント名ごとに許可ツールを宣言。`ToolRegistry` クラスが起動時に読み込み、`SubAgent` コンストラクタに渡す。
 
-**Defer to v2+:**
-- Session sidebar / conversation list (requires persistence layer)
-- Auto-generated conversation titles (depends on sidebar)
-- Conversation search, export, prompt templates
-- Streaming (Copilot SDK `send_and_wait` is blocking; no fake streaming)
+**差別化フィーチャー:**
+5. **Web 検索ツール（Tavily）** — `include_answer=True` で LLM 向けサマリーを返却。`max_results=3, include_raw_content=False` でコンテキスト肥大化を防止。フリー枠 1000 credits/月（200 名規模で充分）。
+6. **DB クエリツール（PostgreSQL SELECT-only）** — `is_select_only()` を Phase 18 から `app/utils/sql_safety.py` に移動して再利用。`mcp_readonly` PostgreSQL ロールで二重防御。
+7. **Claude Code CLI ツール** — `asyncio.create_subprocess_exec` で非同期実行。Docker イメージ内に Node.js + claude CLI インストール必要。**スパイク優先**、MVP には含めない。
 
-**Anti-features — explicitly do not build:**
-- User accounts / login screen (personal tool, localhost only)
-- Dark/light mode toggle (use OS `prefers-color-scheme`)
-- Regenerate/edit message branching (increases state complexity unnecessarily)
+**Anti-Features（実装禁止）:**
+- 全エージェントに全ツールを付与する（ツール混乱・DB アクセス制限破綻）
+- ツール結果のストリーミング（Copilot SDK が対応していない）
+- ツール結果キャッシュ（200 名規模では不要、v5.1 以降）
+- `is_select_only()` の再実装（v4.0 で本番テスト済み）
 
-See `.planning/research/FEATURES.md` for dependency chain and MVP phasing.
+詳細は `.planning/research/FEATURES.md` を参照。
 
-### Architecture Approach
+### アーキテクチャアプローチ
 
-The application is a single-process Python server with four strictly-layered components communicating only downward. No layer reaches back up. The LangGraph checkpointer (keyed by `thread_id` UUID generated in the browser) is the sole source of truth for conversation history — the web layer holds nothing. One graph instance per process is created at startup via FastAPI `lifespan` and stored in `app.state`.
+v5.0 の統合点は `OrchestratorHandler` と `SubAgent` の 2 ファイルに集中する。外部コンポーネントとして `mcp-server` Docker サービスが追加され、Worker → HTTP → mcp-server → 外部 API（Tavily / pg / subprocess）という新しいデータフローが確立される。
 
-**Major components:**
+**新規コンポーネント:**
 
-| Component | File | Responsibility |
+| Component | Path | Responsibility |
 |-----------|------|---------------|
-| Auth Layer | `app/auth/manager.py` | Device Flow OAuth, Fernet encrypt/decrypt, token file I/O |
-| Provider Layer | `app/providers/copilot.py` | `ChatCopilot(BaseChatModel)` — only file that imports Copilot SDK |
-| Graph Layer | `app/graph/` | `StateGraph` definition, `ChatState` with `add_messages`, node wiring |
-| Web Layer | `app/api/` | FastAPI routes, lifespan startup, request/response shaping |
-| Frontend | `frontend/index.html` | Vanilla JS chat UI, `fetch` POST, localStorage `thread_id` |
+| FastMCP Server | `mcp_server/main.py` | ツール定義と HTTP エンドポイント公開 |
+| web_search tool | `mcp_server/tools/web_search.py` | Tavily API ラッパー |
+| db_query tool | `mcp_server/tools/db_query.py` | PostgreSQL SELECT + is_select_only ガード |
+| claude_code tool | `mcp_server/tools/claude_code.py` | asyncio subprocess ラッパー |
+| ToolRegistry | `app/orchestrator/tool_registry.py` | config.yaml 読み込み + エージェント別フィルタリング |
 
-**Build order follows dependency direction:** Auth → Provider → Graph → Web → Frontend. Each layer is independently testable before the next is built.
+**変更ファイル（リスク順）:**
 
-**v1 endpoints:** `POST /chat`, `GET /auth/status`, `POST /auth/login`
+| File | Change | Risk |
+|------|--------|------|
+| `app/providers/copilot.py` | `bind_tools()` 実装 | HIGH — SDK と LangGraph 間の impedance mismatch |
+| `app/orchestrator/agent.py` | `SubAgent._run_with_tools()` 追加 | MEDIUM — コアクラス、後方互換維持必須 |
+| `app/jobs/handlers/orchestrator_handler.py` | MCP クライアント初期化 | MEDIUM — ジョブライフサイクル変更 |
+| `docker-compose.yml` | `mcp-server` サービス追加 | LOW — additive |
+| `pyproject.toml` | `langchain-mcp-adapters` 追加 | LOW |
 
-See `.planning/research/ARCHITECTURE.md` for full data flow, async patterns, and directory structure.
+**変更なしのファイル（確認済み）:** `AgentState`, `SubAgentRegistry`, `RouterNode`, 全 API ルート, `iframe_rpc_handler`, `langgraph_handler`, `debate_handler`
 
-### Critical Pitfalls
+詳細は `.planning/research/ARCHITECTURE.md` を参照。
 
-1. **Calling `llm._agenerate()` directly in graph nodes** — bypasses callbacks, tracing, and retry logic; breaks when langchain-core changes the private signature. Always use `await llm.ainvoke(messages)` from nodes.
+### Critical Pitfalls（上位 5 件）
 
-2. **`_generate` using `asyncio.get_event_loop().run_until_complete()`** — raises `RuntimeError: This event loop is already running` inside ASGI. Implement `_generate` to raise `NotImplementedError`; use only the async path (`ainvoke` → `_agenerate`).
+1. **P1 + P2（CRITICAL）: ChatCopilot.bind_tools() 未実装 + Copilot SDK がプレーンテキストを返す** — `llm.bind_tools([...])` を呼ぶと即座に `NotImplementedError`。実装しても Copilot SDK は構造化 `tool_calls` を出力しないため `ToolNode` が一切発火しない。対策: システムプロンプト注入 + `_agenerate` 内 JSON テキスト解析（Approach A）。Phase 2 着手前に設計確定が必須。
 
-3. **Missing `add_messages` reducer on graph state** — without `Annotated[list, add_messages]`, nodes that return `{"messages": [new_msg]}` silently overwrite the entire conversation history. Use `MessagesState` or the `Annotated` pattern from day one.
+2. **P3（HIGH）: MultiServerMCPClient async with パターン削除** — v0.1.0 で `async with client:` が廃止。`client.get_tools()` を直接呼ぶか `client.session()` を使う。多くのチュートリアルが古い API を示しているため注意。
 
-4. **Pydantic v2 incompatibility in `ChatCopilot`** — `class Config: arbitrary_types_allowed = True` is Pydantic v1 syntax. Use `model_config = ConfigDict(arbitrary_types_allowed=True)` and `_client: Any = PrivateAttr(default=None)`.
+3. **P6（HIGH）: Claude Code CLI が CLAUDECODE=1 を継承して失敗** — Claude Code セッション内で開発している場合、子プロセスが親の `CLAUDECODE=1` を継承して "nested session" エラーで即終了。`_build_claude_env()` で `CLAUDECODE` を unset してから subprocess を起動すること。
 
-5. **Copilot SDK session not closed on error** — exceptions during `_agenerate` leave the JSON-RPC subprocess in a broken state; subsequent calls reuse a corrupted client. Wrap `_agenerate` in `try/except` that resets `_client = None` on connection errors; always call `llm.close()` in FastAPI lifespan shutdown.
+4. **P7（HIGH）: tool_calls 無限ループ** — ReAct ループで LLM が終了判定できない場合、`recursion_limit`（デフォルト 25）まで実行し続ける。`AgentState` に `tool_iterations` カウンターを追加し、`should_continue` で上限チェックを入れること。
 
-6. **Co-locating Fernet key with encrypted token** — `~/.copilot_sdk/.enc_key` next to `token.enc` provides no security. Prefer `COPILOT_TOKEN_ENC_KEY` env var; add `~/.copilot_sdk/` to `.gitignore`.
+5. **P8（HIGH）: Shell injection via tool 引数** — LLM 生成の引数を `shell=True` でコマンドに渡すと RCE につながる。必ず `asyncio.create_subprocess_exec(*args_list)` のリスト形式を使用。
 
-7. **Tech Preview SDK breaking changes** — pin `github-copilot-sdk==0.2.0` (exact); isolate all imports behind `app/providers/copilot.py` only.
-
-See `.planning/research/PITFALLS.md` for full list (16 pitfalls with phase assignments).
+詳細（15 件）は `.planning/research/PITFALLS.md` を参照。
 
 ---
 
 ## Implications for Roadmap
 
-### Phase 1: Auth + Provider Foundation
-**Rationale:** The entire app is gated on a valid Copilot token and a working `ChatCopilot` client. These have the most implementation risk (Technical Preview SDK, Pydantic v2 patterns, async lifecycle). Build and validate in isolation before touching graph or web layers.
-**Delivers:** `CopilotAuthManager` (Device Flow, token encrypt/decrypt) + `ChatCopilot(BaseChatModel)` passing LangChain interface tests. A Python REPL or CLI script can get a Copilot response end-to-end.
-**Features addressed:** Device Flow auth, `ChatCopilot` provider, model selection parameter
-**Pitfalls to avoid:** Pydantic v2 Config syntax (use `ConfigDict`/`PrivateAttr`); full `_generate`/`_agenerate` canonical signatures; SDK pinning and import isolation; client lifecycle error handling
+フィーチャー依存グラフから得られる自然な実装順序は 5 フェーズ構成:
 
-### Phase 2: Graph Layer
-**Rationale:** LangGraph graph depends on the provider being stable. The state design (`add_messages` reducer) must be correct from the start — retrofitting is painful because it silently breaks multi-turn behavior.
-**Delivers:** `build_graph()` producing a compiled `StateGraph` that round-trips a multi-turn conversation with correct history accumulation. `MemorySaver` checkpointer keyed by `thread_id`.
-**Features addressed:** Multi-turn thread, conversation history persistence (in-memory), thread_id session abstraction
-**Pitfalls to avoid:** `add_messages` reducer missing; calling `_agenerate` directly; graph recompilation per request (compile once at startup)
+```
+MCP-01: FastMCP サーバー基盤
+    ↓
+MCP-02: Worker bind_tools 統合（最高リスク）
+    ↓
+MCP-03: Web 検索ツール（Tavily）
+    ↓
+MCP-04: DB クエリツール + セキュリティ
+    ↓
+MCP-05: per-agent ツールルーティング（オプション）
+```
 
-### Phase 3: Web API Layer
-**Rationale:** FastAPI wraps the graph with HTTP. Auth flow is the most complex endpoint — Device Flow must be decoupled from request handlers (dedicated `/auth/login` endpoint with frontend polling pattern).
-**Delivers:** Running HTTP server with `POST /chat`, `GET /auth/status`, `POST /auth/login`. FastAPI lifespan initializes all shared resources once. Testable with `curl` or HTTPie.
-**Features addressed:** Send/receive flow, auth status gating, inline error responses, token expiry → re-auth trigger
-**Pitfalls to avoid:** Sync `invoke()` inside async endpoints; device flow blocking request handlers; graph created per-request; no try/except distinguishing auth errors from SDK errors
+### Phase MCP-01: FastMCP Docker サービス基盤
+**Rationale:** MCP-02 以降の全フェーズがこのサービスに依存する。先にスタブで通信確認してから bind_tools の複雑な実装に進む。
+**Delivers:** `mcp-server` Docker サービスが起動し、`MultiServerMCPClient.get_tools()` が LangChain BaseTool リストを返す。スタブ `ping` ツールで通信確認。
+**Features addressed:** FastMCP Docker サービス（Table Stakes #2）、langchain-mcp-adapters クライアント（#3）
+**Pitfalls to avoid:** P9（stdio transport を使わない）、P3（async with を使わない）、P4（arq startup() で初期化）、P14（/health エンドポイント追加）、P10（ツール名衝突回避）
 
-### Phase 4: Frontend UI
-**Rationale:** Depends on the API contract being stable. Vanilla JS keeps this phase simple — no build toolchain, no npm, no bundler.
-**Delivers:** Browser chat UI with all table-stakes features: message bubbles, loading indicator, markdown + syntax highlighting, new chat, keyboard send, auto-scroll, auth status in header with Device Flow trigger.
-**Features addressed:** All table-stakes from FEATURES.md; model selector dropdown; copy button; inline error display
-**Pitfalls to avoid:** Building streaming UI (SDK does not support it); using React/HTMX (unjustified complexity)
+### Phase MCP-02: LangGraph bind_tools + ToolNode 統合
+**Rationale:** 最高リスクフェーズ。ChatCopilot.bind_tools() 未実装という根本問題をここで解決する。設計選択（Approach A vs B）が全体アーキテクチャを規定するため、最初のタスクとして設計決定を行う。
+**Delivers:** `research-assistant` エージェント 1 本が tool-enabled になり、Web 検索プロンプトでツール呼び出しが発火する end-to-end 検証。
+**Features addressed:** LangGraph bind_tools + ToolNode ReAct ループ（Table Stakes #1）
+**Pitfalls to avoid:** P1（bind_tools 未実装）、P2（ToolNode が発火しない）、P7（無限ループ）、P13（invalid_tool_calls サイレントドロップ）
+**Research flag:** ChatCopilot.bind_tools() 実装方針を Phase 着手前にスパイクで確定すること。
+
+### Phase MCP-03: Web 検索ツール（Tavily）
+**Rationale:** 最も価値が高く複雑度が最低のツール。MCP-02 の end-to-end 検証用ツールでもある。
+**Delivers:** `web_search` MCP ツールが本番で動作。`research-assistant` エージェントが Tavily 経由でリアルタイム情報を取得してレスポンスに反映。
+**Features addressed:** Web 検索ツール（Differentiator #5）
+**Pitfalls to avoid:** P11（同期 TavilyClient 使用禁止）、P12（レスポンスサイズ制御）
+
+### Phase MCP-04: DB クエリツール + セキュリティ強化
+**Rationale:** `is_select_only()` はすでに本番テスト済みコード。移植コストが低く、セキュリティリスクを二重防御で管理できる。
+**Delivers:** `db_query` MCP ツール。`mcp_readonly` PostgreSQL ロール。`app/utils/sql_safety.py` 共有ユーティリティ。
+**Features addressed:** DB クエリツール（Differentiator #6）
+**Pitfalls to avoid:** `is_select_only()` 再実装禁止（既存コードを `sql_safety.py` に移動して再利用）
+
+### Phase MCP-05: config.yaml ツールルーティング（per-agent フィルタリング）
+**Rationale:** ツール数が増えた段階でエージェント別アクセス制御が必要になる。コード変更なしで制御可能にする。
+**Delivers:** `config/mcp_tools.yaml` + `ToolRegistry` クラス。`agent_tools` allowlist によりエージェントごとに使えるツールが限定される。
+**Features addressed:** config.yaml ツールルーティング（Table Stakes #4）
+
+**v5.1 以降に延期:**
+- Claude Code CLI ツール（Docker イメージビルド + 出力フォーマット検証スパイク必要）
+- ツール結果キャッシュ
+- DB スキーマ検索ツール（`db_schema()` MCP ツール）
 
 ### Phase Ordering Rationale
 
-- **Dependency direction is strict:** Auth → Provider → Graph → Web → Frontend. Each phase produces something independently runnable before the next layer is added.
-- **Highest risk first:** The Copilot SDK is the biggest unknown. Isolating it in Phase 1 means Phase 2+ can proceed even if the SDK interface requires iteration.
-- **MemorySaver is intentionally v1:** The `thread_id` abstraction is established in Phase 2 so upgrading to `langgraph-checkpoint-sqlite` in a future phase is a one-line swap in `build_graph()`.
-- **No streaming complexity:** The entire stack is designed around synchronous `send_and_wait`. The frontend uses simple `fetch` POST. If streaming is added later, the API endpoint should be designed as `StreamingResponse` (single-chunk for now) to avoid a contract break.
+- **依存チェーンが順序を規定:** MCP サービスが動かないと MultiServerMCPClient が意味を持たず、クライアントがないと bind_tools の end-to-end 検証ができない。
+- **最高リスクを早期に解決:** ChatCopilot.bind_tools() 問題は MCP-02 の設計中核。遅らせると後続フェーズが全部ブロックされる。
+- **Claude Code は最後:** Docker イメージビルドの複雑さ + セキュリティリスク（CVE-2025-59536 等）から、Web 検索・DB クエリが安定してから着手する。
 
 ### Research Flags
 
-**Needs validation during implementation:**
-- **Phase 1 — Copilot SDK session API:** The exact interface of `CopilotClient`, `session.send_and_wait()`, and whether the session accepts structured turn-based input (vs. a concatenated flat string) must be validated against the pinned `0.2.0` SDK. The `_messages_to_prompt()` serialization strategy depends on this.
-- **Phase 1 — Device Flow client ID:** `CLIENT_ID = "Iv1.b507a08c87ecfe98"` is described as non-official use of the Copilot CLI client ID. Validate this still works for personal tool use.
-- **Phase 4 — Model list:** Copilot model availability is dynamic (some marked preview, deprecation dates). Curate a static list (gpt-4.1, claude-sonnet-4-5, gemini-2.5-pro) from current docs rather than hardcoding from research-time assumptions.
+**フェーズ着手前に検証が必要:**
+- **MCP-02 着手前:** `ChatCopilot.bind_tools()` スパイク — Approach A（プロンプト注入 + テキスト解析）が Copilot モデルで正しく動作するか検証。特に JSON-vs-text 終了判定が Copilot SDK の応答形式と整合するか。
+- **MCP-03 着手時:** Tavily `search_context(max_tokens=3000)` の実際のトークン削減効果を Copilot モデルのコンテキストウィンドウに対して検証。
 
-**Standard patterns — no additional research needed:**
-- **Phase 2 — LangGraph StateGraph + MessagesState:** Well-documented, multiple corroborating sources, HIGH confidence.
-- **Phase 3 — FastAPI lifespan + `app.state`:** Official FastAPI docs, HIGH confidence.
-- **Phase 4 — Vanilla JS chat UI:** No framework, standard DOM APIs, HIGH confidence.
+**標準パターン（追加調査不要）:**
+- **MCP-01:** FastMCP streamable-http 設定は公式ドキュメント HIGH 信頼。`MultiServerMCPClient` の直接呼び出しパターンも確認済み。
+- **MCP-04:** `is_select_only()` は v4.0 本番テスト済み。移植のみ。
+- **MCP-05:** YAML 設定 + `ToolRegistry` は低リスクの新規クラス実装。
 
 ---
 
@@ -162,39 +177,47 @@ See `.planning/research/PITFALLS.md` for full list (16 pitfalls with phase assig
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All dependencies verified on PyPI with current versions; alternatives explicitly evaluated |
-| Features | HIGH | Grounded in analysis of comparable tools (Open WebUI, LibreChat) and Copilot-specific constraints |
-| Architecture | HIGH | LangGraph + FastAPI integration pattern is well-documented with multiple corroborating sources |
-| Pitfalls | HIGH (core) / MEDIUM (SDK-specific) | LangGraph/LangChain pitfalls verified against official docs; Copilot SDK pitfalls inferred from limited Technical Preview docs |
+| Stack | HIGH | fastmcp/langchain-mcp-adapters/tavily は PyPI・公式 docs 検証済み。バージョン固定済み |
+| Features | HIGH | LangGraph ToolNode / tools_condition / recursion_limit は複数ソース確認済み。FastMCP @mcp.tool は公式 docs |
+| Architecture | HIGH | 既存コードを直接読んで変更範囲を特定。`AgentState`・`OrchestratorGraph` 変更不要を確認 |
+| Pitfalls | MEDIUM-HIGH | LangGraph/langchain-mcp-adapters pitfalls は issues/discussions で検証。ChatCopilot bind_tools は未実装のため実際の挙動は MCP-02 スパイクまで LOW |
 
 **Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **Copilot SDK `send_and_wait` exact API shape:** Whether it accepts a structured list of turns or only a single prompt string determines the `_messages_to_prompt()` implementation. Validate in Phase 1 against the pinned SDK wheel before finalizing the serialization strategy.
-- **GitHub Device Flow token lifetime:** GitHub does not document a specific expiry period for `ghu_` tokens issued to the Copilot CLI OAuth app. The error-handling path (catch 401, delete token, re-trigger Device Flow) is the safe fallback, but a proactive "re-auth if unused > 30 days" heuristic may be warranted.
-- **Copilot model list stability:** Models are subject to deprecation (some variants noted as deprecated 2026-04-01 in research). The model selector must use a config-file or docs-derived list, not a hardcoded assumption from this research.
+- **ChatCopilot.bind_tools() 実装方針（CRITICAL）:** Approach A（プロンプト注入 + テキスト解析）で Copilot SDK が確実に JSON レスポンスを返すかは、実際の SDK 呼び出しで確認するまで不確実。MCP-02 の最初のタスクをスパイクとして計画し、Approach B（Copilot SDK ネイティブ tool events）へのフォールバックを設計書に明記しておくこと。
+- **langchain-mcp-adapters v0.2.2 の async context manager サポート有無:** v0.1.0 で削除されたが v0.2.2 で再実装された可能性がある。インストール後に README を確認し、利用可能なら `async with client.session()` パターンを採用する。
+- **Claude Code CLI 出力フォーマット:** `--output-format json` の実際の出力が JSON Lines か単一 JSON オブジェクトかは、インストール済み CLI バージョンで確認が必要。スパイクスクリプトを先に作成すること。
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- LangGraph PyPI / official docs — StateGraph, MessagesState, MemorySaver, ainvoke patterns
-- FastAPI official docs — lifespan events, `app.state`, async endpoints
-- langchain-core PyPI / API reference — BaseChatModel abstract interface, Pydantic v2 migration
-- `docs/pre/copilot_langgraph_provider.md` — primary design reference for ChatCopilot and auth flow
+- FastMCP 公式ドキュメント: https://gofastmcp.com/servers/tools, https://gofastmcp.com/deployment/http
+- FastMCP PyPI (v3.2.2): https://pypi.org/project/fastmcp/
+- langchain-mcp-adapters GitHub: https://github.com/langchain-ai/langchain-mcp-adapters
+- langchain-mcp-adapters PyPI (v0.2.2): https://pypi.org/project/langchain-mcp-adapters/
+- Tavily API reference: https://docs.tavily.com/documentation/api-reference/endpoint/search
+- LangGraph ToolNode reference: https://reference.langchain.com/python/langgraph/agents
+- LangGraph recursion_limit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT
 
 ### Secondary (MEDIUM confidence)
-- DeepWiki: github/copilot-sdk — Python SDK architecture and session lifecycle
-- LangGraph agent service toolkit (JoshuaC215) — production architecture reference
-- LangChain v0.3 blog post — Pydantic v2 migration details
-- Open WebUI / LibreChat feature analysis — feature completeness baseline
+- MultiServerMCPClient DeepWiki: https://deepwiki.com/langchain-ai/langchain-mcp-adapters/2.1-multiservermcpclient
+- LangGraph ReAct agent from scratch: https://langchain-ai.github.io/langgraph/how-tos/react-agent-from-scratch-functional/
+- Claude Code CLI subprocess: https://platform.claude.com/docs/en/agent-sdk/python
+- Google MCP Toolbox config patterns: https://codelabs.developers.google.com/agentic-rag-toolbox-cloudsql
+- Software Mansion — Building Agents with LangGraph Part 2
 
-### Tertiary (LOW confidence)
-- GitHub Copilot SDK Technical Preview docs — breaking changes possible; validate against pinned 0.2.0
-- Copilot CLI client ID (`Iv1.b507a08c87ecfe98`) — non-official use, validate still functional
+### Tertiary (LOW confidence / validation required)
+- anthropics/claude-agent-sdk-python Issue #573 (CLAUDECODE=1 nested session)
+- anthropics/claude-code Issue #18666 (zombie subprocess)
+- CVE-2025-59536 (RCE via Claude Code config files)
+- LangChain Discussion #26146 (bind_tools NotImplementedError)
 
 ---
-*Research completed: 2026-03-31*
+*Research completed: 2026-04-09*
+*Milestone: v5.0 Agent Tool Platform*
+*Based on: v1.0 research (2026-03-31) — superseded for v5.0 scope*
 *Ready for roadmap: yes*
