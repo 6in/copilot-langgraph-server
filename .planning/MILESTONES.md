@@ -3,12 +3,17 @@
 ## v4.0 Canvas API Bridge (Shipped: 2026-04-09)
 
 **Phases completed:** 2 phases, 5 plans, 7 tasks
+**Timeline:** 2026-04-08 → 2026-04-09 (2 days)
+
+**Delivered:** Canvas iframe から DB クエリ・AI 呼び出しを postMessage JSON-RPC で安全に実行できるブリッジと、Canvas アプリを `/apps/{app_id}` URL でスタンドアロンホスティングする仕組みを実装。
 
 **Key accomplishments:**
 
-- One-liner:
-- One-liner:
-- One-liner:
+- SELECT-only SQL ガード（コメント除去 + トークン検証）+ ChatCopilot ワンショット AI 呼び出しを処理する `IframeRpcHandler`、JWT 保護の `POST /api/iframe-rpc` エンドポイント実装
+- arq worker に `iframe_app_api` タスクタイプを登録、`psycopg_pool.AsyncConnectionPool` による DB プールのライフサイクル管理、`config/db_pools.yaml` 設定ファイル整備
+- `CanvasPane.tsx` に postMessage リスナーを実装し、`POST /api/iframe-rpc` → SSE ポーリング → iframe 返信のフロントエンドブリッジを完成
+- `parent-bridge.js` 共通スクリプトを新設し、Shell HTML と CanvasPane.tsx の両方が同一リレーロジックを共有する設計に統一
+- `GET /apps/{app_id}` 動的ホスティングシェル実装（srcdoc エスケープ、sandbox 制限、FastAPI ルート優先順位対応）、SSE URL バグ修正・JWT Cookie 認証復活を含む動作確認チェックポイント通過
 
 ---
 
