@@ -1,19 +1,22 @@
-"""Iframe JSON-RPC bridge endpoint (Phase 18).
+"""Iframe JSON-RPC bridge endpoint (Phase 18, updated Phase 19).
 
-POST /api/iframe-rpc — receives JSON-RPC request from CanvasPane,
-enqueues as arq job with task_type='iframe_app_api', returns job_id.
-JWT authentication required (parent frame is authenticated).
+POST /api/iframe-rpc — receives JSON-RPC request from parent frame (CanvasPane or
+hosted shell), enqueues as arq job with task_type='iframe_app_api', returns job_id.
+
+JWT Cookie 認証を使用。parent-bridge.js が credentials: 'include' でリクエストするため、
+ブラウザが自動的に JWT Cookie を送信する。github_token は JWT ペイロードから復号して取得。
 
 Flow:
-  1. CanvasPane receives postMessage from iframe (origin-validated).
-  2. CanvasPane calls POST /api/iframe-rpc with the JSON-RPC body.
+  1. iframe-rpc.js (in iframe) sends postMessage to parent frame.
+  2. parent-bridge.js (in parent frame) POSTs to /api/iframe-rpc (with JWT Cookie).
   3. This endpoint enqueues an arq job of type 'iframe_app_api'.
-  4. CanvasPane polls GET /api/job/{id} (or uses SSE) for completion.
-  5. On done, CanvasPane forwards the result back to iframe via postMessage.
+  4. parent-bridge.js polls GET /api/chat/{id}/stream via SSE for completion.
+  5. On done, parent-bridge.js replies to the iframe via postMessage.
 
-Security (T-18-03):
-  JWT authentication is enforced via Depends(get_github_token).
-  Unauthenticated requests receive 401 before any job is enqueued.
+Security note (T-19-04):
+  JWT Cookie 認証により、呼び出し元ユーザーの Copilot トークンを使用。
+  Only SELECT + AI one-shot operations are supported; write operations are
+  rejected by IframeRpcHandler.
 """
 import uuid
 
@@ -48,7 +51,10 @@ async def iframe_rpc(
     arq worker as task_type='iframe_app_api'. The worker's IframeRpcHandler
     processes QUERY (SELECT-only DB) and AI (ChatCopilot one-shot) methods.
 
-    Returns a job_id for polling via GET /api/job/{job_id}.
+    Returns a job_id for polling via GET /api/chat/{job_id}/stream.
+
+    JWT Cookie 認証。parent-bridge.js が credentials: 'include' で送信するため
+    ブラウザが自動的に Cookie を付与する。
     """
     from arq import ArqRedis
 

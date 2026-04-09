@@ -111,11 +111,60 @@
 
 ---
 
+## Milestone: v4.0 — Canvas API Bridge
+
+**Shipped:** 2026-04-09
+**Phases:** 2（18–19）| **Plans:** 5 | **Commits:** 118 | **Duration:** 2 日（2026-04-07 → 2026-04-09）
+
+### What Was Built
+
+- **iframe postMessage JSON-RPC ブリッジ** — Canvas アプリ内 JS から DB クエリ（SELECT）と Copilot AI 呼び出しを安全に実行できる仕組み
+- **arq ワーカー拡張** — `frame_app_api` ジョブタイプ追加、psycopg3 + psycopg_pool による DB プール管理、config 設定
+- **CanvasPane postMessage リスナー統合** — Phase 18 で JSON-RPC over postMessage のフルスタックを完成
+- **GET /apps/{app_id} 動的ホスティングシェル** — Canvas アプリをスタンドアロン URL で公開（認証不要）
+- **parent-bridge.js 共通化** — Shell HTML と CanvasPane.tsx が同一リレーロジックを共有（iframeRef 廃止）
+- **JWT Cookie 認証復活** — /api/iframe-rpc にサーバー共有トークン（auth_manager.load_token）ではなく JWT Cookie 認証を維持
+
+### What Worked
+
+- **バグ発見 → 修正 → 再確認の流れが速かった** — Phase 19 の動作確認で SSE URL バグと JWT 認証問題を発見し、2コミットで即修正。UAT 6/6 通過まで当日完結した。
+- **parent-bridge.js の設計変更（プランナー再設計）** — 当初 CanvasPane のロジックをそのまま使う想定だったが、Shell HTML との共通化のため `parent-bridge.js` を新規作成する再設計が正解だった。設計を再考した結果、実装がシンプルになった。
+- **e.source による返信** — `iframeRef` を使わず `e.source` で返信先 iframe を特定する設計は、Shell と CanvasPane 両方で動く共通ロジックを可能にした。
+
+### What Was Inefficient
+
+- **Phase 18 は D-07（JWT 削除）を設計段階で再評価すべきだった** — JWT 削除 → auth_manager 共有トークン → JWT 復活という往復が発生。「認証不要化」の判断を実装前に関係者と確認すれば防げた。
+- **static/apps/{app_id}/index.html の削除** — git status に残留ファイルが出る状態でフェーズが完了した。フェーズ終了時のクリーンアップチェックが不足していた。
+- **PLAN.md の検証コード（Task 1）が `iframe-rpc.js` を期待していた** — 実際の実装は `parent-bridge.js` に変わったが PLAN の自動検証コードが更新されなかった（当時すでに SUMMARY で正しく記録されていたので実害なし）。
+
+### Patterns Established
+
+- **parent-bridge.js の idempotency ガード（`window.__parentBridgeInstalled`）** — スクリプトが複数回ロードされても安全な設計。React の useEffect + script injection パターンと組み合わせて機能。
+- **srcdoc エスケープ: `"` → `&quot;`、`&` → `&amp;`** — DB 取得 HTML を srcdoc 属性に埋め込む際の必須エスケープパターン。HTML テンプレートエンジンで動的に埋め込む際の標準手順として確立。
+- **FastAPI 動的ルートは StaticFiles より前に登録** — `include_router(hosted_apps.router)` を `app.mount("/apps", StaticFiles(...))` より前に置かないと動的ルートが静的ファイルにマスクされる。
+- **arq の ジョブタイプ分岐** — `process_chat` ワーカー内で `job_type` フィールドを見てハンドラを切り替えるパターンは、同一 worker に複数のジョブ種別を追加する際の標準手順。
+
+### Key Lessons
+
+1. **認証削除の決定は実装前に確定させる。** D-07（JWT 削除）を途中で覆したことで余分なコミットが発生した。セキュリティ境界の変更は設計フェーズで確定させること。
+2. **共通ロジックはライブラリ化してから使う。** Shell HTML と CanvasPane の両方に同じリレーロジックが必要な場合、最初から `parent-bridge.js` として分離するのが正解。コピー&ペーストから始めて後でリファクタすると手戻りが生じる。
+3. **UAT チェックリストを詳細に書くと、その場でバグを発見できる。** 「network タブで SSE URL を確認」という具体的なチェック項目があったから `/api/job/{id}/stream`（誤）vs `/api/chat/{id}/stream`（正）のバグを即座に見つけられた。
+4. **`e.source` は iframeRef より堅牢。** DOM への参照（iframeRef）より、イベントのソースを使う方が副作用が少なく、複数の親フレームで再利用できる。
+
+### Cost Observations
+
+- Model mix: Sonnet 4.6 primary
+- Sessions: 3–4 セッション（2 日間）
+- Notable: 2フェーズのみで集中した実装。Phase 19 の動作確認から修正・承認まで単一セッションで完了した。
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Duration | Tests at Ship | Tech Debt Items |
 |-----------|--------|-------|----------|---------------|-----------------|
 | v1.0 | 6 | 17 | 2 days | 71 | ~10 (1 CI blocker, rest minor) |
 | v3.0 | 8 (+15.1) | 41 | 4 days | 100+ | 3 (sse test, dead code, バルーン幅) |
+| v4.0 | 2 | 5 | 2 days | 100+ | 2 (static/apps 残留ファイル, PLAN 検証コード不一致) |
 
-*v2.0 レトロスペクティブは未記録。次回マイルストーン完了時に傾向を更新。*
+*v2.0 レトロスペクティブは未記録。*

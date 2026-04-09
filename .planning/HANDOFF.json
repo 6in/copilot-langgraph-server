@@ -1,47 +1,47 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-09T03:43:03.998Z",
-  "phase": "18",
-  "phase_name": "canvas-iframe-postmessage-json-rpc-api",
-  "phase_dir": ".planning/phases/18-canvas-iframe-postmessage-json-rpc-api",
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
+  "timestamp": "2026-04-09T06:15:05.537Z",
+  "phase": "19",
+  "phase_name": "canvas-apps-app-id-iframe-phase-18-rpc",
+  "phase_dir": ".planning/phases/19-canvas-apps-app-id-iframe-phase-18-rpc",
+  "plan": 2,
+  "task": 2,
+  "total_tasks": 2,
   "status": "paused",
   "completed_tasks": [
-    {"id": "18-01", "name": "IframeRpcHandler + POST /api/iframe-rpc", "status": "done", "commit": "faa5b1a"},
-    {"id": "18-02", "name": "arq worker拡張 + DB pool管理", "status": "done", "commit": "dec7120"},
-    {"id": "18-03", "name": "CanvasPane postMessage bridge", "status": "done", "commit": "1ee5824"},
-    {"id": "quick-fh8", "name": "static/js/iframe-rpc.js ESM library作成 + $URL_PREFIX置換", "status": "done", "commit": "fa91355"},
-    {"id": "fix-g6g", "name": "extract_html fallback: テキスト応答をcanvashtmlで表示しない", "status": "done", "commit": "053d120"},
-    {"id": "fix-gab", "name": "Vite proxy /js/ 追加", "status": "done", "commit": "138f1ac"},
-    {"id": "fix-gd5", "name": "CANVAS_SYSTEM_PROMPT にテンプレートHTML埋め込み + gems 起動時更新", "status": "done", "commit": "2e02a32"},
-    {"id": "fix-gu8", "name": "iframe-rpc.js を /js/ に移動、FastAPI CORS ルート + CORS修正", "status": "done", "commit": "5fab659"},
-    {"id": "fix-resize", "name": "CanvasPane リサイズ時の iframe マウスイベント奪取修正", "status": "done", "commit": "7d0794d"},
-    {"id": "fix-h78", "name": "CanvasChatApp 送信時に現在 HTML をプロンプトに埋め込み", "status": "done", "commit": "9f7b00e"},
-    {"id": "fix-json", "name": "QUERY結果 datetime/Decimal JSON シリアライズ修正", "status": "done", "commit": "39112c1"}
+    {"id": "19-01 T1", "name": "parent-bridge.js 作成", "status": "done", "commit": "6f255f8"},
+    {"id": "19-01 T2", "name": "hosted_apps.py 作成", "status": "done", "commit": "ead25e7"},
+    {"id": "19-01 T3", "name": "CanvasPane.tsx リファクタ", "status": "done", "commit": "e10b637"},
+    {"id": "19-01 T4", "name": "iframe_rpc JWT 削除 + main.py 登録", "status": "done", "commit": "b6fec71"},
+    {"id": "19-02 T1", "name": "自動検証 ALL CHECKS PASSED", "status": "done", "commit": null},
+    {"id": "fix-1", "name": "trailing slash 404 修正", "status": "done", "commit": "cfadc7c"},
+    {"id": "fix-2", "name": "$URL_PREFIX / VITE_APP_BASE 修正", "status": "done", "commit": "cb7aebc"},
+    {"id": "fix-3", "name": "window.__APP_PREFIX 注入", "status": "done", "commit": "c824d10"}
   ],
   "remaining_tasks": [
-    {"id": "uat", "name": "UAT: AI呼び出し・DBクエリ・ガードテスト・HTMLプレビュー動作確認", "status": "in_progress"},
-    {"id": "merge", "name": "Phase 18 を main にマージ", "status": "not_started"}
+    {"id": "19-02 T2", "name": "人間確認チェックポイント（ブラウザ動作確認）", "status": "not_started"}
   ],
-  "blockers": [],
+  "blockers": [
+    {
+      "description": "ブラウザでの動作確認が未完了。docker restart 後の確認待ち。",
+      "type": "human_action",
+      "workaround": "none"
+    }
+  ],
   "human_actions_pending": [
     {
-      "action": "Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを送信し、テストアプリを生成→各パネルを操作して RPC ブリッジ動作を確認する",
-      "context": "AI呼び出し・DBクエリ(SELECT current_timestamp)・INSERT拒否のガードテストをブラウザで実施",
-      "blocking": false
+      "action": "http://localhost:5173/orochi/apps/{app_id}/ をブラウザで開いて動作確認し、OK なら approved と入力",
+      "context": "Plan 02 Task 2 のチェックポイント。自動検証は通過済み。",
+      "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "iframe-rpc.js を static/js/ に移動、FastAPI /js/ ルートで Access-Control-Allow-Origin: * を返す", "rationale": "srcdoc iframe の null origin CORS 問題はサーバー側で解決するのが正しい設計", "phase": "18"},
-    {"decision": "db_pools.yaml のプール名を main → default に変更", "rationale": "システムプロンプトとテンプレートが query('default',...) を使うため統一", "phase": "18"},
-    {"decision": "CanvasChatApp 送信時に htmlContent をプロンプトに埋め込む", "rationale": "ユーザーが手動編集した HTML を AI が参照できるようにする", "phase": "18"},
-    {"decision": "CANVAS_SYSTEM_PROMPT を起動時に gems テーブルへ UPDATE する", "rationale": "コード変更が再起動で即反映される。手動DB更新が不要", "phase": "18"}
+    {"decision": "parent-bridge.js で window.__APP_PREFIX を使って API URL を構築", "rationale": "Vite プロキシは /orochi/api/ のみマッチするため、プレフィックスなしの /api/ が 404 になる", "phase": "19"},
+    {"decision": "VITE_APP_BASE を docker-compose.yml の api サービスにも追加", "rationale": "hosted_apps.py が URL プレフィックスを知る必要がある", "phase": "19"},
+    {"decision": "$URL_PREFIX を hosted_apps.py の srcdoc 生成時に置換", "rationale": "Canvas HTML の $URL_PREFIX はサーバー側で解決する必要がある", "phase": "19"},
+    {"decision": "trailing slash バリアントを @router.get 追加", "rationale": "StaticFiles mount がプレフィックスマッチで先に捕捉するため redirect_slashes が機能しない", "phase": "19"}
   ],
-  "uncommitted_files": [
-    "docs/pre/iframe_app_enhanced.md"
-  ],
-  "next_action": "UAT 実施: Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを送信→テストアプリ生成→AI/QUERY/ガードの各パネルを操作して動作確認。問題なければ main にマージ。",
-  "context_notes": "Phase 18 の実装は全て完了。今セッションで多数のバグ修正を実施: CORS(null origin→/js/ルート), JSON serialize(datetime), リサイズjank, テキスト応答のcanvashtml表示問題, db_pools default名, 現在HTMLのプロンプト埋め込みなど。UAT でブラウザ動作確認が残タスク。"
+  "uncommitted_files": [],
+  "next_action": "ブラウザで http://localhost:5173/orochi/apps/{app_id}/ を開いて動作確認。OK なら approved を入力して Plan 02 完了",
+  "context_notes": "Plan 01 は全タスク完了・コミット済み。Plan 02 の人間確認チェックポイントのみ残っている。4つのデバッグ修正がすべてコミット済みで最後の docker restart が完了した状態でポーズ。"
 }

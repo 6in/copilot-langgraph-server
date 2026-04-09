@@ -31,6 +31,7 @@ services:
       - AGENT_DIR=/app/agents
       - MENU_DIR=/app/menus
       - APP_DIR=/app/apps
+      - VITE_APP_BASE=${VITE_APP_BASE:-}
     ports:
       - "8000:8000"
     volumes:

@@ -48,13 +48,19 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ Canvas App — CanvasChatApp（分割レイアウト）、CanvasScreen（一覧）、Canvas 専用グラフ（HTML トリミング）、デプロイ — v3.0
 - ✓ DebateChatApp — マルチエージェント討論チャット、ターン制リアルタイム SSE ストリーミング、履歴復元 — v3.0
 
-### Active (v4.0)
+### Validated (v4.0)
+
+- ✓ Canvas iframe postMessage JSON-RPC ブリッジ — iframe 内 JS から POST /api/iframe-rpc 経由で DB クエリ（SELECT）と AI（Copilot ワンショット）を呼び出せる仕組み — v4.0
+- ✓ Canvas アプリ独立ホスティング — GET /apps/{app_id} で Canvas アプリをスタンドアロン URL で公開、parent-bridge.js 共通リレー — v4.0
+
+### Active (v5.0)
 
 - [ ] LangGraph ツール呼び出し（bind_tools） — INPUT_SCHEMA を Anthropic tools フォーマットに自動変換、LLM がツールを直接呼び出し
 - [ ] RAG / ナレッジ検索 — pgvector を活用した Gem knowledge の埋め込み検索
 - [ ] 監査ログ DB 永続化 — correlation_id を PostgreSQL に記録してクエリで追跡
 - [ ] エージェント管理 UI — エージェントの追加・編集・削除を GUI で操作
 - [ ] RETRY / 回復メカニズム — DEGRADED エージェントを再起動なしに HEALTHY に回復（retry_ready()）
+- [ ] 本番モード Docker Compose 整備 — Vite dev server なしで React ビルド済み静的ファイルを FastAPI から配信
 
 ### Out of Scope
 
@@ -65,27 +71,29 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - モバイル対応 — PC ブラウザのみ対象
 - ストリーミング応答（逐次トークン） — Copilot SDK Technical Preview では未対応
 
-## Current State: v3.0 COMPLETE
+## Current State: v4.0 COMPLETE
 
-**v3.0 shipped 2026-04-07** — 7 フェーズ（＋15.1）、41 プラン、224 コミット、4 日間
+**v4.0 shipped 2026-04-09** — 2 フェーズ（18–19）、5 プラン、118 コミット、2 日間
 
-### What Shipped in v3.0
+### What Shipped in v4.0
 
-- **マルチエージェントプラットフォーム基盤**: RPCContext 統合、ハイブリッド SubAgentRegistry、2段ルーター
-- **Application Packages**: アプリ定義ファイル → エージェントサブセット → メニュー画面
-- **Gem + Canvas**: AI ペルソナ管理 + HTML アプリ生成・プレビュー・デプロイ
-- **DebateChatApp**: 複数エージェントのターン制討論、リアルタイム SSE ストリーミング
+- **Canvas iframe JSON-RPC ブリッジ**: iframe 内 JS から postMessage 経由で DB クエリ・AI 呼び出しを安全に実行
+- **arq worker 拡張**: frame_app_api ジョブタイプ追加、psycopg3 DB プール（psycopg_pool）、config 設定
+- **Canvas アプリ独立ホスティング**: GET /apps/{app_id} 動的シェル、srcdoc エスケープ、sandbox 制限
+- **parent-bridge.js 共通化**: Shell HTML と CanvasPane.tsx が同一リレーロジックを共有
+- **JWT Cookie 認証**: /api/iframe-rpc を JWT Cookie で保護（サーバー共有トークン方式を廃止）
 
 ### Next
 
-`/gsd-new-milestone` で v4.0 計画へ
+`/gsd-new-milestone` で v5.0 計画へ
 
 ## Context
 
 **v1.0 shipped 2026-04-02** — 6 phases, 17 plans, 163 commits, 2 days
 **v2.0 shipped 2026-04-04** — 4 phases (7–10), React UI + OrchestratorGraph + SuperChat
 **v3.0 shipped 2026-04-07** — 8 phases (11–17+15.1), Agent Platform, Gem, Canvas, DebateChat
-**Codebase:** ~9,968 Python + TypeScript LOC · 117+ ファイル · 42 テストファイル
+**v4.0 shipped 2026-04-09** — 2 phases (18–19), Canvas API Bridge, iframe JSON-RPC, Hosting Shell
+**Codebase:** ~12,000+ Python + TypeScript LOC · 173+ ファイル変更
 **Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector) · React 19 + TypeScript + Vite
 
 - Copilot SDK (`github-copilot-sdk==0.2.0`) は JSON-RPC で Copilot CLI と通信。`BaseChatModel` カスタム実装が必須。
@@ -125,6 +133,9 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 | Canvas 専用グラフ（build_canvas_graph） | 古い HTML を LLM コンテキストに含めない — Canvas 品質と速度の改善 | ✓ `app/graph/canvas_builder.py` |
 | DebateHandler は astream で turns 蓄積 | aget_state での PostgreSQL 逆シリアライズで AIMessage 型が失われる問題を回避 | ✓ `app/jobs/handlers/debate_handler.py` |
 | VITE_APP_BASE を docker-compose 環境変数で渡す | APP_PREFIX 未設定で root_path が空。ビルド時定数として確実 | ✓ `docker-compose.yml` |
+| parent-bridge.js を新規作成して共通化 | Shell HTML と CanvasPane.tsx の両方が同じリレーロジックを使う — iframe RPC 実装の重複を排除 | ✓ `static/js/parent-bridge.js` |
+| /api/iframe-rpc JWT Cookie 認証を維持 | auth_manager.load_token()（サーバー共有トークン）は不適切。呼び出し元ユーザーの JWT Cookie から github_token を取得 | ✓ `app/api/routes/iframe_rpc.py` |
+| hosted_apps.router を StaticFiles より前に登録 | FastAPI のルート優先順位: 動的ルートが StaticFiles より先にマッチする必要がある | ✓ `app/api/main.py` |
 
 ## Evolution
 
@@ -137,4 +148,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 after v3.0 Agent Platform milestone*
+*Last updated: 2026-04-09 after v4.0 Canvas API Bridge milestone*
