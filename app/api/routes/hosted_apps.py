@@ -7,13 +7,24 @@ Shell は parent-bridge.js を読み込むことで、iframe 内の Canvas ア�
 /api/iframe-rpc 経由で DB クエリ・AI 呼び出しを行える（Phase 18 ブリッジ）。
 
 DB に HTML が存在しない場合は 404 を返す（D-12）。
+
+URL プレフィックス:
+  VITE_APP_BASE 環境変数（例: /orochi）を読み取り、スクリプト URL と
+  Canvas HTML 内の $URL_PREFIX プレースホルダーを補完する。
+  nginx が prefix を strip して FastAPI に転送するため、本番でも正しく解決される。
 """
+import os
+
 import psycopg
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from psycopg.rows import dict_row
 
 router = APIRouter(tags=["hosted-apps"])
+
+# Vite/nginx の URL プレフィックス（例: /orochi）。未設定時は空文字。
+# VITE_APP_BASE を api コンテナにも渡すことで dev/prod 両方で正しく解決する。
+_APP_PREFIX = os.getenv("VITE_APP_BASE", "").rstrip("/")
 
 _SHELL_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -32,7 +43,7 @@ _SHELL_TEMPLATE = """<!DOCTYPE html>
   sandbox="allow-scripts allow-forms"
   srcdoc="{srcdoc_escaped}"
 ></iframe>
-<script src="/js/parent-bridge.js"></script>
+<script src="{parent_bridge_src}"></script>
 </body>
 </html>"""
 
@@ -43,6 +54,7 @@ async def serve_hosted_app(app_id: str, request: Request) -> HTMLResponse:
     """Serve a deployed Canvas app as a standalone page (D-01, D-08).
 
     Fetches HTML from DB (no auth required), embeds in srcdoc iframe shell.
+    Replaces $URL_PREFIX in Canvas HTML with VITE_APP_BASE so JS imports resolve correctly.
     Loads parent-bridge.js so the iframe can call /api/iframe-rpc (Phase 18 RPC bridge).
     Returns 404 if app not found or has no HTML (D-12).
     """
@@ -59,12 +71,16 @@ async def serve_hosted_app(app_id: str, request: Request) -> HTMLResponse:
     if row is None or not row["html"]:
         raise HTTPException(status_code=404, detail="Canvas app not found")
 
+    # $URL_PREFIX を実際のプレフィックスに置換（Canvas HTML 内の JS import パスを解決）
+    html_content = row["html"].replace("$URL_PREFIX", _APP_PREFIX)
+
     # srcdoc 属性に埋め込むため HTML 内の " と & をエスケープ (T-19-02)
-    srcdoc_escaped = row["html"].replace("&", "&amp;").replace('"', "&quot;")
+    srcdoc_escaped = html_content.replace("&", "&amp;").replace('"', "&quot;")
     app_name = row["name"] or "Canvas App"
 
     html = _SHELL_TEMPLATE.format(
         app_name=app_name,
         srcdoc_escaped=srcdoc_escaped,
+        parent_bridge_src=f"{_APP_PREFIX}/js/parent-bridge.js",
     )
     return HTMLResponse(content=html)
