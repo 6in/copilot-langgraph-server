@@ -1,46 +1,42 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-08T23:59:15.621Z",
+  "timestamp": "2026-04-09T02:32:54.150Z",
   "phase": "18",
   "phase_name": "canvas-iframe-postmessage-json-rpc-api",
   "phase_dir": ".planning/phases/18-canvas-iframe-postmessage-json-rpc-api",
-  "plan": 3,
-  "task": "post-uat",
-  "total_tasks": 3,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
   "status": "paused",
   "completed_tasks": [
-    {"id": "18-01", "name": "IframeRpcHandler + POST /api/iframe-rpc", "status": "done"},
-    {"id": "18-02", "name": "arqワーカー拡張 + DBプール管理", "status": "done"},
-    {"id": "18-03", "name": "CanvasPane postMessageリスナー", "status": "done"}
+    {"id": "18-01", "name": "IframeRpcHandler + POST /api/iframe-rpc", "status": "done", "commit": "faa5b1a"},
+    {"id": "18-02", "name": "arq worker拡張 + DB pool管理", "status": "done", "commit": "dec7120"},
+    {"id": "18-03", "name": "CanvasPane postMessage bridge", "status": "done", "commit": "1ee5824"},
+    {"id": "quick-fh8-1", "name": "static/iframe-rpc.js ESM library作成", "status": "done", "commit": "06ab0a5"},
+    {"id": "quick-fh8-2", "$URL_PREFIX placeholder置換 (CanvasPane)": "done", "commit": "fa91355"},
+    {"id": "docs-1", "name": "docs/test-iframe-rpc-prompt.md: HTMLテンプレート + 生成プロンプト", "status": "done", "commit": "fa91355"}
   ],
   "remaining_tasks": [
-    {"id": "uat-1", "name": "システムプロンプトチャット表示バグ修正", "status": "not_started"},
-    {"id": "uat-2", "name": "UAT修正分コミット", "status": "not_started"},
-    {"id": "uat-3", "name": "Phase 18 検証 (gsd-verify-work)", "status": "not_started"}
+    {"id": "uat", "name": "UAT テスト実施 (18-UAT.md 作成済み・テスト中断)", "status": "in_progress"},
+    {"id": "canvas-test", "name": "Canvas チャットでテストアプリ生成 → 動作確認", "status": "not_started"}
   ],
-  "blockers": [
+  "blockers": [],
+  "human_actions_pending": [
     {
-      "description": "システムプロンプトがチャットメッセージとして表示される",
-      "type": "technical",
-      "workaround": "langgraph_handler.py line 77-79 のSystemMessage処理を修正"
+      "action": "Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを使いテストアプリを生成し、RPC ブリッジの動作確認を行う",
+      "context": "UAT テスト 4〜8 (iframe→postMessage→AI/QUERY) はブラウザ操作が必要",
+      "blocking": false
     }
   ],
-  "human_actions_pending": [],
   "decisions": [
-    {"decision": "applications seedにcanvasを追加", "rationale": "外部キー制約でthread INSERTが失敗していた"},
-    {"decision": "thread upsertをenqueue前に移動", "rationale": "競合状態でgem_type=Noneになりシステムプロンプトが適用されなかった"},
-    {"decision": "CanvasPaneにstyle propを追加", "rationale": "CanvasChatAppからcanvasPaneWidthを渡せるように"},
-    {"decision": "theme.cssにcontent-wrapperを追加", "rationale": "type=customメッセージのバルーン幅が縮む問題を修正"}
+    {"decision": "インライン注入は廃止し <script src=$URL_PREFIX/iframe-rpc.js> を明示", "rationale": "自動インジェクションは分かりづらいとユーザーが判断", "phase": "18"},
+    {"decision": "$URL_PREFIX プレースホルダーを CanvasPane が appBase に置換", "rationale": "環境依存URLをハードコードせずに済む", "phase": "18"},
+    {"decision": "iframe-rpc.js を ESM (named exports) に変換", "rationale": "モダンなモジュール形式で import { ai, query } から利用可能にする", "phase": "18"}
   ],
   "uncommitted_files": [
-    "app/api/main.py",
-    "app/api/routes/chat.py",
-    "frontend/src/components/CanvasChatApp.tsx",
-    "frontend/src/components/CanvasPane.tsx",
-    "frontend/src/theme.css",
-    ".planning/ROADMAP.md",
-    "docs/test-iframe-rpc.js"
+    ".planning/phases/18-canvas-iframe-postmessage-json-rpc-api/18-UAT.md",
+    "docs/pre/iframe_app_enhanced.md"
   ],
-  "next_action": "システムプロンプトチャット表示バグ修正 → コミット → gsd-verify-work",
-  "context_notes": "Phase 18実装完了。UAT中にDB/競合状態/CSSの3バグを発見・修正した。システムプロンプト表示バグのみ未修正。"
+  "next_action": "UAT 再開: /gsd-verify-work を実行してテストを続ける。または Canvas チャットでテストアプリ生成して iframe RPC ブリッジを手動検証する。",
+  "context_notes": "Phase 18 の実装は全プラン完了済み。UAT セッション開始後、テスト 1 提示タイミングでユーザーからライブラリ追加作業の依頼。static/iframe-rpc.js (ESM) + $URL_PREFIX置換 + HTMLテンプレートを追加実装。UAT は再開待ち。"
 }
