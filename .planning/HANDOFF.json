@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-09T02:32:54.150Z",
+  "timestamp": "2026-04-09T03:43:03.998Z",
   "phase": "18",
   "phase_name": "canvas-iframe-postmessage-json-rpc-api",
   "phase_dir": ".planning/phases/18-canvas-iframe-postmessage-json-rpc-api",
@@ -12,31 +12,36 @@
     {"id": "18-01", "name": "IframeRpcHandler + POST /api/iframe-rpc", "status": "done", "commit": "faa5b1a"},
     {"id": "18-02", "name": "arq worker拡張 + DB pool管理", "status": "done", "commit": "dec7120"},
     {"id": "18-03", "name": "CanvasPane postMessage bridge", "status": "done", "commit": "1ee5824"},
-    {"id": "quick-fh8-1", "name": "static/iframe-rpc.js ESM library作成", "status": "done", "commit": "06ab0a5"},
-    {"id": "quick-fh8-2", "$URL_PREFIX placeholder置換 (CanvasPane)": "done", "commit": "fa91355"},
-    {"id": "docs-1", "name": "docs/test-iframe-rpc-prompt.md: HTMLテンプレート + 生成プロンプト", "status": "done", "commit": "fa91355"}
+    {"id": "quick-fh8", "name": "static/js/iframe-rpc.js ESM library作成 + $URL_PREFIX置換", "status": "done", "commit": "fa91355"},
+    {"id": "fix-g6g", "name": "extract_html fallback: テキスト応答をcanvashtmlで表示しない", "status": "done", "commit": "053d120"},
+    {"id": "fix-gab", "name": "Vite proxy /js/ 追加", "status": "done", "commit": "138f1ac"},
+    {"id": "fix-gd5", "name": "CANVAS_SYSTEM_PROMPT にテンプレートHTML埋め込み + gems 起動時更新", "status": "done", "commit": "2e02a32"},
+    {"id": "fix-gu8", "name": "iframe-rpc.js を /js/ に移動、FastAPI CORS ルート + CORS修正", "status": "done", "commit": "5fab659"},
+    {"id": "fix-resize", "name": "CanvasPane リサイズ時の iframe マウスイベント奪取修正", "status": "done", "commit": "7d0794d"},
+    {"id": "fix-h78", "name": "CanvasChatApp 送信時に現在 HTML をプロンプトに埋め込み", "status": "done", "commit": "9f7b00e"},
+    {"id": "fix-json", "name": "QUERY結果 datetime/Decimal JSON シリアライズ修正", "status": "done", "commit": "39112c1"}
   ],
   "remaining_tasks": [
-    {"id": "uat", "name": "UAT テスト実施 (18-UAT.md 作成済み・テスト中断)", "status": "in_progress"},
-    {"id": "canvas-test", "name": "Canvas チャットでテストアプリ生成 → 動作確認", "status": "not_started"}
+    {"id": "uat", "name": "UAT: AI呼び出し・DBクエリ・ガードテスト・HTMLプレビュー動作確認", "status": "in_progress"},
+    {"id": "merge", "name": "Phase 18 を main にマージ", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを使いテストアプリを生成し、RPC ブリッジの動作確認を行う",
-      "context": "UAT テスト 4〜8 (iframe→postMessage→AI/QUERY) はブラウザ操作が必要",
+      "action": "Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを送信し、テストアプリを生成→各パネルを操作して RPC ブリッジ動作を確認する",
+      "context": "AI呼び出し・DBクエリ(SELECT current_timestamp)・INSERT拒否のガードテストをブラウザで実施",
       "blocking": false
     }
   ],
   "decisions": [
-    {"decision": "インライン注入は廃止し <script src=$URL_PREFIX/iframe-rpc.js> を明示", "rationale": "自動インジェクションは分かりづらいとユーザーが判断", "phase": "18"},
-    {"decision": "$URL_PREFIX プレースホルダーを CanvasPane が appBase に置換", "rationale": "環境依存URLをハードコードせずに済む", "phase": "18"},
-    {"decision": "iframe-rpc.js を ESM (named exports) に変換", "rationale": "モダンなモジュール形式で import { ai, query } から利用可能にする", "phase": "18"}
+    {"decision": "iframe-rpc.js を static/js/ に移動、FastAPI /js/ ルートで Access-Control-Allow-Origin: * を返す", "rationale": "srcdoc iframe の null origin CORS 問題はサーバー側で解決するのが正しい設計", "phase": "18"},
+    {"decision": "db_pools.yaml のプール名を main → default に変更", "rationale": "システムプロンプトとテンプレートが query('default',...) を使うため統一", "phase": "18"},
+    {"decision": "CanvasChatApp 送信時に htmlContent をプロンプトに埋め込む", "rationale": "ユーザーが手動編集した HTML を AI が参照できるようにする", "phase": "18"},
+    {"decision": "CANVAS_SYSTEM_PROMPT を起動時に gems テーブルへ UPDATE する", "rationale": "コード変更が再起動で即反映される。手動DB更新が不要", "phase": "18"}
   ],
   "uncommitted_files": [
-    ".planning/phases/18-canvas-iframe-postmessage-json-rpc-api/18-UAT.md",
     "docs/pre/iframe_app_enhanced.md"
   ],
-  "next_action": "UAT 再開: /gsd-verify-work を実行してテストを続ける。または Canvas チャットでテストアプリ生成して iframe RPC ブリッジを手動検証する。",
-  "context_notes": "Phase 18 の実装は全プラン完了済み。UAT セッション開始後、テスト 1 提示タイミングでユーザーからライブラリ追加作業の依頼。static/iframe-rpc.js (ESM) + $URL_PREFIX置換 + HTMLテンプレートを追加実装。UAT は再開待ち。"
+  "next_action": "UAT 実施: Canvas チャットで docs/test-iframe-rpc-prompt.md のプロンプトを送信→テストアプリ生成→AI/QUERY/ガードの各パネルを操作して動作確認。問題なければ main にマージ。",
+  "context_notes": "Phase 18 の実装は全て完了。今セッションで多数のバグ修正を実施: CORS(null origin→/js/ルート), JSON serialize(datetime), リサイズjank, テキスト応答のcanvashtml表示問題, db_pools default名, 現在HTMLのプロンプト埋め込みなど。UAT でブラウザ動作確認が残タスク。"
 }
