@@ -240,6 +240,7 @@ Recent decisions affecting current work:
 | 260409-gab | Vite プロキシに iframe-rpc.js を追加して開発環境で FastAPI static ファイルを取得できるようにする | 2026-04-09 | 138f1ac | [260409-gab-vite-iframe-rpc-js-fastapi-static](.planning/quick/260409-gab-vite-iframe-rpc-js-fastapi-static/) |
 | 260409-gd5 | CANVAS_SYSTEM_PROMPT にベーステンプレートHTML埋め込み + 起動時 gems 上書き更新 | 2026-04-09 | 2e02a32 | [260409-gd5-canvas-system-prompt-html-gems](.planning/quick/260409-gd5-canvas-system-prompt-html-gems/) |
 | 260409-gm0 | CanvasPane srcdoc CORS修正: iframe-rpc.js インライン展開で null オリジン問題を解消 | 2026-04-09 | 001e1e1 | [260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js](.planning/quick/260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js/) |
+| 260409-gu8 | iframe-rpc.js を static/js/ に移動、FastAPI /js/ CORS ルート追加、CanvasPane リバート | 2026-04-09 | 5fab659 | [260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-](.planning/quick/260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-/) |
 
 ### Blockers/Concerns
 
