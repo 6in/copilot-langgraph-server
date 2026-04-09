@@ -23,27 +23,6 @@ interface CanvasPaneProps {
 
 type TabId = 'editor' | 'preview';
 
-/**
- * Build the srcdoc string for the preview iframe.
- *
- * srcdoc iframes have origin 'null' — ES module imports from external URLs are blocked
- * by CORS. To sidestep this, we inline the iframe-rpc.js library content directly
- * by replacing `import { ... } from '...iframe-rpc.js'` with the library source
- * (export keywords stripped so the functions stay in scope).
- *
- * If rpcLib is null (not yet fetched), falls back to plain $URL_PREFIX replacement
- * so the preview still shows immediately (imports may fail until lib loads).
- */
-function buildSrcdoc(html: string, appBase: string, rpcLib: string | null): string {
-  const base = html.replace(/\$URL_PREFIX/g, appBase);
-  if (!rpcLib) return base;
-  // Replace any `import { ... } from '...iframe-rpc.js';` line with the inlined library.
-  return base.replace(
-    /import\s+\{[^}]+\}\s+from\s+['"][^'"]*iframe-rpc\.js['"]\s*;?\n?/g,
-    rpcLib + '\n',
-  );
-}
-
 export function CanvasPane({
   canvasApp,
   isSaving,
@@ -63,20 +42,6 @@ export function CanvasPane({
 
   // VITE_APP_BASE is baked in at build time (e.g. '/orochi'); strip trailing slash.
   const appBase = (import.meta.env.VITE_APP_BASE as string ?? '').replace(/\/$/, '');
-
-  // Fetch iframe-rpc.js once and cache for inline injection.
-  // srcdoc iframes have origin 'null' — external module imports are blocked by CORS.
-  // Injecting the library inline sidesteps this by keeping everything in one module scope.
-  const [rpcLibContent, setRpcLibContent] = useState<string | null>(null);
-  useEffect(() => {
-    fetch(`${appBase}/iframe-rpc.js`)
-      .then((r) => r.text())
-      .then((text) => {
-        // Strip `export` keywords so functions land in module scope without re-exporting.
-        setRpcLibContent(text.replace(/^export\s+/gm, ''));
-      })
-      .catch(() => { /* fallback: leave null, srcdoc will try the external import */ });
-  }, [appBase]);
 
   // D-19: iframeRef for postMessage reply target
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -431,7 +396,7 @@ export function CanvasPane({
       >
         <iframe
           ref={iframeRef}
-          srcDoc={buildSrcdoc(htmlContent, appBase, rpcLibContent)}
+          srcDoc={htmlContent.replace(/\$URL_PREFIX/g, appBase)}
           sandbox="allow-scripts allow-forms"
           title="Canvas app preview"
           style={{ width: '100%', height: '100%', border: 'none' }}

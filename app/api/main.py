@@ -213,7 +213,7 @@ async def lifespan(app: FastAPI):
   <!-- コンテンツをここに記述 -->
 
   <script type="module">
-    import { ai, query } from '$URL_PREFIX/iframe-rpc.js';
+    import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
 
     // AI 呼び出し例
     // const res = await ai('こんにちは！');
@@ -355,6 +355,19 @@ if os.path.isdir("frontend/dist"):
 # Canvas deployed apps — must be before "/" catch-all
 os.makedirs("./static/apps", exist_ok=True)
 app.mount("/apps", StaticFiles(directory="./static/apps", html=True), name="canvas_apps")
+
+# /js/ — public JS libraries served with Access-Control-Allow-Origin: * so srcdoc iframes
+# (origin: null) can import ES modules without CORS errors.
+# Must be registered as an explicit route BEFORE the "/" StaticFiles catch-all.
+from fastapi.responses import FileResponse as _FileResponse
+from fastapi import HTTPException as _HTTPException
+
+@app.get("/js/{filename:path}")
+async def serve_js(filename: str):
+    path = f"static/js/{filename}"
+    if not os.path.isfile(path):
+        raise _HTTPException(status_code=404)
+    return _FileResponse(path, headers={"Access-Control-Allow-Origin": "*"})
 
 # Static files LAST — serves index.html for any non-API path
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

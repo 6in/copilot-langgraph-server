@@ -1,7 +1,7 @@
 # Canvas アプリ開発ガイド — iframe RPC API
 
 Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI・DB などのバックエンド API を呼び出せます。
-`$URL_PREFIX/iframe-rpc.js` を ES module として import して使います。`$URL_PREFIX` は Canvas プレビュー時に自動置換されます。
+`$URL_PREFIX/js/iframe-rpc.js` を ES module として import して使います。`$URL_PREFIX` は Canvas プレビュー時に自動置換されます。
 
 ---
 
@@ -27,7 +27,7 @@ Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI�
 
   <!-- $URL_PREFIX は Canvas プレビュー時に APP_PREFIX（例: /orochi）へ自動置換される -->
   <script type="module">
-    import { ai, query } from '$URL_PREFIX/iframe-rpc.js';
+    import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
 
     // AI 呼び出し例
     async function askAI() {
@@ -74,7 +74,7 @@ Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI�
 ```
 下記の HTML テンプレートをベースに、iframe RPC テストツールを作成してください。
 
-`$URL_PREFIX/iframe-rpc.js` を ES module として import して使います。
+`$URL_PREFIX/js/iframe-rpc.js` を ES module として import して使います。
 postMessage を直接扱う必要はなく、ai() / query() を呼ぶだけでOKです。
 
 ---
@@ -92,7 +92,7 @@ postMessage を直接扱う必要はなく、ai() / query() を呼ぶだけでOK
 </head>
 <body>
   <script type="module">
-    import { ai, query } from '$URL_PREFIX/iframe-rpc.js';
+    import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
     // ここにロジックを記述
   </script>
 </body>
