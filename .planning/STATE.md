@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: Canvas API Bridge
-status: complete
-stopped_at: v4.0 milestone complete
-last_updated: "2026-04-09T09:00:00.000Z"
+milestone: v5.0
+milestone_name: Agent Tool Platform
+status: planning
+stopped_at: Requirements definition
+last_updated: "2026-04-09T10:00:00.000Z"
 last_activity: 2026-04-09
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 ## Current Position
 
-Phase: 19 (canvas-apps-app-id-iframe-phase-18-rpc) — EXECUTING
-Plan: 2 of 2
-Milestone: v3.0 COMPLETE (2026-04-06)
-Next: v4.0 — Phase 17 (DebateChatApp) — 未着手
-Status: Ready to execute
+Phase: Not started (defining requirements)
+Plan: —
+Milestone: v5.0 Agent Tool Platform
+Status: Defining requirements
+Last activity: 2026-04-09 — Milestone v5.0 started
 
-Progress: [░░░░░░░░░░] 0% (v3.0 phases 11–14)
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 

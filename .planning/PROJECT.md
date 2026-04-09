@@ -55,12 +55,21 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 
 ### Active (v5.0)
 
-- [ ] LangGraph ツール呼び出し（bind_tools） — INPUT_SCHEMA を Anthropic tools フォーマットに自動変換、LLM がツールを直接呼び出し
+- [ ] FastMCP サーバー基盤 — Docker サービスとして FastMCP を立て、config.yaml でツール名 → MCP メソッドをマッピング
+- [ ] LangGraph bind_tools 統合 — OrchestratorGraph 拡張、ToolNode + MCP クライアント、スタブ → MCP ルーティング
+- [ ] Web 検索ツール — Tavily API を MCP メソッドとして実装（リアルタイム情報取得）
+- [ ] DB クエリツール — PostgreSQL SELECT を MCP メソッドとして実装（is_select_only ガード流用）
+- [ ] Claude Code 実行ツール — Claude Code CLI をサブプロセスとして MCP メソッドから実行
+
+### Deferred (v5.1+)
+
 - [ ] RAG / ナレッジ検索 — pgvector を活用した Gem knowledge の埋め込み検索
 - [ ] 監査ログ DB 永続化 — correlation_id を PostgreSQL に記録してクエリで追跡
 - [ ] エージェント管理 UI — エージェントの追加・編集・削除を GUI で操作
 - [ ] RETRY / 回復メカニズム — DEGRADED エージェントを再起動なしに HEALTHY に回復（retry_ready()）
 - [ ] 本番モード Docker Compose 整備 — Vite dev server なしで React ビルド済み静的ファイルを FastAPI から配信
+- [ ] Canvas アプリから MCP ツール呼び出し — FastAPI ブリッジ経由（v5.0 の MCP サーバーを活用）
+- [ ] 汎用 HTTP ツール（GitHub API, Slack API 等）
 
 ### Out of Scope
 
@@ -71,7 +80,18 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - モバイル対応 — PC ブラウザのみ対象
 - ストリーミング応答（逐次トークン） — Copilot SDK Technical Preview では未対応
 
-## Current State: v4.0 COMPLETE
+## Current Milestone: v5.0 Agent Tool Platform
+
+**Goal:** FastMCP で MCP サーバーを Docker サービスとして立て、LangGraph bind_tools + ToolNode 経由でエージェントが Web 検索・DB クエリ・Claude Code 実行を呼び出せるツール実行フレームワークを構築する
+
+**Target features:**
+- FastMCP サーバー基盤（Docker サービス、config.yaml ルーティング）
+- LangGraph bind_tools 統合（OrchestratorGraph 拡張、MCP クライアント）
+- Web 検索ツール（Tavily API）
+- DB クエリツール（PostgreSQL SELECT、is_select_only ガード）
+- Claude Code 実行ツール（CLI サブプロセス）
+
+## Previous State: v4.0 COMPLETE
 
 **v4.0 shipped 2026-04-09** — 2 フェーズ（18–19）、5 プラン、118 コミット、2 日間
 
@@ -148,4 +168,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after v4.0 Canvas API Bridge milestone*
+*Last updated: 2026-04-09 — v5.0 Agent Tool Platform milestone started*
