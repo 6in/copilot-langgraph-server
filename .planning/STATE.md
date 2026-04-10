@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
 status: planning
-stopped_at: Requirements definition
-last_updated: "2026-04-09T10:00:00.000Z"
-last_activity: 2026-04-09
+stopped_at: Roadmap created — Phase 20 ready to plan
+last_updated: "2026-04-10T00:00:00.000Z"
+last_activity: 2026-04-10
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v4.0 COMPLETE — `/gsd-new-milestone` で v5.0 計画へ
+**Current focus:** v5.0 Agent Tool Platform — Phase 20 (FastMCP Docker サービス基盤) から開始
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 20 — FastMCP Docker サービス基盤
 Plan: —
 Milestone: v5.0 Agent Tool Platform
-Status: Defining requirements
-Last activity: 2026-04-09 — Milestone v5.0 started
+Status: Ready to plan Phase 20
+Last activity: 2026-04-10 — Roadmap created (Phases 20–24)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [░░░░░░░░░░] 0% (0/5 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (v3.0)
+- Total plans completed: 0 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -192,6 +192,11 @@ Recent decisions affecting current work:
 - [Phase 19]: parent-bridge.js uses e.source (not iframeRef) — shared relay logic between Shell and CanvasPane
 - [Phase 19]: iframe_rpc.py JWT auth removed (D-07): github_token from auth_manager.load_token()
 - [Phase 19]: hosted_apps.router registered before /apps StaticFiles (D-02) for dynamic route priority
+- [v5.0 Research]: ChatCopilot.bind_tools() 未実装 — Phase 21 の最初のタスクとしてスパイクで Approach A（プロンプト注入 + テキスト解析）を検証すること
+- [v5.0 Research]: streamable-http transport 必須 — stdio は Docker コンテナ間通信不可、sse はセッションアフィニティ問題あり
+- [v5.0 Research]: MultiServerMCPClient v0.2.2 では async with パターン廃止 — get_tools() を直接呼ぶか session() を使う
+- [v5.0 Research]: Claude Code CLI は CLAUDECODE=1 を継承すると即失敗 — subprocess 起動前に env sanitization 必須
+- [v5.0 Research]: is_select_only() を app/jobs/handlers/iframe_rpc_handler.py から app/utils/sql_safety.py に移動して DB ツールで再利用
 
 ### Roadmap Evolution
 
@@ -207,6 +212,7 @@ Recent decisions affecting current work:
 - Phase 16 added: Canvas App — AIチャットで HTML アプリを作成・プレビュー・デプロイ（Gem の Canvas モードとは分離した独立アプリ）
 - Phase 18 added: Canvas iframe postMessage JSON-RPC API ブリッジ実装 — iframe内JSからDB・AI・WebAPIを呼び出せる仕組み（Web Worker通信レイヤー分離、psycopg3+psycopg_pool、既存SSEフロー流用）
 - Phase 19 added: Canvas アプリのデプロイ＆ホスティング機能（/apps/{app-id}/ ルーティング、iframe ホスティングシェル、Phase 18 RPC ブリッジ流用）
+- v5.0 roadmap created (2026-04-10): Phases 20–24 — FastMCP Docker 基盤、bind_tools 統合、Web 検索、DB + Claude Code ツール、config.yaml ルーティング
 
 ### Pending Todos
 
@@ -252,10 +258,11 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - [Phase 1 risk]: Device Flow CLIENT_ID (Iv1.b507a08c87ecfe98) is non-official use — validate still functional early
+- [v5.0 risk]: ChatCopilot.bind_tools() スパイク — Phase 21 着手前に Approach A が Copilot モデルで動作するか検証必須
 
 ## Session Continuity
 
-Last activity: 2026-04-09
-Last session: 2026-04-09T05:49:10.443Z
-Stopped at: Completed 19-01-PLAN.md
+Last activity: 2026-04-10
+Last session: 2026-04-10T00:00:00.000Z
+Stopped at: v5.0 roadmap created (Phases 20–24)
 Resume file: None

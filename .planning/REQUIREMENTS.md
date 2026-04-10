@@ -60,16 +60,16 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| MCP-01 | TBD | Not started |
-| MCP-02 | TBD | Not started |
-| MCP-03 | TBD | Not started |
-| TOOL-01 | TBD | Not started |
-| TOOL-02 | TBD | Not started |
-| TOOL-03 | TBD | Not started |
-| SEARCH-01 | TBD | Not started |
-| SEARCH-02 | TBD | Not started |
-| DB-01 | TBD | Not started |
-| DB-02 | TBD | Not started |
-| CODE-01 | TBD | Not started |
-| CODE-02 | TBD | Not started |
-| CODE-03 | TBD | Not started |
+| MCP-01 | Phase 20 | Not started |
+| MCP-02 | Phase 20 | Not started |
+| MCP-03 | Phase 24 | Not started |
+| TOOL-01 | Phase 21 | Not started |
+| TOOL-02 | Phase 21 | Not started |
+| TOOL-03 | Phase 21 | Not started |
+| SEARCH-01 | Phase 22 | Not started |
+| SEARCH-02 | Phase 22 | Not started |
+| DB-01 | Phase 23 | Not started |
+| DB-02 | Phase 23 | Not started |
+| CODE-01 | Phase 23 | Not started |
+| CODE-02 | Phase 23 | Not started |
+| CODE-03 | Phase 23 | Not started |

@@ -6,7 +6,7 @@
 - ✅ **v2.0 SuperChat** — Phases 7–10 (shipped 2026-04-04)
 - ✅ **v3.0 Agent Platform** — Phases 11–17 (shipped 2026-04-07) — [Archive](milestones/v3.0-ROADMAP.md)
 - ✅ **v4.0 Canvas API Bridge** — Phases 18–19 (shipped 2026-04-09) — [Archive](milestones/v4.0-ROADMAP.md)
-- 📋 **v5.0** — 未計画（`/gsd-new-milestone` で開始）
+- 📋 **v5.0 Agent Tool Platform** — Phases 20–24 (active)
 
 ## Phases
 
@@ -60,6 +60,69 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 
 </details>
 
+### v5.0 Agent Tool Platform (Phases 20–24)
+
+- [ ] **Phase 20: FastMCP Docker サービス基盤** — mcp-server Docker サービスが起動し、worker コンテナから streamable-http で接続でき、スタブツールが LangChain BaseTool として取得できる
+- [ ] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止
+- [ ] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限
+- [ ] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト）
+- [ ] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml でエージェント別ツール allowlist を管理、ToolRegistry クラス実装
+
+## Phase Details
+
+### Phase 20: FastMCP Docker サービス基盤
+**Goal**: エージェントがツールを呼び出すための MCP サービス基盤が稼働し、worker コンテナから接続確認できる
+**Depends on**: Phase 19 (v4.0 complete)
+**Requirements**: MCP-01, MCP-02
+**Success Criteria** (what must be TRUE):
+  1. `docker compose up` で mcp-server コンテナが healthy 状態で起動する
+  2. worker コンテナから `MultiServerMCPClient.get_tools()` を呼ぶと LangChain BaseTool リストが返る
+  3. スタブ `ping` ツールを呼び出すと正常なレスポンスが返り、通信ログに記録される
+  4. `/health` エンドポイントが 200 OK を返す（ヘルスチェック用）
+**Plans**: TBD
+
+### Phase 21: LangGraph bind_tools + ToolNode 統合
+**Goal**: SubAgent が bind_tools + ToolNode の ReAct ループでツールを呼び出し、結果が会話履歴に残る
+**Depends on**: Phase 20
+**Requirements**: TOOL-01, TOOL-02, TOOL-03
+**Success Criteria** (what must be TRUE):
+  1. `llm.bind_tools([...])` を呼んでも NotImplementedError が発生しない（ChatCopilot.bind_tools() 実装済み）
+  2. tool-enabled SubAgent が Web 検索プロンプトに対してツール呼び出しを発火させ、end-to-end で結果を返す
+  3. ToolMessage が PostgreSQL チェックポイントに会話履歴として記録され、スレッド再開後も参照できる
+  4. tool_calls ループが 10 ステップを超えると自動停止し、部分結果を返す
+**Plans**: TBD
+
+### Phase 22: Web 検索ツール（Tavily）
+**Goal**: エージェントが Tavily API 経由でリアルタイム情報を取得して回答に反映できる
+**Depends on**: Phase 21
+**Requirements**: SEARCH-01, SEARCH-02
+**Success Criteria** (what must be TRUE):
+  1. エージェントに「最新の〇〇を教えて」と聞くと web_search ツールが呼ばれ、Tavily から取得した情報が回答に含まれる
+  2. 検索結果のサイズが制限（max_results=3, max_tokens=3000 相当）に収まり、コンテキスト超過エラーが発生しない
+**Plans**: TBD
+
+### Phase 23: DB クエリ + Claude Code 実行ツール
+**Goal**: エージェントが PostgreSQL データを安全に参照でき、Claude Code CLI をサブプロセスとして実行できる
+**Depends on**: Phase 22
+**Requirements**: DB-01, DB-02, CODE-01, CODE-02, CODE-03
+**Success Criteria** (what must be TRUE):
+  1. エージェントが SELECT クエリを呼び出すと PostgreSQL のデータが返る（is_select_only ガード通過）
+  2. INSERT/UPDATE/DELETE クエリはブロックされ、エラーメッセージが返る（セキュリティガード動作確認）
+  3. エージェントが claude_code ツールを呼び出すと Claude Code CLI が実行され、出力が返る
+  4. CLAUDECODE=1 等の危険な環境変数が子プロセスに継承されない（env sanitization 確認）
+  5. 60 秒タイムアウトが機能し、zombie プロセスが残らない
+**Plans**: TBD
+
+### Phase 24: config.yaml ツールルーティング
+**Goal**: YAML 設定でエージェントごとに使えるツールを制限でき、コード変更なしでアクセス制御できる
+**Depends on**: Phase 23
+**Requirements**: MCP-03
+**Success Criteria** (what must be TRUE):
+  1. `config/mcp_tools.yaml` にエージェント別 allowlist を記述すると、指定外のツールが呼び出し時にブロックされる
+  2. ToolRegistry が起動時に YAML を読み込み、SubAgent コンストラクタに渡す（コード変更不要）
+  3. YAML 変更後にコンテナを再起動すると新しいルーティング設定が反映される
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -84,3 +147,8 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
+| 20. FastMCP Docker サービス基盤 | v5.0 | 0/? | Not started | - |
+| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 0/? | Not started | - |
+| 22. Web 検索ツール（Tavily） | v5.0 | 0/? | Not started | - |
+| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |
+| 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |
