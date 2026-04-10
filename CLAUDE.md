@@ -4,11 +4,11 @@
 **Copilot LangGraph Chat**
 
 GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内向け汎用チャット Web アプリ。
-`ChatCopilot`（`BaseChatModel` のカスタム実装）を通じて Copilot の推論能力を活用しながら、LangGraph のグラフ構造により将来のエージェント化・ツール呼び出し拡張に対応できる設計を目指す。
+`ChatCopilot`（`BaseChatModel` のカスタム実装）を通じて Copilot の推論能力を活用しながら、LangGraph のグラフ構造によりエージェント化・ツール呼び出しに対応できる設計。
 
-> **利用コンテキスト:** 当初は個人用ツールとして設計されたが、現在は **社内プロジェクト向けシステム**として開発を進めている。想定ユーザー規模は **200名程度**。リクエスト量は多くないが、マルチユーザー・マルチアプリケーションの運用に耐える設計（ユーザー分離、アプリケーション管理、監査ログ）を整備中。
+> **利用コンテキスト:** 社内プロジェクト向けシステム。想定ユーザー規模は **200名程度**。マルチユーザー・マルチアプリケーションの運用に耐える設計（ユーザー分離、アプリケーション管理、監査ログ）を整備中。
 
-**Core Value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること。
+**Core Value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること。
 
 ### Constraints
 
@@ -21,86 +21,23 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内�
 <!-- GSD:stack-start source:research/STACK.md -->
 ## Technology Stack
 
-## Recommended Stack
-### Runtime
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Python | 3.12 | Runtime | 3.12 is the stable sweet spot: full support from LangGraph, FastAPI, and github-copilot-sdk (>=3.11). 3.13 is supported but less battle-tested in the ecosystem. | HIGH |
-### Core AI Framework
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `langgraph` | 1.1.3 | Stateful conversation graph | The project's core orchestration layer. Provides StateGraph, MessagesState, compiled graph with checkpointer support. Production/Stable (status 5 on PyPI). Python 3.10+ required; 3.13 now officially supported. | HIGH |
-| `langchain-core` | 1.2.23 | BaseChatModel base class | Required for the `ChatCopilot` custom provider. Provides `BaseChatModel`, `HumanMessage`, `AIMessage`, `ChatResult`, `ChatGeneration`. Do NOT install the full `langchain` package — `langchain-core` is the slim, stable dependency surface needed. | HIGH |
-### Custom Provider
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `github-copilot-sdk` | 0.2.0 | GitHub Copilot JSON-RPC client | The SDK bundles platform-specific Copilot CLI binaries into Python wheels — no separate CLI install needed. Communicates via JSON-RPC (not HTTP/OpenAI-compatible), so `ChatOpenAI(base_url=...)` is not an option. A thin `BaseChatModel` wrapper isolates breaking changes. Technical Preview: pin to an exact version. | LOW (Technical Preview, breaking changes possible) |
-### Web Backend
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `fastapi` | 0.135.2 | HTTP + WebSocket API server | FastAPI is the standard choice for async Python APIs in 2025 (78.9k GitHub stars vs Flask's 68.4k; ASGI vs WSGI). Native `async def` routes integrate naturally with LangGraph's `ainvoke`. Built-in Pydantic validation and OpenAPI docs. LangGraph + FastAPI is the most documented integration pattern in 2025. | HIGH |
-| `uvicorn` | 0.42.0 | ASGI server | Standard ASGI server for FastAPI. Use `uvicorn[standard]` for production (includes `uvloop` and `httptools`). | HIGH |
-### Frontend
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| React 19 + ReactDOM | 19.2 | SPA chat UI | Component-based UI with hooks. Serves the primary chat interface at `/app` via Vite dev server or built static assets. | HIGH |
-| TypeScript | 5.9 | Type safety | Full type coverage for components, hooks, and API types. | HIGH |
-| Vite | 8.0 | Dev server + bundler | Fast HMR in development; `bun run build` produces `frontend/dist/` served by FastAPI. Vite proxy (`/api` → `localhost:8000`) in dev. | HIGH |
-| @chatscope/chat-ui-kit-react | 2.1 | Chat UI components | Ready-made chat UI (MessageList, MessageInput, TypingIndicator). Eliminates custom chat layout work. | HIGH |
-| react-markdown + remark-gfm + rehype-highlight | 10.1 / 4.0 / 7.0 | Markdown rendering | Renders AI responses with GFM and syntax highlighting inside chat messages. | HIGH |
-| Bun | latest | Package manager (Docker) | Used as the package manager and runtime in the `frontend` Docker service. | MEDIUM |
-| Jinja2 | 3.x (FastAPI ships with it) | HTML templating | Used for the legacy Vanilla JS UI served at `/`. Zero additional dependency cost since FastAPI already pulls it in. | MEDIUM |
-### Persistence / Session State
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `langgraph-checkpoint-sqlite` | 3.0.3 | Conversation thread persistence | SQLite is the right fit for a single-user local tool: zero operational overhead (no Redis server), file-based durability across process restarts, and `AsyncSqliteSaver` integrates cleanly with async FastAPI. `MemorySaver` is in-memory only (lost on restart) — insufficient for a chat app where history should survive. Redis is explicitly ruled out in PROJECT.md ("個人ツールのため不要"). | HIGH |
-### Authentication / Security
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `cryptography` | 46.0.6 | Fernet token encryption | Required by the concept doc's `CopilotAuthManager`. Encrypts the `ghu_` OAuth token at rest in `~/.copilot_sdk/token.enc`. Standard, well-maintained library. | HIGH |
-| `httpx` | 0.28.1 | Async HTTP for Device Flow | Required for the GitHub Device Flow OAuth calls in `copilot_auth.py`. The concept doc already uses it. Do not add `requests` (sync) alongside `httpx` (async) — pick one. | HIGH |
-### Packaging
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `pyproject.toml` | PEP 621 | Project metadata + dependencies | Standard in 2025. Single source of truth. Works with pip, uv, and all modern build backends. `requirements.txt` is a legacy format — no rationale for using it in a new project. | HIGH |
-| `uv` | latest | Dependency management + venv | 10–100x faster than pip. `uv.lock` for reproducible environments. `uv add` / `uv sync` replace `pip install`. Not required by users consuming the app, only for development workflow. | MEDIUM |
-## LangGraph API Patterns for This Project
-### State Definition
-# Option A: extend the built-in (recommended for simple chat)
-### Graph Compilation
-### Thread-based Sessions
-## Alternatives Considered
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Web framework | FastAPI | Flask | Flask is WSGI; async requires workarounds. LangGraph is natively async — FastAPI is the path of least resistance. |
-| Web framework | FastAPI | Django | Too heavy for a personal tool with no ORM needs. |
-| Frontend | React 19 + TypeScript + Vite | HTMX | React is the chosen frontend for the primary UI at `/app`. HTMX was considered but React + chatscope provides richer chat UI components. |
-| Frontend | React 19 + TypeScript + Vite | Next.js | Next.js adds SSR/routing complexity. Vite SPA is sufficient for a single-user personal tool. Vanilla JS legacy UI remains at `/`. |
-| State persistence | SQLite (AsyncSqliteSaver) | MemorySaver | MemorySaver is lost on process restart; not suitable for a persistent chat app. |
-| State persistence | SQLite (AsyncSqliteSaver) | Redis | Redis requires a running server. Explicitly out-of-scope in PROJECT.md. |
-| Packaging | pyproject.toml | requirements.txt | requirements.txt has no metadata, no build system declaration, and no lock file story. pyproject.toml is the PEP 621 standard. |
-| LangChain dependency | langchain-core | langchain (full) | Full `langchain` installs many unused integrations. `langchain-core` provides only what is needed: `BaseChatModel`, message types, output parsers. |
-| HTTP client | httpx | requests | Project is fully async; `requests` is synchronous and would block the event loop inside `async def`. |
-## Installation
-# Using uv (recommended)
-# Dev dependencies
-# Or using pip
-## Critical Constraints
-## Sources
-- LangGraph PyPI: https://pypi.org/project/langgraph/
-- langchain-core PyPI: https://pypi.org/project/langchain-core/
-- github-copilot-sdk PyPI: https://pypi.org/project/github-copilot-sdk/
-- FastAPI PyPI: https://pypi.org/project/fastapi/
-- uvicorn PyPI: https://pypi.org/project/uvicorn/
-- langgraph-checkpoint-sqlite PyPI: https://pypi.org/project/langgraph-checkpoint-sqlite/
-- cryptography PyPI: https://pypi.org/project/cryptography/
-- httpx PyPI: https://pypi.org/project/httpx/
-- LangGraph Python 3.13 compatibility announcement: https://changelog.langchain.com/announcements/langgraph-is-now-compatible-with-python-3-13
-- FastAPI vs Flask 2025 comparison: https://strapi.io/blog/fastapi-vs-flask-python-framework-comparison
-- LangGraph + FastAPI integration guide: https://www.zestminds.com/blog/build-ai-workflows-fastapi-langgraph/
-- pyproject.toml packaging guide: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
-- GitHub Copilot SDK overview: https://github.blog/news-insights/company-news/build-an-agent-into-any-app-with-the-github-copilot-sdk/
-- GitHub Copilot SDK Python deep-wiki: https://deepwiki.com/github/copilot-sdk/6.2-python-sdk
+| Category | Technology | Purpose |
+|----------|-----------|---------|
+| Runtime | Python 3.12 | メイン実行環境 |
+| AI Framework | `langgraph` | Stateful conversation graph・ReAct ループ |
+| AI Framework | `langchain-core` | `BaseChatModel`・メッセージ型・ToolNode |
+| AI Framework | `langchain-community` | TavilySearchResults 等の外部ツール統合 |
+| Custom Provider | `github-copilot-sdk` 0.2.0 (pinned) | Copilot JSON-RPC クライアント（Technical Preview） |
+| MCP | `fastmcp` | MCP サーバー実装（mcp_server/） |
+| MCP | `langchain-mcp-adapters` | MCP ツール → LangChain BaseTool 変換 |
+| Web Backend | `fastapi` + `uvicorn` | HTTP + SSE API サーバー |
+| Frontend | React 19 + TypeScript + Vite | SPA チャット UI |
+| Frontend | `@chatscope/chat-ui-kit-react` | チャット UI コンポーネント |
+| Frontend | Bun | フロントエンドのパッケージマネージャー（Docker） |
+| Persistence | PostgreSQL + `langgraph-checkpoint-postgres` | 会話スレッド永続化 |
+| Job Queue | Redis + `arq` | バックグラウンドジョブキュー |
+| Auth | JWT HS256 + Device Flow | httpOnly cookie 認証 |
+| Packaging | `uv` + `pyproject.toml` | 依存管理・仮想環境 |
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
@@ -116,7 +53,7 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内�
 
 > 「`/create-adr` でこのブランチの振り返りを記録しますか？」
 
-- 了解なら `/create-adr` を実行してから PR 作成 → マージへ進む
+- 了解なら `/create-adr` を実行してから マージへ進む
 - 不要なら即マージへ進む
 
 マージは **squash merge** で行う（作業ブランチの細かいコミットを1つにまとめる）:
@@ -149,65 +86,115 @@ git worktree prune                  # 参照だけ残っているゴミを掃除
 ```
 app/
   api/
-    main.py           — FastAPI app factory, lifespan, CORS, static mounts
-    models.py         — Pydantic request/response models
+    main.py               — FastAPI app factory, lifespan, CORS, static mounts
+    models.py             — Pydantic request/response models
     routes/
-      auth.py         — Device Flow OAuth + JWT login/logout
-      chat.py         — POST /api/chat (enqueue), GET /api/chat/history
-      jobs.py         — GET /api/job/{id}, GET /api/job/{id}/stream (SSE)
-      me.py           — GET /api/me (GitHub user info)
+      auth.py             — Device Flow OAuth + JWT login/logout
+      chat.py             — POST /api/chat (enqueue), GET /api/chat/history
+      jobs.py             — GET /api/job/{id}, GET /api/job/{id}/stream (SSE)
+      me.py               — GET /api/me (GitHub user info)
+      agents.py           — GET /api/agents (SubAgentRegistry リスト)
+      gems.py             — Gems CRUD
+      canvas.py           — Canvas アプリ管理
+      apps.py             — Canvas apps 一覧
+      hosted_apps.py      — /apps/{app-id}/ ホスティング
+      iframe_rpc.py       — iframe postMessage JSON-RPC ブリッジ
+      health.py           — GET /health (ヘルスチェック)
   auth/
-    jwt_utils.py      — JWT HS256 encode/decode, JTI blocklist
-    manager.py        — CopilotAuthManager (Device Flow + token encryption)
+    jwt_utils.py          — JWT HS256 encode/decode, JTI blocklist
+    manager.py            — CopilotAuthManager (Device Flow + token encryption)
   graph/
-    builder.py        — LangGraph StateGraph (MessagesState) compilation
+    builder.py            — LangGraph StateGraph (chat 用シンプルグラフ)
   jobs/
-    job_store.py      — In-memory job result store with asyncio.Queue SSE
-    notifier.py       — SSE notification bridge (worker -> client)
-    worker.py         — arq worker: process_chat task
+    job_store.py          — In-memory job result store with asyncio.Queue SSE
+    notifier.py           — SSE notification bridge (worker -> client)
+    worker.py             — arq worker: process_chat + MCP Singleton 管理
+    handlers/
+      base.py             — TaskHandler 基底クラス
+      langgraph_handler.py    — Chat / Canvas 用 LangGraph handler
+      orchestrator_handler.py — SuperChat 用 OrchestratorGraph handler
+      debate_handler.py       — DebateChat 用 handler
+      iframe_rpc_handler.py   — iframe RPC 用 handler
+  orchestrator/
+    state.py              — AgentState (TypedDict)
+    context.py            — RPCContext (user_id, app_id, thread_id)
+    agent.py              — SubAgent, SubAgentRegistry (AGENT.md 自動ロード)
+    tool_agent.py         — ToolEnabledSubAgent, build_react_graph (ReAct ループ)
+    graph.py              — OrchestratorGraph (Router → SubAgent → END)
+    gem_agent.py          — GemAgent (Gem 設定ベースのエージェント)
+    debate_graph.py       — DebateGraph
+    dispatcher.py         — タスクタイプ別ハンドラールーティング
+    script_backend.py     — Script ベースツール実行
+    apps.py               — Canvas アプリ管理ロジック
   providers/
-    copilot.py        — ChatCopilot (BaseChatModel wrapper for Copilot SDK)
+    copilot.py            — ChatCopilot + BoundChatCopilot (BaseChatModel wrapper)
+
+mcp_server/
+  server.py               — FastMCP サーバー本体
+  tools/
+    stubs.py              — ping / web_search_stub / db_query_stub / claude_code_stub
 ```
 
 ### Frontend (React 19 + TypeScript + Vite)
 
 ```
-frontend/
-  src/
-    App.tsx            — Root component, AuthContext.Provider
-    main.tsx           — ReactDOM entry point
-    types.ts           — Shared TypeScript types (Thread, Message, etc.)
-    api/
-      client.ts        — apiFetch wrapper (JWT cookie auth)
-    components/
-      AuthPanel.tsx    — Device Flow login UI
-      ChatApp.tsx      — Main chat layout (sidebar + messages)
-      Header.tsx       — App header with user info
-      MarkdownMessage.tsx — Markdown rendering with syntax highlighting
-      MessageArea.tsx  — Message list + input (chatscope)
-      ThreadSidebar.tsx — Thread list with CRUD
-    hooks/
-      useAuth.ts       — Auth state management
-      useChat.ts       — Chat messaging + SSE job polling
-      useThreads.ts    — Thread CRUD operations
+frontend/src/
+  App.tsx                 — Root component, AuthContext.Provider, 画面ルーティング
+  main.tsx                — ReactDOM entry point
+  types.ts                — 共有 TypeScript 型定義
+  api/
+    client.ts             — apiFetch wrapper (JWT cookie auth)
+  components/
+    AuthPanel.tsx         — Device Flow login UI
+    MenuScreen.tsx        — アプリ選択メニュー
+    ChatApp.tsx           — 通常チャット
+    SuperChatApp.tsx      — SuperChat（エージェント切り替え）
+    GemChatApp.tsx        — Gem チャット
+    GemsScreen.tsx        — Gem 一覧・管理
+    GemSelector.tsx       — Gem 選択コンポーネント
+    CanvasChatApp.tsx     — Canvas チャット
+    CanvasPane.tsx        — iframe Canvas プレビュー
+    CanvasScreen.tsx      — Canvas アプリ一覧
+    DebateChatApp.tsx     — DebateChat
+    Header.tsx            — ヘッダー（ユーザー情報・ダーク/ライト切替）
+    MarkdownMessage.tsx   — Markdown + シンタックスハイライト
+    MessageArea.tsx       — メッセージリスト + 入力欄
+    ThreadSidebar.tsx     — スレッド一覧・CRUD
+    ConfirmModal.tsx      — 確認ダイアログ
+  contexts/
+    ThemeContext.ts       — ダーク/ライトモード
+  hooks/
+    useAuth.ts            — 認証状態管理
+    useChat.ts            — チャット送受信 + SSE ジョブポーリング
+    useThreads.ts         — スレッド CRUD
+    useAgents.ts          — エージェント一覧取得
+    useGems.ts            — Gem CRUD
+    useCanvas.ts          — Canvas アプリ管理
+    useTheme.ts           — テーマ切り替え
+  utils/
+    agentColor.ts         — エージェント別カラーマッピング
 ```
 
 ### Infrastructure
 
-- Docker Compose: FastAPI backend + PostgreSQL (langgraph-checkpoint-postgres) + Redis (arq worker queue) + React frontend (Bun/Vite)
-- **Primary startup method: `docker compose up`** — do not use direct `uvicorn` or `bun run dev` commands for running the full app
+- Docker Compose: FastAPI + PostgreSQL + Redis + React frontend (Bun/Vite) + MCP server
+- **Primary startup method: `docker compose up`** — direct `uvicorn` / `bun run dev` は使わない
 - **開発時アクセス URL: `http://localhost:5173/orochi/`**（Vite dev server）
-- Legacy Vanilla JS UI served at `/` via FastAPI StaticFiles (`static/` directory)
-- React UI served at `/app` (Vite dev server proxies `/api` to backend in dev; FastAPI serves `frontend/dist/` in production)
-- Reverse-proxy URL prefix (e.g. `/orochi`) configured via `APP_PREFIX` (FastAPI) + `VITE_APP_BASE` (Vite); nginx strips the prefix before forwarding — see `docs/nginx.md`
+- React UI: Vite dev server が `/api` を FastAPI にプロキシ（開発時）、`frontend/dist/` を FastAPI が配信（本番）
+- MCP server: `mcp-server:8001`（内部ネットワーク専用、worker から streamable-http でアクセス）
+- Reverse-proxy URL prefix (e.g. `/orochi`) は `APP_PREFIX`（FastAPI）+ `VITE_APP_BASE`（Vite）で設定; nginx がプレフィックスを strip して転送 — `docs/nginx.md` 参照
 
 ### Key Patterns
 
-- Async-first: all routes are `async def`, arq worker for background jobs
-- SSE for job completion notification (not WebSocket)
-- JWT HS256 in httpOnly cookie for auth
-- ChatCopilot wraps Copilot SDK behind BaseChatModel interface
-- LangGraph StateGraph compiled once at startup; checkpointer lifecycle owned by caller
+- **Async-first**: 全ルートが `async def`、arq worker でバックグラウンドジョブ
+- **SSE** でジョブ完了通知（WebSocket 不使用）
+- **JWT HS256** を httpOnly cookie に格納して認証
+- **ChatCopilot**: Copilot SDK を `BaseChatModel` インターフェースでラップ
+- **BoundChatCopilot**: `bind_tools()` でツールスキーマをシステムプロンプトに注入し、JSON レスポンスを `AIMessage(tool_calls=[...])` に変換
+- **ToolEnabledSubAgent**: LangGraph mini ReAct グラフ（agent → ToolNode → agent → END）でツール呼び出しループを実行
+- **SubAgentRegistry**: `agents/*/AGENT.md` を自動ロード。`tools:` フラグ + `mcp_tools` があれば `ToolEnabledSubAgent` を生成
+- **MCP Singleton**: `worker.startup()` で `MultiServerMCPClient` を初期化し `ctx["mcp_tools"]` に格納。接続失敗時は `[]` で DEGRADED 継続
+- **LangGraph checkpointer**: `AsyncConnectionPool`（PostgreSQL）で会話スレッドを永続化。起動時にコンパイル、ライフサイクルは caller が管理
 <!-- GSD:architecture-end -->
 
 ## Chrome DevTools MCP
