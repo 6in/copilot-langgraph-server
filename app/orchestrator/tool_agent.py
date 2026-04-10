@@ -9,12 +9,20 @@ Architecture:
         -> mini ReAct: agent_node -> tools_condition -> ToolNode -> agent_node -> ...
         -> END when no tool_calls in AIMessage
         -> GraphRecursionError caught after DEFAULT_RECURSION_LIMIT steps
+
+Circular import avoidance:
+    tool_agent.py does NOT import from agent.py at module level.
+    ToolEnabledSubAgent duplicates the minimal SubAgent interface
+    (name, description, keywords, _llm, _system_prompt, run, close)
+    to break the agent.py <-> tool_agent.py cycle.
+    agent.py imports ToolEnabledSubAgent; tool_agent.py does NOT import agent.py.
 """
 
 from __future__ import annotations
 
 import logging
 import operator
+from pathlib import Path
 from typing import Annotated, Any
 
 from typing_extensions import TypedDict
@@ -25,7 +33,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.errors import GraphRecursionError
 
-from app.orchestrator.agent import SubAgent
+from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
 
 logger = logging.getLogger(__name__)
@@ -71,8 +79,12 @@ def build_react_graph(llm_with_tools: Any, tool_node: ToolNode):
     return graph.compile()
 
 
-class ToolEnabledSubAgent(SubAgent):
+class ToolEnabledSubAgent:
     """SubAgent that executes a mini ReAct loop to call tools.
+
+    Intentionally does NOT inherit from SubAgent (agent.py) to avoid circular
+    import. Implements the same interface: name, description, keywords,
+    _llm, _system_prompt, run(), close().
 
     Wraps the LLM with bind_tools(), builds a ToolNode, and runs a
     LangGraph mini ReAct graph on each request.
@@ -98,7 +110,11 @@ class ToolEnabledSubAgent(SubAgent):
         tools: list[BaseTool],
         keywords: list[str] | None = None,
     ):
-        super().__init__(name, description, model, system_prompt, github_token, keywords)
+        self.name = name
+        self.description = description
+        self.keywords: list[str] = keywords or []
+        self._llm = ChatCopilot(model=model, github_token=github_token)
+        self._system_prompt = system_prompt
         self._tools = tools
         if not tools:
             logger.warning(
@@ -109,7 +125,12 @@ class ToolEnabledSubAgent(SubAgent):
         self._llm_with_tools = self._llm.bind_tools(tools)
 
     @classmethod
-    def from_dir(cls, agent_dir, github_token: str, tools: list[BaseTool] | None = None) -> "ToolEnabledSubAgent":
+    def from_dir(
+        cls,
+        agent_dir: Path | str,
+        github_token: str,
+        tools: list[BaseTool] | None = None,
+    ) -> "ToolEnabledSubAgent":
         """Load from AGENT.md frontmatter, accepting tools as an explicit argument.
 
         Args:
@@ -118,7 +139,6 @@ class ToolEnabledSubAgent(SubAgent):
             tools: List of BaseTool instances to bind. Defaults to [].
         """
         import frontmatter
-        from pathlib import Path
 
         agent_dir = Path(agent_dir)
         post = frontmatter.load(agent_dir / "AGENT.md")
@@ -171,3 +191,7 @@ class ToolEnabledSubAgent(SubAgent):
             "messages": all_messages,
             "agent_name": self.name,
         }
+
+    async def close(self) -> None:
+        """Release the underlying ChatCopilot client."""
+        await self._llm.close()

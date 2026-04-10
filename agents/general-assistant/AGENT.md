@@ -7,6 +7,9 @@ description: |
   他のエージェントが明らかに適切な場合はそちらを優先すること。
   対象外: 専門エージェントが対応できる質問（コードレビュー、SQL解析など）
 model: claude-sonnet-4-6
+tools:
+  - web_search_stub
+  - ping
 ---
 
 あなたは親切で知識豊富なアシスタントです。

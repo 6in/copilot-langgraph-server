@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
+from app.orchestrator.tool_agent import ToolEnabledSubAgent
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class SubAgent:
 
 
 class SubAgentRegistry:
-    def __init__(self, agent_dir: str, github_token: str):
+    def __init__(self, agent_dir: str, github_token: str, mcp_tools: list | None = None):
         self.agents: dict[str, SubAgent] = {}
         self.health: dict[str, AgentHealth] = {}
         self._github_token = github_token
@@ -136,8 +137,35 @@ class SubAgentRegistry:
                     agent = _load_code_agent(path.parent, github_token)
                     agent_type = "code"
                 else:
-                    agent = SubAgent.from_dir(path.parent, github_token)
-                    agent_type = "folder"
+                    post = frontmatter.load(path)
+                    meta = post.metadata
+                    tools_list = meta.get("tools", [])
+
+                    if tools_list and mcp_tools:
+                        # Filter mcp_tools by name declared in AGENT.md (D-03)
+                        tool_map = {t.name: t for t in mcp_tools}
+                        selected_tools = [tool_map[name] for name in tools_list if name in tool_map]
+                        if selected_tools:
+                            agent = ToolEnabledSubAgent(
+                                name=meta["name"],
+                                description=meta["description"],
+                                model=meta.get("model", "claude-sonnet-4-6"),
+                                system_prompt=post.content,
+                                github_token=github_token,
+                                tools=selected_tools,
+                                keywords=meta.get("keywords", []),
+                            )
+                            agent_type = "folder+tools"
+                        else:
+                            logger.warning(
+                                "[registry] agent '%s' declares tools %s but none found in mcp_tools",
+                                meta["name"], tools_list,
+                            )
+                            agent = SubAgent.from_dir(path.parent, github_token)
+                            agent_type = "folder"
+                    else:
+                        agent = SubAgent.from_dir(path.parent, github_token)
+                        agent_type = "folder"
                 self.agents[agent.name] = agent
                 self.health[agent.name] = AgentHealth(
                     name=agent.name,

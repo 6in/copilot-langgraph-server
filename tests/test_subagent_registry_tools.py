@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import textwrap
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from langchain_core.tools import BaseTool
+from langchain_core.tools import tool
 
 
 def write_agent_md(agent_dir: Path, *, with_tools: bool = True) -> None:
@@ -57,12 +57,21 @@ def mock_copilot_cls():
         yield
 
 
+@tool
+def ping(message: str) -> str:
+    """A ping tool."""
+    return f"pong: {message}"
+
+
+@tool
+def web_search_stub(query: str) -> str:
+    """A web search stub tool."""
+    return f"results for: {query}"
+
+
 def make_mock_tools() -> list:
-    ping = MagicMock(spec=BaseTool)
-    ping.name = "ping"
-    web = MagicMock(spec=BaseTool)
-    web.name = "web_search_stub"
-    return [ping, web]
+    """Return real @tool-decorated tools (ToolNode requires actual BaseTool instances)."""
+    return [ping, web_search_stub]
 
 
 def test_registry_creates_tool_enabled_agent(tmp_path, mock_copilot_cls):
