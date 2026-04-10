@@ -79,7 +79,9 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
   2. worker コンテナから `MultiServerMCPClient.get_tools()` を呼ぶと LangChain BaseTool リストが返る
   3. スタブ `ping` ツールを呼び出すと正常なレスポンスが返り、通信ログに記録される
   4. `/health` エンドポイントが 200 OK を返す（ヘルスチェック用）
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 20-01-PLAN.md — mcp_server/ 独立 uv プロジェクト + FastMCP サーバー + 4 スタブツール + /health + pytest
+- [ ] 20-02-PLAN.md — docker-compose.yml に mcp-server 追加 + worker 依存配線 + langchain-mcp-adapters + 実機スモーク
 
 ### Phase 21: LangGraph bind_tools + ToolNode 統合
 **Goal**: SubAgent が bind_tools + ToolNode の ReAct ループでツールを呼び出し、結果が会話履歴に残る
@@ -147,7 +149,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
-| 20. FastMCP Docker サービス基盤 | v5.0 | 0/? | Not started | - |
+| 20. FastMCP Docker サービス基盤 | v5.0 | 0/2 | Not started | - |
 | 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 0/? | Not started | - |
 | 22. Web 検索ツール（Tavily） | v5.0 | 0/? | Not started | - |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |

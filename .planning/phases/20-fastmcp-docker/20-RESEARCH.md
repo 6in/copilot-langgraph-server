@@ -370,17 +370,19 @@ dependencies = [
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **fastmcp の stateless HTTP モード（`FASTMCP_STATELESS_HTTP=true`）は必要か**
    - What we know: デフォルトはステートフル（サーバーサイドセッション保持）。スケールアウト時は stateless が必要。
    - What's unclear: Phase 20 のシングルインスタンス構成では関係ないが、将来 workers 複数台になった場合に影響。
    - Recommendation: Phase 20 ではデフォルト（stateless 不要）。Phase 24 以降のスケールアウト設計時に再検討。
+   - RESOLVED: Phase 20 では `FASTMCP_STATELESS_HTTP` 環境変数を設定しない（Plan 20-01/20-02 に反映済み）
 
 2. **`uv run` の working_dir と mcp_server/ マウント戦略**
    - What we know: 既存 worker は `working_dir: /app` + `volumes: .:/app`。mcp-server は `working_dir: /mcp_server` + `volumes: ./mcp_server:/mcp_server` の予定（D-01）。
    - What's unclear: uv が `/mcp_server` を独立プロジェクトとして認識するか（`.venv` の配置）。
    - Recommendation: `command: uv run --project /mcp_server python server.py` または Dockerfile を作成して `uv sync` 実行済みイメージを使う方が確実。ただし Dockerfile なしで動くか試みてから判断。
+   - RESOLVED: Plan 20-02 Task 1 で `sh -c "uv sync && uv run python server.py"` コマンドを採用（working_dir: /mcp_server）。Dockerfile は作成せずコンテナ起動時に uv sync 実行（Plan に反映済み）
 
 ---
 
