@@ -30,6 +30,8 @@ export default defineConfig({
           ),
       },
       // Proxy /js/ — public JS libraries (e.g. iframe-rpc.js) served by FastAPI with CORS.
+      // Two rules: one with VITE_APP_BASE prefix (React app context),
+      // one without prefix (deployed canvas HTML uses absolute /js/ paths with empty APP_PREFIX).
       [`${process.env.VITE_APP_BASE ?? ''}/js`]: {
         target: process.env.API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
@@ -38,6 +40,10 @@ export default defineConfig({
             new RegExp('^' + (process.env.VITE_APP_BASE ?? '')),
             '',
           ),
+      },
+      '/js': {
+        target: process.env.API_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
       },
     },
   },

@@ -244,7 +244,9 @@ async def deploy_app(
     # app_id comes from DB (UUID) — not user input — so path traversal is impossible (T-15-05)
     deploy_dir = Path("./static/apps") / str(row["app_id"])
     deploy_dir.mkdir(parents=True, exist_ok=True)
-    (deploy_dir / "index.html").write_text(row["html"], encoding="utf-8")
+    app_prefix = os.getenv("APP_PREFIX", "")
+    html = row["html"].replace("$URL_PREFIX", app_prefix)
+    (deploy_dir / "index.html").write_text(html, encoding="utf-8")
 
     # Update deployed status
     async with await psycopg.AsyncConnection.connect(db_uri) as conn:

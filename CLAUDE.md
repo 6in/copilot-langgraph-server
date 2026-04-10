@@ -226,6 +226,39 @@ chromium --remote-debugging-port=9222 --no-first-run --no-default-browser-check 
 3. 起動確認後、chrome-devtools ツールを使用する。
 
 <!-- GSD:workflow-start source:GSD defaults -->
+## Merge Safety Rules
+
+worktree マージを実行する前に必ず以下を確認すること。**これを省くと大量削除マージが起きる。**
+
+### マージ前チェックリスト
+
+```bash
+# 1. マージ対象ブランチの起点が正しいか確認
+git merge-base <worktree-branch> <current-branch>
+# → current-branch の HEAD と一致していなければマージしない
+
+# 2. 削除・変更ファイル数を事前確認
+git diff --stat HEAD <worktree-branch>
+# → 削除行数が追加行数を大きく上回る場合は必ず内容を精査する
+
+# 3. アプリコードの削除が含まれていないか確認
+git diff --name-only --diff-filter=D HEAD <worktree-branch> | grep -v "^\.planning/"
+# → .planning/ 以外のファイルが削除される場合は手動で一件ずつ確認
+```
+
+### 判断基準
+
+| 状況 | 対応 |
+|------|------|
+| 削除ファイルが `.planning/` のみ | 通常マージしてよい |
+| アプリコード（`app/`, `static/`, `tests/` 等）が削除される | **必ず理由を確認してからマージ** |
+| 削除行数 > 追加行数 × 2 | **ストップ。worktree の起点ブランチを確認する** |
+| `.continue-here.md` が別ブランチのもの | マージ後すぐに削除 |
+
+### なぜこのルールが必要か
+
+2026-04-10 の Phase 20 実行時、`isolation="worktree"` で生成された worktree が `main` を起点にしていたため、`gsd/phase-20-fastmcp-docker` との差分が大量削除マージとして現れた（81 files, 8933 deletions）。`static/js/iframe-rpc.js` 削除・Canvas アプリエラー等のデグレが発生した。ワークフロー手順の実行に集中し、マージ結果が目的と整合しているか検証しなかったことが根本原因。
+
 ## GSD Workflow Enforcement
 
 Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
