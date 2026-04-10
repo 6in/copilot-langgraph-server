@@ -1,7 +1,10 @@
 """Tests for ToolEnabledSubAgent and build_react_graph.
 
-Tests use mock LLM and tools — no Copilot SDK credentials required.
+Tests use mock LLM and real @tool-decorated tools — no Copilot SDK credentials required.
 Covers TOOL-01 (ReAct loop), TOOL-02 (recursion limit), TOOL-03 (ToolMessage).
+
+Note: ToolNode requires actual BaseTool instances (not MagicMock(spec=BaseTool)) because
+it introspects args_schema via Pydantic. We use @tool decorator for real tool objects.
 """
 from __future__ import annotations
 
@@ -10,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.messages.tool import ToolCall
-from langchain_core.tools import BaseTool
+from langchain_core.tools import BaseTool, tool
 
 from app.orchestrator.context import RPCContext
 
@@ -36,6 +39,18 @@ def mock_copilot_cls():
         yield
 
 
+@tool
+def ping(message: str) -> str:
+    """A ping tool that returns pong."""
+    return "pong"
+
+
+@tool
+def infinite_tool() -> str:
+    """A tool that always triggers another tool call."""
+    return "keep going"
+
+
 @pytest.mark.asyncio
 async def test_tool_enabled_subagent_runs_react_loop(mock_copilot_cls):
     """TOOL-01: ToolEnabledSubAgent.run() executes mini ReAct loop via ToolNode.
@@ -44,14 +59,6 @@ async def test_tool_enabled_subagent_runs_react_loop(mock_copilot_cls):
     ToolMessage must appear in result["messages"] (TOOL-03).
     """
     from app.orchestrator.tool_agent import ToolEnabledSubAgent
-
-    # --- mock tool ---
-    mock_tool = MagicMock(spec=BaseTool)
-    mock_tool.name = "ping"
-    mock_tool.ainvoke = AsyncMock(return_value="pong")
-    # ToolNode calls tool.description and tool.args_schema for schema; provide stubs
-    mock_tool.description = "A ping tool"
-    mock_tool.args_schema = None
 
     # --- mock LLM ---
     mock_llm = AsyncMock()
@@ -73,7 +80,7 @@ async def test_tool_enabled_subagent_runs_react_loop(mock_copilot_cls):
         model="gpt-4.1",
         system_prompt="You are helpful.",
         github_token="ghu_test",
-        tools=[mock_tool],
+        tools=[ping],
     )
     # Replace _llm_with_tools with our mock (bind_tools was already called in __init__)
     agent._llm_with_tools = mock_llm
@@ -95,20 +102,13 @@ async def test_react_loop_stops_at_limit(mock_copilot_cls):
 
     Uses a small recursion_limit to trigger the limit quickly.
     """
-    from app.orchestrator.tool_agent import ToolEnabledSubAgent, build_react_graph
-    from langgraph.prebuilt import ToolNode
-
-    mock_tool = MagicMock(spec=BaseTool)
-    mock_tool.name = "infinite"
-    mock_tool.ainvoke = AsyncMock(return_value="keep going")
-    mock_tool.description = "Infinite loop tool"
-    mock_tool.args_schema = None
+    from app.orchestrator.tool_agent import ToolEnabledSubAgent
 
     mock_llm = AsyncMock()
     mock_llm.bind_tools = MagicMock(return_value=mock_llm)
 
     # Always return a tool call → infinite loop
-    tool_call = ToolCall(name="infinite", args={}, id="c2")
+    tool_call = ToolCall(name="infinite_tool", args={}, id="c2")
     mock_llm.ainvoke = AsyncMock(return_value=AIMessage(content="", tool_calls=[tool_call]))
 
     agent = ToolEnabledSubAgent(
@@ -117,13 +117,9 @@ async def test_react_loop_stops_at_limit(mock_copilot_cls):
         model="gpt-4.1",
         system_prompt="Loop forever.",
         github_token="ghu_test",
-        tools=[mock_tool],
+        tools=[infinite_tool],
     )
     agent._llm_with_tools = mock_llm
-
-    # Build graph with small recursion_limit
-    tool_node = ToolNode([mock_tool])
-    mini_graph = build_react_graph(mock_llm, tool_node)
 
     # Should NOT raise — GraphRecursionError is caught internally in run()
     # We trigger the limit by patching DEFAULT_RECURSION_LIMIT to a small value
