@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
 status: executing
-stopped_at: v5.0 roadmap created (Phases 20–24)
-last_updated: "2026-04-10T02:17:36.650Z"
-last_activity: 2026-04-10 -- Phase 20 planning complete
+stopped_at: Phase 20 complete — ready for Phase 21
+last_updated: "2026-04-10T05:00:00.000Z"
+last_activity: 2026-04-10 -- Phase 20 FastMCP Docker 基盤 完了
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 20
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v5.0 Agent Tool Platform — Phase 20 (FastMCP Docker サービス基盤) から開始
+**Current focus:** v5.0 Agent Tool Platform — Phase 21 (LangGraph bind_tools + ToolNode 統合) 着手待ち
 
 ## Current Position
 
-Phase: 20 — FastMCP Docker サービス基盤
+Phase: 21 — LangGraph bind_tools + ToolNode 統合
 Plan: —
 Milestone: v5.0 Agent Tool Platform
-Status: Ready to execute
-Last activity: 2026-04-10 -- Phase 20 planning complete
+Status: Ready to plan
+Last activity: 2026-04-10 -- Phase 20 FastMCP Docker 基盤 完了
 
-Progress: [░░░░░░░░░░] 0% (0/5 phases)
+Progress: [██░░░░░░░░] 20% (1/5 phases)
 
 ## Performance Metrics
 
