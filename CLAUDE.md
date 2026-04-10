@@ -119,6 +119,17 @@ GitHub Copilot を LangGraph の AI プロバイダーとして使う、社内�
 - 了解なら `/create-adr` を実行してから PR 作成 → マージへ進む
 - 不要なら即マージへ進む
 
+マージは **squash merge** で行う（作業ブランチの細かいコミットを1つにまとめる）:
+
+```bash
+git checkout main
+git merge --squash <branch>
+git commit -m "feat(phase-XX): <内容の要約>"
+git branch -D <branch>
+```
+
+`git merge --no-edit` や Fast-forward merge は使わない。
+
 マージ完了後、不要な worktree を削除する:
 
 ```bash
