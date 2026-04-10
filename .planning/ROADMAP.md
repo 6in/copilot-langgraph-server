@@ -92,7 +92,11 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
   2. tool-enabled SubAgent が Web 検索プロンプトに対してツール呼び出しを発火させ、end-to-end で結果を返す
   3. ToolMessage が PostgreSQL チェックポイントに会話履歴として記録され、スレッド再開後も参照できる
   4. tool_calls ループが 10 ステップを超えると自動停止し、部分結果を返す
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 21-01-PLAN.md — bind_tools スパイク + BoundChatCopilot 実装
+- [ ] 21-02-PLAN.md — ToolEnabledSubAgent + SubAgentRegistry 拡張
+- [ ] 21-03-PLAN.md — Worker MCP Singleton + e2e テスト
 
 ### Phase 22: Web 検索ツール（Tavily）
 **Goal**: エージェントが Tavily API 経由でリアルタイム情報を取得して回答に反映できる
@@ -150,7 +154,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
 | 20. FastMCP Docker サービス基盤 | v5.0 | 0/2 | Not started | - |
-| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 0/? | Not started | - |
+| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 0/3 | Not started | - |
 | 22. Web 検索ツール（Tavily） | v5.0 | 0/? | Not started | - |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |
 | 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |
