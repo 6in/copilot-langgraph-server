@@ -21,6 +21,21 @@ services:
     volumes:
       - redis-data:/data
 
+  mcp-server:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    working_dir: /mcp_server
+    command: sh -c "uv sync && uv run python server.py"
+    volumes:
+      - ./mcp_server:/mcp_server
+    # D-06: ホストポートは公開しない（内部ネットワーク専用）
+    # worker からは mcp-server:8001 でアクセス
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
   api:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     working_dir: /app
@@ -54,6 +69,7 @@ services:
       - AGENT_DIR=/app/agents
       - MENU_DIR=/app/menus
       - APP_DIR=/app/apps
+      - MCP_SERVER_URL=http://mcp-server:8001
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
@@ -63,6 +79,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      mcp-server:
+        condition: service_healthy
 
   frontend:
     build:
