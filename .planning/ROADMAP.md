@@ -63,7 +63,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 ### v5.0 Agent Tool Platform (Phases 20–24)
 
 - [ ] **Phase 20: FastMCP Docker サービス基盤** — mcp-server Docker サービスが起動し、worker コンテナから streamable-http で接続でき、スタブツールが LangChain BaseTool として取得できる
-- [ ] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止
+- [x] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止 (completed 2026-04-10)
 - [ ] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限
 - [ ] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト）
 - [ ] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml でエージェント別ツール allowlist を管理、ToolRegistry クラス実装
@@ -94,9 +94,9 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
   4. tool_calls ループが 10 ステップを超えると自動停止し、部分結果を返す
 **Plans**: 3 plans
 Plans:
-- [ ] 21-01-PLAN.md — bind_tools スパイク + BoundChatCopilot 実装
-- [ ] 21-02-PLAN.md — ToolEnabledSubAgent + SubAgentRegistry 拡張
-- [ ] 21-03-PLAN.md — Worker MCP Singleton + e2e テスト
+- [x] 21-01-PLAN.md — bind_tools スパイク + BoundChatCopilot 実装
+- [x] 21-02-PLAN.md — ToolEnabledSubAgent + SubAgentRegistry 拡張
+- [x] 21-03-PLAN.md — Worker MCP Singleton + e2e テスト
 
 ### Phase 22: Web 検索ツール（Tavily）
 **Goal**: エージェントが Tavily API 経由でリアルタイム情報を取得して回答に反映できる
@@ -154,7 +154,7 @@ Plans:
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
 | 20. FastMCP Docker サービス基盤 | v5.0 | 0/2 | Not started | - |
-| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 0/3 | Not started | - |
+| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
 | 22. Web 検索ツール（Tavily） | v5.0 | 0/? | Not started | - |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |
 | 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |
