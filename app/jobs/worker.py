@@ -11,6 +11,7 @@ Incoming jobs carry a `task_type` field that selects the handler:
 All handlers implement TaskHandler.handle(ctx, job) -> dict.
 Backward compatibility: jobs without task_type default to "langgraph".
 """
+import logging
 import os
 
 import yaml
@@ -25,6 +26,8 @@ from app.jobs.handlers.iframe_rpc_handler import IframeRpcHandler
 from app.jobs.handlers.langgraph_handler import LangGraphHandler
 from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 from app.jobs.job_store import JobStore
+
+logger = logging.getLogger(__name__)
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -63,12 +66,37 @@ async def startup(ctx: dict) -> None:
     except FileNotFoundError:
         pass  # No config file — QUERY method unavailable (non-fatal)
 
+    # Phase 21: MCP client Singleton (D-04)
+    # Pitfall 5: MCP server may not be running — graceful degradation
+    ctx["mcp_tools"] = []
+    ctx["mcp_client"] = None
+    try:
+        from langchain_mcp_adapters.client import MultiServerMCPClient
+
+        mcp_url = os.environ.get("MCP_SERVER_URL", "http://mcp-server:8001") + "/mcp"
+        mcp_client = MultiServerMCPClient({
+            "copilot-tools": {
+                "transport": "streamable_http",
+                "url": mcp_url,
+            }
+        })
+        ctx["mcp_tools"] = await mcp_client.get_tools()
+        ctx["mcp_client"] = mcp_client
+        logger.info("[worker] MCP tools loaded: %s", [t.name for t in ctx["mcp_tools"]])
+    except Exception as e:
+        logger.warning("[worker] MCP client init failed (DEGRADED): %s", e)
+        # mcp_tools remains [] — ToolEnabledSubAgent will fall back to normal SubAgent
+
 
 async def shutdown(ctx: dict) -> None:
     """arq on_shutdown: close Redis connection."""
     # Phase 18: Close DB pools
     for pool in ctx.get("db_pools", {}).values():
         await pool.close()
+    # Phase 21: MCP client cleanup
+    # (MultiServerMCPClient has no explicit close, but keep reference cleanup)
+    ctx.pop("mcp_client", None)
+    ctx.pop("mcp_tools", None)
     await ctx["redis_client"].aclose()
 
 
