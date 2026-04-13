@@ -66,7 +66,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 - [x] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止 (completed 2026-04-10)
 - [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限 (completed 2026-04-13)
 - [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト） (completed 2026-04-13)
-- [ ] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml でエージェント別ツール allowlist を管理、ToolRegistry クラス実装
+- [x] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml に MCP ツールカタログを宣言、ToolRegistry クラスが worker 起動時に YAML と MCP 実ツールの完全一致を検証 (completed 2026-04-13)
 
 ## Phase Details
 
@@ -123,14 +123,17 @@ Plans:
 **Plans**: TBD
 
 ### Phase 24: config.yaml ツールルーティング
-**Goal**: YAML 設定でエージェントごとに使えるツールを制限でき、コード変更なしでアクセス制御できる
+**Goal**: MCP ツールカタログを YAML で宣言し、worker 起動時に MCP サーバーの実ツールリストとの完全一致を検証することで、デプロイ後の無言不整合を防止する
 **Depends on**: Phase 23
 **Requirements**: MCP-03
 **Success Criteria** (what must be TRUE):
-  1. `config/mcp_tools.yaml` にエージェント別 allowlist を記述すると、指定外のツールが呼び出し時にブロックされる
-  2. ToolRegistry が起動時に YAML を読み込み、SubAgent コンストラクタに渡す（コード変更不要）
-  3. YAML 変更後にコンテナを再起動すると新しいルーティング設定が反映される
-**Plans**: TBD
+  1. `config/mcp_tools.yaml` に 4 ツール（ping/web_search/db_query/claude_code）が宣言されており、ToolRegistry が yaml.safe_load() で読み込み frozenset で管理する
+  2. ToolRegistry.validate() が YAML と MCP 実ツールリストの双方向不一致を検出し RuntimeError を raise する
+  3. worker startup() が MCP 接続成功後（try/except の外）で validate() を呼び、不一致時に RuntimeError を伝播させて worker 起動を失敗させる
+  4. YAML 変更後にコンテナを再起動すると新しいカタログ設定が反映される（ホットリロード不要）
+  *(注: エージェント別 allowlist は CONTEXT.md D-02 / Deferred セクションで明示的に defer済み — 将来フェーズで対応)*
+**Plans**: 1 plan
+- [x] 24-01-PLAN.md — ToolRegistry クラス + mcp_tools.yaml + worker startup バリデーション統合
 
 ## Progress
 
@@ -160,4 +163,4 @@ Plans:
 | 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
 | 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |
+| 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |

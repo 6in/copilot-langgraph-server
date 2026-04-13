@@ -228,3 +228,141 @@ async def test_orchestrator_handler_uses_checkpointer():
     assert config is not None, "graph.ainvoke must be called with a config argument"
     assert config.get("configurable", {}).get("thread_id") == thread_id, \
         f"Expected thread_id={thread_id!r} in config.configurable, got: {config}"
+
+
+# ====================================================================
+# Phase 24 (MCP-03): ToolRegistry validation in startup()
+# ====================================================================
+
+import sys
+import types
+
+
+def _make_mcp_stub(fake_client):
+    """langchain_mcp_adapters が未インストール環境向けの sys.modules スタブを作る。"""
+    stub_mod = types.ModuleType("langchain_mcp_adapters")
+    stub_client_mod = types.ModuleType("langchain_mcp_adapters.client")
+    stub_client_mod.MultiServerMCPClient = MagicMock(return_value=fake_client)
+    stub_mod.client = stub_client_mod
+    return stub_mod, stub_client_mod
+
+
+@pytest.mark.asyncio
+async def test_startup_tool_registry_validate_pass(tmp_path):
+    """MCP 接続成功 + YAML 一致 → startup が完了して ctx['mcp_tools'] が設定される。"""
+    from app.jobs.worker import startup
+
+    yaml_file = tmp_path / "mcp_tools.yaml"
+    yaml_file.write_text("tools:\n  - name: ping\n")
+
+    from langchain_core.tools import tool as tool_decorator
+
+    @tool_decorator
+    def ping(message: str = "") -> str:
+        """Ping."""
+        return "pong"
+
+    fake_client = MagicMock()
+    fake_client.get_tools = AsyncMock(return_value=[ping])
+
+    stub_mod, stub_client_mod = _make_mcp_stub(fake_client)
+
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+
+    mock_pool = AsyncMock()
+
+    with patch.dict(sys.modules, {
+            "langchain_mcp_adapters": stub_mod,
+            "langchain_mcp_adapters.client": stub_client_mod,
+         }), \
+         patch("app.jobs.worker.AsyncPostgresSaver") as mock_saver, \
+         patch("app.jobs.worker.AsyncConnectionPool", return_value=mock_pool), \
+         patch("app.jobs.worker.Redis") as mock_redis, \
+         patch("app.jobs.worker.MCP_TOOLS_CONFIG", str(yaml_file)):
+        mock_saver.from_conn_string.return_value = mock_checkpointer
+        mock_redis.from_url.return_value = MagicMock()
+
+        ctx: dict = {}
+        await startup(ctx)
+
+    assert any(t.name == "ping" for t in ctx["mcp_tools"])
+
+
+@pytest.mark.asyncio
+async def test_startup_tool_registry_validate_fail_propagates(tmp_path):
+    """MCP 接続成功 + YAML 不一致 → RuntimeError が伝播（DEGRADED で握りつぶされない）。"""
+    from app.jobs.worker import startup
+
+    yaml_file = tmp_path / "mcp_tools.yaml"
+    yaml_file.write_text("tools:\n  - name: ping\n  - name: web_search\n")
+
+    from langchain_core.tools import tool as tool_decorator
+
+    @tool_decorator
+    def ping(message: str = "") -> str:
+        """Ping."""
+        return "pong"
+
+    fake_client = MagicMock()
+    fake_client.get_tools = AsyncMock(return_value=[ping])  # web_search missing
+
+    stub_mod, stub_client_mod = _make_mcp_stub(fake_client)
+
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+
+    mock_pool2 = AsyncMock()
+
+    with patch.dict(sys.modules, {
+            "langchain_mcp_adapters": stub_mod,
+            "langchain_mcp_adapters.client": stub_client_mod,
+         }), \
+         patch("app.jobs.worker.AsyncPostgresSaver") as mock_saver, \
+         patch("app.jobs.worker.AsyncConnectionPool", return_value=mock_pool2), \
+         patch("app.jobs.worker.Redis") as mock_redis, \
+         patch("app.jobs.worker.MCP_TOOLS_CONFIG", str(yaml_file)):
+        mock_saver.from_conn_string.return_value = mock_checkpointer
+        mock_redis.from_url.return_value = MagicMock()
+
+        ctx: dict = {}
+        with pytest.raises(RuntimeError, match="mcp_tools.yaml"):
+            await startup(ctx)
+
+
+@pytest.mark.asyncio
+async def test_startup_mcp_connection_failure_still_degraded(tmp_path):
+    """MCP 接続失敗 → DEGRADED モード（mcp_tools=[], RuntimeError 伝播せず）。"""
+    from app.jobs.worker import startup
+
+    yaml_file = tmp_path / "mcp_tools.yaml"
+    yaml_file.write_text("tools:\n  - name: ping\n")
+
+    fake_client = MagicMock()
+    fake_client.get_tools = AsyncMock(side_effect=ConnectionError("mcp down"))
+
+    stub_mod, stub_client_mod = _make_mcp_stub(fake_client)
+
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+
+    mock_pool3 = AsyncMock()
+
+    with patch.dict(sys.modules, {
+            "langchain_mcp_adapters": stub_mod,
+            "langchain_mcp_adapters.client": stub_client_mod,
+         }), \
+         patch("app.jobs.worker.AsyncPostgresSaver") as mock_saver, \
+         patch("app.jobs.worker.AsyncConnectionPool", return_value=mock_pool3), \
+         patch("app.jobs.worker.Redis") as mock_redis, \
+         patch("app.jobs.worker.MCP_TOOLS_CONFIG", str(yaml_file)):
+        mock_saver.from_conn_string.return_value = mock_checkpointer
+        mock_redis.from_url.return_value = MagicMock()
+
+        ctx: dict = {}
+        await startup(ctx)  # must not raise
+
+    assert ctx["mcp_tools"] == []

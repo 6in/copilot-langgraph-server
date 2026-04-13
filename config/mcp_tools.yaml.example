@@ -1,0 +1,11 @@
+# Phase 24 (MCP-03): MCP ツールカタログの example ファイル
+# config/mcp_tools.yaml としてコピーして使用する。
+tools:
+  - name: ping
+    description: MCP サーバーのヘルスチェック
+  - name: web_search
+    description: Tavily 経由でリアルタイム Web 検索を実行
+  - name: db_query
+    description: PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き）
+  - name: claude_code
+    description: Claude Code CLI をサブプロセスとして実行

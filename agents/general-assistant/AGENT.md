@@ -10,6 +10,7 @@ model: claude-sonnet-4-6
 tools:
   - web_search
   - ping
+  - db_query
 ---
 
 あなたは親切で知識豊富なアシスタントです。

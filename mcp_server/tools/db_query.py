@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 import decimal
 import json
+import uuid
 import logging
 import re
 from typing import TYPE_CHECKING
@@ -59,6 +60,8 @@ def _json_default(obj):
         return obj.isoformat()
     if isinstance(obj, decimal.Decimal):
         return float(obj)
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 

@@ -55,6 +55,20 @@ class RouterNode:
             }))
             return {"next": chosen}
 
+        # --- Stage 1.5: 候補が1つなら LLM 不要 ---
+        if len(agents) == 1:
+            chosen = agents[0].name
+            logger.info(json.dumps({
+                "event": "routing",
+                "input": state["input"][:80],
+                "chosen": chosen,
+                "candidates": [chosen],
+                "stage": "single",
+                "thread_id": context.thread_id if context else "",
+                "correlation_id": context.correlation_id if context else "",
+            }))
+            return {"next": chosen}
+
         # --- Stage 2: LLM routing (existing logic, unchanged) ---
         descriptions = "\n\n".join(
             f"name: {a.name}\ndescription: {a.description}"

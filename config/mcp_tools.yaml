@@ -1,0 +1,15 @@
+# Phase 24 (MCP-03): MCP ツールカタログ
+# worker 起動時に ToolRegistry が読み込み、MCP サーバーの実ツールリストと
+# 完全一致を検証する。不一致は RuntimeError で worker 起動失敗。
+#
+# 注意: ここはツールの「カタログ」であり、エージェント別アクセス制限ではない。
+# エージェントごとのツール選択は agents/<name>/AGENT.md の `tools:` フィールドで管理する (D-02)。
+tools:
+  - name: ping
+    description: MCP サーバーのヘルスチェック
+  - name: web_search
+    description: Tavily 経由でリアルタイム Web 検索を実行
+  - name: db_query
+    description: PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き）
+  - name: claude_code
+    description: Claude Code CLI をサブプロセスとして実行

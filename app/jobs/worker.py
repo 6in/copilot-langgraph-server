@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DB_POOLS_CONFIG = os.getenv("DB_POOLS_CONFIG", "config/db_pools.yaml")
+MCP_TOOLS_CONFIG = os.getenv("MCP_TOOLS_CONFIG", "config/mcp_tools.yaml")  # Phase 24 (MCP-03)
 
 # Registry: task_type → handler instance
 TASK_HANDLERS: dict[str, TaskHandler] = {
@@ -70,6 +71,8 @@ async def startup(ctx: dict) -> None:
     # Pitfall 5: MCP server may not be running — graceful degradation
     ctx["mcp_tools"] = []
     ctx["mcp_client"] = None
+    mcp_tools_loaded: list = []
+    mcp_connected = False
     try:
         from langchain_mcp_adapters.client import MultiServerMCPClient
 
@@ -80,12 +83,24 @@ async def startup(ctx: dict) -> None:
                 "url": mcp_url,
             }
         })
-        ctx["mcp_tools"] = await mcp_client.get_tools()
+        mcp_tools_loaded = await mcp_client.get_tools()
         ctx["mcp_client"] = mcp_client
-        logger.info("[worker] MCP tools loaded: %s", [t.name for t in ctx["mcp_tools"]])
+        mcp_connected = True
+        logger.info("[worker] MCP tools loaded: %s", [t.name for t in mcp_tools_loaded])
     except Exception as e:
         logger.warning("[worker] MCP client init failed (DEGRADED): %s", e)
         # mcp_tools remains [] — ToolEnabledSubAgent will fall back to normal SubAgent
+
+    # Phase 24 (MCP-03): ToolRegistry バリデーション
+    # try/except の外で実行。RuntimeError は伝播させて worker 起動を失敗させる (D-03)。
+    # MCP 接続失敗時 (DEGRADED) はバリデーションをスキップして既存挙動を維持する。
+    if mcp_connected:
+        from app.orchestrator.tool_registry import ToolRegistry
+
+        registry = ToolRegistry(MCP_TOOLS_CONFIG)
+        await registry.validate(mcp_tools_loaded)  # 不一致なら RuntimeError → worker 起動失敗
+        logger.info("[worker] ToolRegistry validation passed (%d tools)", len(mcp_tools_loaded))
+        ctx["mcp_tools"] = mcp_tools_loaded
 
 
 async def shutdown(ctx: dict) -> None:
