@@ -22,6 +22,7 @@ import type { ChatMessage } from '../types';
 interface MessageAreaProps {
   messages: ChatMessage[];
   isThinking: boolean;
+  currentTool?: {tool: string; query: string} | null;
   onSend: (text: string) => void;
   disabled?: boolean;       // Phase 17: 外部から入力を無効化（討論終了・延長待ち）
   placeholder?: string;     // Phase 17: カスタムプレースホルダー
@@ -93,7 +94,7 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
-export function MessageArea({ messages, isThinking, onSend, disabled = false, placeholder }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, currentTool, onSend, disabled = false, placeholder }: MessageAreaProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
@@ -229,6 +230,11 @@ export function MessageArea({ messages, isThinking, onSend, disabled = false, pl
                 <span className="typing-dot" />
                 <span className="typing-dot" />
               </div>
+              {currentTool && (
+                <div style={{ fontSize: '0.8em', color: '#888', padding: '4px 8px' }}>
+                  {`🔍 ${currentTool.tool} を実行中${currentTool.query ? `: "${currentTool.query}"` : '...'}`}
+                </div>
+              )}
             </Message.CustomContent>
           </Message>
         )}

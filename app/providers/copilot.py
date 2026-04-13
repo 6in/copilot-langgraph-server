@@ -14,9 +14,12 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import re
 import uuid
 from typing import Any, List, Optional, Sequence
+
+logger = logging.getLogger(__name__)
 
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -208,10 +211,17 @@ TOOL_SYSTEM_PROMPT_TEMPLATE = """\
 You have access to the following tools:
 {tool_schemas}
 
-To call a tool, respond ONLY with valid JSON (no markdown, no explanation):
+To call a tool, respond ONLY with valid JSON (no markdown, no explanation, no preamble):
 {{"tool": "<tool_name>", "args": {{...}}}}
 
-If no tool is needed, respond normally in plain text.\
+Example: {{"tool": "web_search", "args": {{"query": "Tokyo weather tomorrow"}}}}
+
+Call a tool whenever the user asks about current events, weather, latest versions, recent news, \
+prices, or anything that requires up-to-date information. \
+When web_search results include source_urls, cite them in your final answer.
+
+For pure conversation, greetings, math, translation, or summarization of already-provided text, \
+respond normally without calling a tool.\
 """
 
 
@@ -320,5 +330,30 @@ class BoundChatCopilot(ChatCopilot):
                 )
         except json.JSONDecodeError:
             pass
+
+        # Attempt 3: extract {"tool": ...} from mixed text (model outputs JSON + explanation)
+        # Use bracket counting to find the complete JSON object starting at {"tool"
+        for marker in ('{"tool"', '{ "tool"'):
+            idx = stripped.find(marker)
+            if idx == -1:
+                continue
+            depth = 0
+            for i, ch in enumerate(stripped[idx:], idx):
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            parsed = json.loads(stripped[idx : i + 1])
+                            if isinstance(parsed, dict) and "tool" in parsed:
+                                return ToolCall(
+                                    name=parsed["tool"],
+                                    args=parsed.get("args", {}),
+                                    id=str(uuid.uuid4())[:8],
+                                )
+                        except json.JSONDecodeError:
+                            pass
+                        break
 
         return None

@@ -9,7 +9,8 @@ from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from tools.stubs import register_tools
+from tools.stubs import register_tools as register_stub_tools
+from tools.web_search import register_tools as register_web_search_tools
 
 mcp = FastMCP("copilot-mcp-server")
 
@@ -20,7 +21,8 @@ async def health_check(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
 
-register_tools(mcp)
+register_stub_tools(mcp)
+register_web_search_tools(mcp)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
-"""Phase 20 MCP server tests (MCP-01, MCP-02).
+"""MCP server tests (MCP-01, MCP-02, SEARCH-01, SEARCH-02).
 
 Uses FastMCP's in-process Client to exercise the server without HTTP.
+Phase 22: web_search_stub replaced by real Tavily web_search tool.
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -20,7 +22,7 @@ pytest.importorskip("fastmcp", reason="fastmcp not installed in root env; run `c
 from fastmcp import Client  # noqa: E402
 from server import mcp  # noqa: E402  (imports register_tools side-effect)
 
-EXPECTED_TOOLS = {"ping", "web_search_stub", "db_query_stub", "claude_code_stub"}
+EXPECTED_TOOLS = {"ping", "web_search", "db_query_stub", "claude_code_stub"}
 
 
 @pytest.mark.asyncio
@@ -75,7 +77,7 @@ async def test_stub_schemas_have_required_params():
     by_name = {t.name: t for t in tools}
 
     cases = {
-        "web_search_stub": "query",
+        "web_search": "query",
         "db_query_stub": "sql",
         "claude_code_stub": "command",
     }
@@ -85,3 +87,51 @@ async def test_stub_schemas_have_required_params():
         props = schema.get("properties", {})
         assert param_name in props, f"{tool_name} missing param {param_name}: {props}"
         assert props[param_name].get("type") == "string"
+
+
+@pytest.mark.asyncio
+async def test_web_search_normal():
+    """SEARCH-01: web_search が Tavily 検索結果を返す。"""
+    mock_results = [
+        {"url": "https://example.com/1", "content": "Result 1"},
+        {"url": "https://example.com/2", "content": "Result 2"},
+    ]
+    with patch(
+        "tools.web_search.TavilySearchResults",
+    ) as MockTavily:
+        MockTavily.return_value.invoke.return_value = mock_results
+        async with Client(mcp) as client:
+            result = await client.call_tool("web_search", {"query": "test query"})
+    payload = result.data if hasattr(result, "data") else result.structured_content
+    assert "results" in payload
+    assert len(payload["results"]) == 2
+    assert payload["results"][0]["url"] == "https://example.com/1"
+
+
+@pytest.mark.asyncio
+async def test_web_search_truncates_content():
+    """SEARCH-02: 1000 文字超の content が切り捨てられる。"""
+    long_content = "x" * 2000
+    mock_results = [{"url": "https://example.com", "content": long_content}]
+    with patch(
+        "tools.web_search.TavilySearchResults",
+    ) as MockTavily:
+        MockTavily.return_value.invoke.return_value = mock_results
+        async with Client(mcp) as client:
+            result = await client.call_tool("web_search", {"query": "test"})
+    payload = result.data if hasattr(result, "data") else result.structured_content
+    assert len(payload["results"][0]["content"]) == 1000
+
+
+@pytest.mark.asyncio
+async def test_web_search_error_handling():
+    """web_search エラー時に {"error": ...} を返す。"""
+    with patch(
+        "tools.web_search.TavilySearchResults",
+    ) as MockTavily:
+        MockTavily.return_value.invoke.side_effect = Exception("API key invalid")
+        async with Client(mcp) as client:
+            result = await client.call_tool("web_search", {"query": "test"})
+    payload = result.data if hasattr(result, "data") else result.structured_content
+    assert "error" in payload
+    assert "web_search failed" in payload["error"]

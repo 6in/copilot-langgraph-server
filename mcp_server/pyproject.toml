@@ -5,6 +5,7 @@ description = "FastMCP server for Copilot LangGraph agent tools (Phase 20 stubs)
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=2.14.0,<4.0",
+    "langchain-community>=0.4.1",
 ]
 
 [build-system]

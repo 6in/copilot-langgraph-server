@@ -105,7 +105,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. エージェントに「最新の〇〇を教えて」と聞くと web_search ツールが呼ばれ、Tavily から取得した情報が回答に含まれる
   2. 検索結果のサイズが制限（max_results=3, max_tokens=3000 相当）に収まり、コンテキスト超過エラーが発生しない
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 22-01-PLAN.md — web_search ツール実装 + stubs 差し替え + テスト
+- [ ] 22-02-PLAN.md — UAT ギャップクローズ: ツールプロンプト強化 + general-assistant ガイダンス追記
 
 ### Phase 23: DB クエリ + Claude Code 実行ツール
 **Goal**: エージェントが PostgreSQL データを安全に参照でき、Claude Code CLI をサブプロセスとして実行できる
@@ -155,6 +158,6 @@ Plans:
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
 | 20. FastMCP Docker サービス基盤 | v5.0 | 0/2 | Not started | - |
 | 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
-| 22. Web 検索ツール（Tavily） | v5.0 | 0/? | Not started | - |
+| 22. Web 検索ツール（Tavily） | v5.0 | 1/2 | In progress (gap closure) | - |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |
 | 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |

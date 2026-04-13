@@ -43,6 +43,7 @@ interface UseChatOptions {
 
 interface UseChatReturn {
   isThinking: boolean;
+  currentTool: {tool: string; query: string} | null;
   sendMessage: (text: string, threadId?: string) => Promise<void>;
 }
 
@@ -89,6 +90,7 @@ export function useChat({
   onDebateResult,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
+  const [currentTool, setCurrentTool] = useState<{tool: string; query: string} | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Cleanup fallback polling timer on unmount
@@ -194,7 +196,7 @@ export function useChat({
 
       es.onmessage = async (e: MessageEvent) => {
         try {
-          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string } };
+          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string }; tool?: string; query?: string };
           if (event.status === 'message' && event.turn) {
             // リアルタイムで各エージェントの発言を表示
             streamedTurnCount++;
@@ -203,7 +205,11 @@ export function useChat({
               content: event.turn!.content,
               senderName: event.turn!.name,
             }]);
+          } else if (event.status === 'tool_executing') {
+            const ev = event as { status: string; tool: string; query: string };
+            setCurrentTool({ tool: ev.tool, query: ev.query || '' });
           } else if (event.status === 'done') {
+            setCurrentTool(null);
             es.close();
             const result = await getJob(job_id);
             if (result.result) {
@@ -269,5 +275,5 @@ export function useChat({
     }
   }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
 
-  return { isThinking, sendMessage };
+  return { isThinking, currentTool, sendMessage };
 }

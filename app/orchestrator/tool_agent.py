@@ -67,6 +67,19 @@ def build_react_graph(llm_with_tools: Any, tool_node: ToolNode):
     async def agent_node(state: MiniReActState) -> dict:
         """Call the LLM and return the response as a new message."""
         response = await llm_with_tools.ainvoke(state["messages"])
+        # Emit tool execution event for UI progress indicator
+        if getattr(response, 'tool_calls', None):
+            from app.orchestrator.tool_context import tool_event_cb
+            cb = tool_event_cb.get()
+            if cb:
+                for tc in response.tool_calls:
+                    name = tc.get("name", "tool") if isinstance(tc, dict) else getattr(tc, 'name', 'tool')
+                    args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, 'args', {})
+                    query = args.get("query", "") if isinstance(args, dict) else ""
+                    try:
+                        await cb(name, query)
+                    except Exception:
+                        pass  # never block tool execution on notification failure
         return {"messages": [response]}
 
     graph = StateGraph(MiniReActState)

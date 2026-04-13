@@ -141,7 +141,17 @@ class OrchestratorHandler(TaskHandler):
                     "agent_name": None,
                     "context": context,
                 }
-                result = await graph.ainvoke(initial, config=config)
+                from app.orchestrator.tool_context import tool_event_cb
+
+                async def _tool_cb(tool_name: str, query: str) -> None:
+                    await job_store.push_tool_event(job_id, tool_name, query)
+
+                _token = tool_event_cb.set(_tool_cb)
+                try:
+                    result = await graph.ainvoke(initial, config=config)
+                finally:
+                    tool_event_cb.reset(_token)
+                    await job_store.clear_tool_event(job_id)
             final_text = result["output"]
             agent_name: str | None = result.get("agent_name")
 

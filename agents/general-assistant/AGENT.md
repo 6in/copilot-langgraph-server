@@ -8,7 +8,7 @@ description: |
   対象外: 専門エージェントが対応できる質問（コードレビュー、SQL解析など）
 model: claude-sonnet-4-6
 tools:
-  - web_search_stub
+  - web_search
   - ping
 ---
 

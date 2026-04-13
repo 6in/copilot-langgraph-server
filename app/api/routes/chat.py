@@ -186,7 +186,11 @@ async def stream_job(job_id: str, request: Request, payload: dict = Depends(get_
             if result and result.get("status") == "done":
                 yield f"data: {json.dumps({'status': 'done'})}\n\n"
                 break
-            yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
+            tool_info = await job_store.get_tool_event(job_id)
+            if tool_info:
+                yield f"data: {json.dumps({'status': 'tool_executing', 'tool': tool_info['tool'], 'query': tool_info.get('query', '')})}\n\n"
+            else:
+                yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
             await asyncio.sleep(0.5)
 
     return StreamingResponse(

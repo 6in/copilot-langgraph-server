@@ -1,5 +1,5 @@
-"""Stub tool implementations for Phase 20. Phase 22/23 will replace these
-with real implementations using the same names and schemas (D-12)."""
+"""Stub tool implementations. Phase 22 moved web_search to tools/web_search.py
+(Tavily implementation). Phase 23 will replace db_query_stub and claude_code_stub."""
 from __future__ import annotations
 
 import datetime
@@ -19,15 +19,6 @@ def register_tools(mcp: "FastMCP") -> None:
             "status": "ok",
             "timestamp": datetime.datetime.utcnow().isoformat(),
         }
-
-    @mcp.tool
-    def web_search_stub(query: str) -> str:
-        """Web 検索スタブ（Phase 22 で Tavily 実装に差し替え）。
-
-        Args:
-            query: 検索クエリ文字列
-        """
-        return f"[stub] Search results for: {query}"
 
     @mcp.tool
     def db_query_stub(sql: str) -> list[dict]:

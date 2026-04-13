@@ -170,7 +170,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     dismissCanvas,
   } = useCanvas();
 
-  const { isThinking, sendMessage } = useChat({
+  const { isThinking, currentTool, sendMessage } = useChat({
     activeThreadId,
     selectedModel,
     selectedMode: 'super',
@@ -279,6 +279,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
             <MessageArea
               messages={messages}
               isThinking={isThinking}
+              currentTool={currentTool}
               onSend={handleSend}
             />
           )}

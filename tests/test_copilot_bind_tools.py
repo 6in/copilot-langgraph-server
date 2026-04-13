@@ -127,3 +127,58 @@ async def test_bound_copilot_handles_markdown_wrapped_json(mock_copilot, mock_to
     assert len(result.generations[0].message.tool_calls) == 1
     assert result.generations[0].message.tool_calls[0]["name"] == "ping"
     assert result.generations[0].message.tool_calls[0]["args"] == {}
+
+
+# ---------------------------------------------------------------------------
+# TestToolSystemPromptTemplate
+# ---------------------------------------------------------------------------
+
+
+class TestToolSystemPromptTemplate:
+    """Tests that TOOL_SYSTEM_PROMPT_TEMPLATE enforces mandatory tool usage."""
+
+    def _formatted(self):
+        from app.providers.copilot import TOOL_SYSTEM_PROMPT_TEMPLATE
+        return TOOL_SYSTEM_PROMPT_TEMPLATE.format(tool_schemas="[ping: test tool]")
+
+    def test_template_contains_mandatory_usage_signal(self):
+        """Template must signal that tool usage is mandatory for current/real-time info."""
+        text = self._formatted()
+        # At least one of these mandatory-use keywords must appear
+        mandatory_signals = ["must", "required", "always", "real-time", "current", "MUST", "mandatory"]
+        assert any(signal in text for signal in mandatory_signals), (
+            f"Template must contain a mandatory usage signal. Got:\n{text}"
+        )
+
+    def test_template_contains_no_internal_knowledge_rule(self):
+        """Template must instruct model not to answer from internal knowledge alone."""
+        text = self._formatted()
+        # Phrases indicating internal-knowledge-only is forbidden
+        forbidden_patterns = [
+            "internal knowledge",
+            "do not answer",
+            "never answer",
+            "without using",
+            "without calling",
+            "must call",
+            "must use",
+        ]
+        assert any(p in text.lower() for p in forbidden_patterns), (
+            f"Template must instruct that internal-knowledge-only answers are forbidden. Got:\n{text}"
+        )
+
+    def test_template_contains_json_format_instruction(self):
+        """Template must preserve the JSON tool-call format instruction."""
+        text = self._formatted()
+        assert '{"tool": "<tool_name>", "args":' in text or \
+               '"tool": "<tool_name>"' in text, (
+            f'Template must contain JSON format instruction. Got:\n{text}'
+        )
+
+    def test_tool_schemas_placeholder_survives_format(self):
+        """The {tool_schemas} placeholder must be present and correctly substituted."""
+        from app.providers.copilot import TOOL_SYSTEM_PROMPT_TEMPLATE
+        assert "{tool_schemas}" in TOOL_SYSTEM_PROMPT_TEMPLATE
+        result = TOOL_SYSTEM_PROMPT_TEMPLATE.format(tool_schemas="MY_TOOL_SCHEMA")
+        assert "MY_TOOL_SCHEMA" in result
+        assert "{tool_schemas}" not in result
