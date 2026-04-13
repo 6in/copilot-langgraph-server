@@ -1,5 +1,7 @@
 """Stub tool implementations. Phase 22 moved web_search to tools/web_search.py
-(Tavily implementation). Phase 23 will replace db_query_stub and claude_code_stub."""
+(Tavily implementation). Phase 23 Plan 01 で db_query を tools/db_query.py に差し替え済み。
+Phase 23 Plan 02 で claude_code を tools/claude_code.py に差し替え済み。
+ping のみ残存（疎通確認ツール）。"""
 from __future__ import annotations
 
 import datetime
@@ -10,7 +12,13 @@ if TYPE_CHECKING:
 
 
 def register_tools(mcp: "FastMCP") -> None:
-    """Register all Phase 20 stub tools on the given FastMCP instance."""
+    """Register stub tools on the given FastMCP instance.
+
+    Phase 23 完了後の状況:
+    - ping: 継続（疎通確認ツール）
+    - db_query_stub: Phase 23 Plan 01 で tools/db_query.py に差し替え済み（削除）
+    - claude_code_stub: Phase 23 Plan 02 で tools/claude_code.py に差し替え済み（削除）
+    """
 
     @mcp.tool
     def ping() -> dict:
@@ -19,21 +27,3 @@ def register_tools(mcp: "FastMCP") -> None:
             "status": "ok",
             "timestamp": datetime.datetime.utcnow().isoformat(),
         }
-
-    @mcp.tool
-    def db_query_stub(sql: str) -> list[dict]:
-        """DB クエリスタブ（Phase 23 で PostgreSQL SELECT 実装に差し替え）。
-
-        Args:
-            sql: 実行する SELECT SQL 文
-        """
-        return [{"id": 1, "stub": True, "sql": sql}]
-
-    @mcp.tool
-    def claude_code_stub(command: str) -> str:
-        """Claude Code 実行スタブ（Phase 23 で subprocess 実装に差し替え）。
-
-        Args:
-            command: Claude Code CLI に渡すコマンド文字列
-        """
-        return f"[stub] Executed: {command}\nOutput: stub response"

@@ -22,21 +22,29 @@ services:
       - redis-data:/data
 
   mcp-server:
-    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
     working_dir: /mcp_server
-    command: sh -c "uv sync && uv run python server.py"
     volumes:
       - ./mcp_server:/mcp_server
+      - ./config:/mcp_server/config:ro   # Phase 23: db_pools.yaml マウント (D-02)
+      - claude-code-outputs:/shared/claude-code-outputs   # Phase 23 Plan 02: overflow output
     environment:
       - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml  # Phase 23 追加
+      - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs   # Phase 23 Plan 02 追加
     # D-06: ホストポートは公開しない（内部ネットワーク専用）
     # worker からは mcp-server:8001 でアクセス
+    depends_on:
+      postgres:
+        condition: service_healthy   # Phase 23: db_query が postgres に直接接続するため
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 30s
 
   api:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -76,6 +84,7 @@ services:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
       - ./config:/app/config:ro  # iframe-rpc DB pool config (Phase 18)
+      - claude-code-outputs:/shared/claude-code-outputs:ro   # Phase 23 Plan 02: read-only
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,3 +111,4 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  claude-code-outputs:   # Phase 23 Plan 02: mcp-server (RW) / worker (RO) shared volume

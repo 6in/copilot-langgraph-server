@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=2.14.0,<4.0",
     "langchain-community>=0.4.1",
+    "psycopg[pool,binary]>=3.3.0",
+    "pyyaml>=6.0",
 ]
 
 [build-system]

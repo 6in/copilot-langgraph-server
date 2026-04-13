@@ -62,10 +62,10 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 
 ### v5.0 Agent Tool Platform (Phases 20–24)
 
-- [ ] **Phase 20: FastMCP Docker サービス基盤** — mcp-server Docker サービスが起動し、worker コンテナから streamable-http で接続でき、スタブツールが LangChain BaseTool として取得できる
+- [x] **Phase 20: FastMCP Docker サービス基盤** — mcp-server Docker サービスが起動し、worker コンテナから streamable-http で接続でき、スタブツールが LangChain BaseTool として取得できる (completed 2026-04-13)
 - [x] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止 (completed 2026-04-10)
-- [ ] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限
-- [ ] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト）
+- [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限 (completed 2026-04-13)
+- [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト） (completed 2026-04-13)
 - [ ] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml でエージェント別ツール allowlist を管理、ToolRegistry クラス実装
 
 ## Phase Details
@@ -80,8 +80,8 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
   3. スタブ `ping` ツールを呼び出すと正常なレスポンスが返り、通信ログに記録される
   4. `/health` エンドポイントが 200 OK を返す（ヘルスチェック用）
 **Plans**: 2 plans
-- [ ] 20-01-PLAN.md — mcp_server/ 独立 uv プロジェクト + FastMCP サーバー + 4 スタブツール + /health + pytest
-- [ ] 20-02-PLAN.md — docker-compose.yml に mcp-server 追加 + worker 依存配線 + langchain-mcp-adapters + 実機スモーク
+- [x] 20-01-PLAN.md — mcp_server/ 独立 uv プロジェクト + FastMCP サーバー + 4 スタブツール + /health + pytest
+- [x] 20-02-PLAN.md — docker-compose.yml に mcp-server 追加 + worker 依存配線 + langchain-mcp-adapters + 実機スモーク
 
 ### Phase 21: LangGraph bind_tools + ToolNode 統合
 **Goal**: SubAgent が bind_tools + ToolNode の ReAct ループでツールを呼び出し、結果が会話履歴に残る
@@ -108,7 +108,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 22-01-PLAN.md — web_search ツール実装 + stubs 差し替え + テスト
-- [ ] 22-02-PLAN.md — UAT ギャップクローズ: ツールプロンプト強化 + general-assistant ガイダンス追記
+- [x] 22-02-PLAN.md — UAT ギャップクローズ: ツールプロンプト強化 + general-assistant ガイダンス追記
 
 ### Phase 23: DB クエリ + Claude Code 実行ツール
 **Goal**: エージェントが PostgreSQL データを安全に参照でき、Claude Code CLI をサブプロセスとして実行できる
@@ -156,8 +156,8 @@ Plans:
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
-| 20. FastMCP Docker サービス基盤 | v5.0 | 0/2 | Not started | - |
+| 20. FastMCP Docker サービス基盤 | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
-| 22. Web 検索ツール（Tavily） | v5.0 | 1/2 | In progress (gap closure) | - |
-| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 0/? | Not started | - |
+| 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
+| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 24. config.yaml ツールルーティング | v5.0 | 0/? | Not started | - |
