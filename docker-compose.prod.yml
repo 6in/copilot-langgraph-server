@@ -1,3 +1,5 @@
+# 本番モード compose — nginx + ビルド済みフロント + API + worker + MCP
+# 起動: docker compose -f docker-compose.prod.yml up --build
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -7,7 +9,7 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - ./docker/initdb:/docker-entrypoint-initdb.d
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data-prod:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -16,10 +18,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    # ホストポートは公開しない（別Redisとの競合回避）
-    # api/worker コンテナからは redis:6379 でアクセス可能
     volumes:
-      - redis-data:/data
+      - redis-data-prod:/data
 
   mcp-server:
     build:
@@ -28,17 +28,15 @@ services:
     working_dir: /mcp_server
     volumes:
       - ./mcp_server:/mcp_server
-      - ./config:/mcp_server/config:ro   # Phase 23: db_pools.yaml マウント (D-02)
-      - claude-code-outputs:/shared/claude-code-outputs   # Phase 23 Plan 02: overflow output
+      - ./config:/mcp_server/config:ro
+      - claude-code-outputs-prod:/shared/claude-code-outputs
     environment:
       - TAVILY_API_KEY=${TAVILY_API_KEY}
-      - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml  # Phase 23 追加
-      - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs   # Phase 23 Plan 02 追加
-    # D-06: ホストポートは公開しない（内部ネットワーク専用）
-    # worker からは mcp-server:8001 でアクセス
+      - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml
+      - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs
     depends_on:
       postgres:
-        condition: service_healthy   # Phase 23: db_query が postgres に直接接続するため
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
       interval: 10s
@@ -49,20 +47,18 @@ services:
   api:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     working_dir: /app
-    command: uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
       - AGENT_DIR=/app/agents
       - MENU_DIR=/app/menus
       - APP_DIR=/app/apps
-      - VITE_APP_BASE=${VITE_APP_BASE:-}
-    ports:
-      - "8000:8000"
+      - APP_PREFIX=/orochi
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
-      - ./config:/app/config:ro  # iframe-rpc DB pool config (Phase 18)
+      - ./config:/app/config:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,8 +79,8 @@ services:
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
-      - ./config:/app/config:ro  # iframe-rpc DB pool config (Phase 18)
-      - claude-code-outputs:/shared/claude-code-outputs:ro   # Phase 23 Plan 02: read-only
+      - ./config:/app/config:ro
+      - claude-code-outputs-prod:/shared/claude-code-outputs:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,19 +93,23 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: dev        # dev ステージを明示（multi-stage Dockerfile 対応）
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules    # anonymous volume preserves container's node_modules
-    environment:
-      - API_TARGET=http://api:8000
-      - VITE_APP_BASE=${VITE_APP_BASE:-}
+      target: prod
+      args:
+        VITE_APP_BASE: /orochi
     depends_on:
       - api
 
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - api
+
 volumes:
-  redis-data:
-  postgres-data:
-  claude-code-outputs:   # Phase 23 Plan 02: mcp-server (RW) / worker (RO) shared volume
+  redis-data-prod:
+  postgres-data-prod:
+  claude-code-outputs-prod:
