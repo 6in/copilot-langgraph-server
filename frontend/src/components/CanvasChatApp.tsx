@@ -75,6 +75,17 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   // 送信時にこれをプロンプトに埋め込むことで、AI が常に最新 HTML をベースに修正できる
   const [currentHtml, setCurrentHtml] = useState<string | null>(null);
 
+  // TODO: DB 永続化 — 現状はフロント state のみの即時表示（LangGraph checkpointer には反映されない）
+  const handleDeploy = useCallback(async (appId: string): Promise<string> => {
+    const url = await deployCanvas(appId);
+    const htmlSnippet = currentHtml
+      ? currentHtml.slice(0, 200) + (currentHtml.length > 200 ? '...' : '')
+      : '';
+    const deployMessage = `🚀 **デプロイ完了**\n\nURL: [${url}](${url})\n\n\`\`\`html\n${htmlSnippet}\n\`\`\``;
+    setMessages((prev) => [...prev, { role: 'ai' as const, content: deployMessage, senderName: 'System' }]);
+    return url;
+  }, [deployCanvas, currentHtml, setMessages]);
+
   // スレッド切り替え時に最新の canvas app を復元（Todo #2）
   useEffect(() => {
     if (!activeThreadId) {
@@ -286,7 +297,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
               deployUrl={deployUrl}
               deployError={deployError}
               onSave={saveCanvas}
-              onDeploy={deployCanvas}
+              onDeploy={handleDeploy}
               onClose={() => {}}
               onHtmlChange={setCurrentHtml}
               style={{ minWidth: `${CANVAS_PANE_MIN}px`, width: `${canvasPaneWidth}px` }}
