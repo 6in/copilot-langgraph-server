@@ -64,7 +64,7 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   const handleCopyAll = async () => {
     const header = '| Role | Message |\n|------|---------|';
     const rows = messages.map((m) => {
-      const role = m.role === 'user' ? 'User' : 'Assistant';
+      const role = m.role === 'user' ? 'User' : (m.senderName ?? 'Assistant');
       const content = m.content.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
       return `| ${role} | ${content} |`;
     });

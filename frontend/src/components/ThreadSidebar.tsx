@@ -288,7 +288,7 @@ export function ThreadSidebar({
       </div>
       <ConfirmModal
         isOpen={deleteTargetId !== null}
-        message="このスレッドを削除しますか？"
+        message={`「${threads.find((t) => t.thread_id === deleteTargetId)?.label ?? ''}」を削除しますか？`}
         confirmLabel="削除"
         isDark={isDark}
         onConfirm={() => {

@@ -304,7 +304,7 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
     github_login = payload.get("github_login", "")
     db_uri = request.app.state.db_uri
 
-    # Verify ownership
+    # Verify ownership and delete from threads table
     try:
         async with await psycopg.AsyncConnection.connect(db_uri, row_factory=dict_row) as conn:
             async with conn.cursor() as cur:
@@ -314,8 +314,14 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
                 )
                 row = await cur.fetchone()
 
-        if row is None or row["github_login"] != github_login:
-            raise HTTPException(status_code=404, detail="Thread not found")
+                if row is None or row["github_login"] != github_login:
+                    raise HTTPException(status_code=404, detail="Thread not found")
+
+                await cur.execute(
+                    "DELETE FROM threads WHERE thread_id = %s AND github_login = %s",
+                    (thread_id, github_login),
+                )
+            await conn.commit()
     except HTTPException:
         raise
     except Exception as e:
