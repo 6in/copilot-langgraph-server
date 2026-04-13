@@ -133,6 +133,7 @@ class DebateHandler(TaskHandler):
                     agents_map,
                     llm,
                     checkpointer,
+                    github_login=github_login,
                 )
 
                 # initial DebateState

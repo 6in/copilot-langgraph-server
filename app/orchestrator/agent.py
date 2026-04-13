@@ -9,6 +9,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
+from app.utils.datetime_utils import get_datetime_context
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
 from app.orchestrator.tool_agent import ToolEnabledSubAgent
@@ -110,8 +111,14 @@ class SubAgent:
         )
 
     async def run(self, state: AgentState) -> AgentState:
+        context = state.get("context")
+        user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
+        prefix = get_datetime_context()
+        if user_id:
+            prefix += f"\nログイン中のユーザー: {user_id}"
+        system_prompt = prefix + "\n\n" + self._system_prompt
         messages = [
-            SystemMessage(content=self._system_prompt),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=state["input"]),
         ]
         response = await self._llm.ainvoke(messages)

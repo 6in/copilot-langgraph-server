@@ -13,3 +13,5 @@ tools:
     description: PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き）
   - name: claude_code
     description: Claude Code CLI をサブプロセスとして実行
+  - name: get_current_datetime
+    description: 現在の日時を JST で返す（日付・時刻・曜日）

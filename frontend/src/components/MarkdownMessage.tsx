@@ -239,6 +239,9 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
     pre({ children }: { children?: React.ReactNode }) {
       return <div style={{ width: '100%', minWidth: 0 }}>{children}</div>;
     },
+    p({ children }: { children?: React.ReactNode }) {
+      return <p style={{ margin: '0 0 0.4em 0' }}>{children}</p>;
+    },
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
             const match = /language-(\w+)/.exec(className || '');
             const isBlock = !!match || (typeof children === 'string' && children.includes('\n'));

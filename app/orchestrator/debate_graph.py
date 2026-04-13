@@ -26,6 +26,7 @@ from typing_extensions import TypedDict
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, SystemMessage
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, END
+from app.orchestrator.context import RPCContext
 
 logger = logging.getLogger(__name__)
 
@@ -57,19 +58,21 @@ def _extract_last_human_message(state: DebateState) -> str:
     return ""
 
 
-def _make_pseudo_agent_state(state: DebateState) -> dict:
+def _make_pseudo_agent_state(state: DebateState, github_login: str = "unknown") -> dict:
     """AgentState 互換 dict を返す（内部関数 T-17-02）
 
     agent.run(state) が期待するフィールドを持つ dict を構築する。
-    外部入力を直接受けない内部ヘルパー。
+    github_login を RPCContext に包んで context フィールドに渡すことで、
+    SubAgent.run() が現在時刻・ユーザー名をシステムプロンプトに注入できる。
     """
+    context = RPCContext(user_id=github_login, app_id="debate", thread_id="")
     return {
         "input": _extract_last_human_message(state),
         "messages": list(state["messages"]),
         "output": "",
         "next": "",
         "error": None,
-        "context": None,
+        "context": context,
     }
 
 
@@ -77,7 +80,7 @@ def _make_pseudo_agent_state(state: DebateState) -> dict:
 # Node factories
 # ===========================================================================
 
-def _make_dispatch_node(agents_map: dict, participants: list[str]):
+def _make_dispatch_node(agents_map: dict, participants: list[str], github_login: str = "unknown"):
     """debate/panel 用の単一ディスパッチャーノード
 
     state["current_agent_idx"] が指すエージェントを呼び出し、
@@ -88,7 +91,7 @@ def _make_dispatch_node(agents_map: dict, participants: list[str]):
         name = participants[idx % len(participants)]
         agent = agents_map[name]
 
-        pseudo = _make_pseudo_agent_state(state)
+        pseudo = _make_pseudo_agent_state(state, github_login)
         result = await agent.run(pseudo)
 
         output = result.get("output", "")
@@ -115,10 +118,10 @@ def _make_dispatch_node(agents_map: dict, participants: list[str]):
     return dispatch_node
 
 
-def _make_chain_node(name: str, agent):
+def _make_chain_node(name: str, agent, github_login: str = "unknown"):
     """chain パターン用の per-agent ノード"""
     async def chain_node(state: DebateState) -> dict:
-        pseudo = _make_pseudo_agent_state(state)
+        pseudo = _make_pseudo_agent_state(state, github_login)
         result = await agent.run(pseudo)
 
         output = result.get("output", "")
@@ -172,6 +175,7 @@ def build_debate_graph(
     agents: dict,
     llm: BaseChatModel,
     checkpointer=None,
+    github_login: str = "unknown",
 ) -> Any:
     """ターン制マルチエージェント会話グラフを構築して返す
 
@@ -210,7 +214,7 @@ def build_debate_graph(
         # chain パターン: A->B->C->...->aggregator->END
         for name in participants:
             node_name = f"agent_{name}"
-            graph.add_node(node_name, _make_chain_node(name, agents[name]))
+            graph.add_node(node_name, _make_chain_node(name, agents[name], github_login))
 
         # エントリポイント
         first_node = f"agent_{participants[0]}"
@@ -228,7 +232,7 @@ def build_debate_graph(
 
     else:
         # debate / panel パターン: ラウンドロビン dispatcher
-        dispatch = _make_dispatch_node(agents, participants)
+        dispatch = _make_dispatch_node(agents, participants, github_login)
         graph.add_node("dispatcher", dispatch)
         graph.set_entry_point("dispatcher")
 

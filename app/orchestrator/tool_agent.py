@@ -33,6 +33,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.errors import GraphRecursionError
 
+from app.utils.datetime_utils import get_datetime_context
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
 
@@ -177,8 +178,14 @@ class ToolEnabledSubAgent:
             Partial AgentState dict with output, messages, and agent_name.
         """
         mini_graph = build_react_graph(self._llm_with_tools, self._tool_node)
+        context = state.get("context")
+        user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
+        prefix = get_datetime_context()
+        if user_id:
+            prefix += f"\nログイン中のユーザー: {user_id}"
+        system_prompt = prefix + "\n\n" + self._system_prompt
         init_messages: list[BaseMessage] = [
-            SystemMessage(content=self._system_prompt),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=state["input"]),
         ]
         try:

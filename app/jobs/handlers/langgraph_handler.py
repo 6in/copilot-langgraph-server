@@ -9,6 +9,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.graph.builder import build_canvas_graph, build_graph
 from app.jobs.handlers.base import TaskHandler
+from app.utils.datetime_utils import get_datetime_context
 from app.jobs.notifier import build_notifier
 from app.providers.copilot import ChatCopilot
 
@@ -70,11 +71,14 @@ class LangGraphHandler(TaskHandler):
                     system_prompt = "## 知識\n" + knowledge
 
                 # SystemMessage は state に含めない — config 経由で渡して chatbot_node が動的注入
+                # 現在日時をシステムプロンプトの先頭に注入
+                datetime_prefix = get_datetime_context()
+                effective_system_prompt = datetime_prefix + "\n\n" + (system_prompt or "")
                 config = {
                     "configurable": {
                         "thread_id": thread_id,
                         "github_login": github_login,
-                        "system_prompt": system_prompt or "",
+                        "system_prompt": effective_system_prompt,
                     }
                 }
 
