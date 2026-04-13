@@ -85,9 +85,21 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
     """
 
     async def chatbot_node(state: MessagesState, config: RunnableConfig) -> dict:
-        gem_system_prompt = (config or {}).get("configurable", {}).get("system_prompt", "")
-        extra_system = [SystemMessage(content=gem_system_prompt)] if gem_system_prompt else []
-        response = await llm.ainvoke([SYSTEM_PROMPT] + extra_system + state["messages"])
+        configurable = (config or {}).get("configurable", {})
+        gem_system_prompt = configurable.get("system_prompt", "")
+        github_login = configurable.get("github_login", "")
+
+        system_messages = [SYSTEM_PROMPT]
+        if github_login and github_login != "unknown":
+            system_messages.append(SystemMessage(content=(
+                f"The authenticated user's GitHub login is: {github_login}. "
+                f"When the user asks about their name, identity, or who they are, "
+                f"answer with this GitHub username."
+            )))
+        if gem_system_prompt:
+            system_messages.append(SystemMessage(content=gem_system_prompt))
+
+        response = await llm.ainvoke(system_messages + state["messages"])
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)
@@ -107,9 +119,21 @@ def build_canvas_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
     """
 
     async def chatbot_node(state: MessagesState, config: RunnableConfig) -> dict:
-        gem_system_prompt = (config or {}).get("configurable", {}).get("system_prompt", "")
-        extra_system = [SystemMessage(content=gem_system_prompt)] if gem_system_prompt else []
-        response = await llm.ainvoke([SYSTEM_PROMPT] + extra_system + _trim_html_history(state["messages"]))
+        configurable = (config or {}).get("configurable", {})
+        gem_system_prompt = configurable.get("system_prompt", "")
+        github_login = configurable.get("github_login", "")
+
+        system_messages = [SYSTEM_PROMPT]
+        if github_login and github_login != "unknown":
+            system_messages.append(SystemMessage(content=(
+                f"The authenticated user's GitHub login is: {github_login}. "
+                f"When the user asks about their name, identity, or who they are, "
+                f"answer with this GitHub username."
+            )))
+        if gem_system_prompt:
+            system_messages.append(SystemMessage(content=gem_system_prompt))
+
+        response = await llm.ainvoke(system_messages + _trim_html_history(state["messages"]))
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)
