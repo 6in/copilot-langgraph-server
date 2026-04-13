@@ -1,16 +1,16 @@
-# Stage 1: dev (既存の node:22-alpine を維持して docker-compose.yml は動作継続)
-FROM node:22-alpine AS dev
+# Stage 1: dev (Bun dev server)
+FROM oven/bun:1-alpine AS dev
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+COPY package.json bun.lock* bun.lockb* ./
+RUN bun install
 COPY . .
 EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["bun", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Stage 2: builder (Bun でビルド)
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
-COPY package*.json bun.lockb* ./
+COPY package.json bun.lock* bun.lockb* ./
 RUN bun install --frozen-lockfile || bun install
 COPY . .
 ARG VITE_APP_BASE=/orochi
