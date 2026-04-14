@@ -230,6 +230,8 @@ interface ExtensionBannerProps {
   currentTurn: number;
   extensionTurns: number;
   onExtensionTurnsChange: (v: number) => void;
+  extensionComment: string;
+  onExtensionCommentChange: (v: string) => void;
   onExtend: () => void;
   onEnd: () => void;
   isDark: boolean;
@@ -239,6 +241,8 @@ function ExtensionBanner({
   currentTurn,
   extensionTurns,
   onExtensionTurnsChange,
+  extensionComment,
+  onExtensionCommentChange,
   onExtend,
   onEnd,
   isDark,
@@ -275,7 +279,7 @@ function ExtensionBanner({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          marginBottom: '12px',
+          marginBottom: '10px',
           flexWrap: 'wrap',
         }}
       >
@@ -299,6 +303,27 @@ function ExtensionBanner({
         />
         <span style={{ fontSize: '14px', color: textColor }}>ターン</span>
       </div>
+      <textarea
+        value={extensionComment}
+        onChange={(e) => onExtensionCommentChange(e.target.value)}
+        placeholder="補足コメント・追加論点（省略可）"
+        rows={2}
+        aria-label="継続討論への補足コメント"
+        style={{
+          width: '100%',
+          padding: '6px 10px',
+          border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
+          borderRadius: '6px',
+          background: isDark ? '#1e1e2e' : '#fff',
+          color: textColor,
+          fontSize: '13px',
+          resize: 'vertical',
+          boxSizing: 'border-box',
+          marginBottom: '10px',
+          outline: 'none',
+          fontFamily: 'inherit',
+        }}
+      />
       <div style={{ display: 'flex', gap: '8px' }}>
         <button
           onClick={onExtend}
@@ -537,6 +562,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
   const [awaitingExtension, setAwaitingExtension] = useState(false);
   const [debateEnded, setDebateEnded] = useState(false);
   const [extensionTurns, setExtensionTurns] = useState(3);
+  const [extensionComment, setExtensionComment] = useState('');
   const [dynamicMaxTurns, setDynamicMaxTurns] = useState(config.maxTurns);
   const [dynamicCurrentTurn, setDynamicCurrentTurn] = useState<number | undefined>(undefined);
 
@@ -595,8 +621,9 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
     setDynamicMaxTurns(newMaxTurns);
     setDynamicCurrentTurn(currentTurn);
     setAwaitingExtension(false);
-    // 再エンキュー: 延長メッセージを送信
-    handleSend('延長');
+    const msg = extensionComment.trim() ? `延長\n\n${extensionComment.trim()}` : '延長';
+    setExtensionComment('');
+    handleSend(msg);
   };
 
   const handleEnd = () => {
@@ -763,6 +790,8 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
                       currentTurn={currentTurn}
                       extensionTurns={extensionTurns}
                       onExtensionTurnsChange={setExtensionTurns}
+                      extensionComment={extensionComment}
+                      onExtensionCommentChange={setExtensionComment}
                       onExtend={handleExtend}
                       onEnd={handleEnd}
                       isDark={isDark}

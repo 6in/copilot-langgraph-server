@@ -60,13 +60,18 @@ export function MenuScreen({ onNavigate, onOpenGems, onOpenDebate, onOpenCanvas 
     >
       <h1
         style={{
-          fontSize: '2rem',
-          fontWeight: 600,
+          fontFamily: "'Rajdhani', sans-serif",
+          fontSize: '2.8rem',
+          fontWeight: 700,
           marginBottom: '0.5rem',
-          color: textColor,
+          letterSpacing: '0.1em',
+          background: 'linear-gradient(90deg, #a78bfa, #7c6ff7, #38bdf8)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
         }}
       >
-        Copilot Chat
+        Orochi Chat
       </h1>
       <p
         style={{

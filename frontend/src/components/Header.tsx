@@ -95,7 +95,16 @@ export function Header({ selectedModel, onModelChange, theme, onToggleTheme, onB
           &lsaquo; Menu
         </button>
       )}
-      <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>Copilot Chat</span>
+      <span style={{
+        fontFamily: "'Rajdhani', sans-serif",
+        fontWeight: 700,
+        fontSize: '1.25rem',
+        letterSpacing: '0.08em',
+        background: 'linear-gradient(90deg, #a78bfa, #7c6ff7, #38bdf8)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      }}>Orochi Chat</span>
       {appName && (
         <span style={{
           fontSize: '0.85rem',

@@ -127,6 +127,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
 
   const handleNewChat = async () => {
     const tid = await createNewThread();
+    setCurrentHtml(null);
     navigate(`/canvaschat/${tid}`, { replace: true });
   };
 
@@ -157,8 +158,10 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
       threadId = await createNewThread();
       navigate(`/canvaschat/${threadId}`, { replace: true });
     }
-    // エディタに HTML があればプロンプトに埋め込む — AI が常に最新 HTML をベースに修正できる
-    const prompt = currentHtml
+    // エディタに HTML があり、かつ canvasApp が現在のスレッドのものであればプロンプトに埋め込む
+    // canvasApp.thread_id チェックで旧スレッドの HTML が新規スレッドに漏れるレースを防ぐ
+    const shouldEmbed = currentHtml && canvasApp && canvasApp.thread_id === threadId;
+    const prompt = shouldEmbed
       ? `${text}\n\n（現在の HTML）\n\`\`\`html\n${currentHtml}\n\`\`\``
       : text;
     await sendMessage(prompt, threadId);

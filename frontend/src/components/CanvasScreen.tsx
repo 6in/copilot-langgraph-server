@@ -125,6 +125,7 @@ export function CanvasScreen({ onBack, onStartChat }: CanvasScreenProps) {
   const [apps, setApps] = useState<CanvasAppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -191,6 +192,28 @@ export function CanvasScreen({ onBack, onStartChat }: CanvasScreenProps) {
           </div>
         )}
 
+        {/* インクリメンタルサーチ */}
+        {!loading && apps.length > 0 && (
+          <input
+            type="search"
+            placeholder="アプリを検索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              border: `1px solid ${cardBorder}`,
+              background: cardBg,
+              color: textColor,
+              fontSize: '0.9rem',
+              marginBottom: '24px',
+              boxSizing: 'border-box',
+              outline: 'none',
+            }}
+          />
+        )}
+
         {/* Section 1: Deployed Apps */}
         <div style={{ marginBottom: '32px' }}>
           <div
@@ -221,17 +244,28 @@ export function CanvasScreen({ onBack, onStartChat }: CanvasScreenProps) {
               </div>
             </div>
           ) : (
-            /* アプリカード一覧 */
-            apps.map((app) => (
-              <CanvasAppCard
-                key={app.app_id}
-                app={app}
-                cardBg={cardBg}
-                cardBorder={cardBorder}
-                textColor={textColor}
-                onClick={() => onStartChat(app.thread_id ?? undefined)}  // D-10
-              />
-            ))
+            /* アプリカード一覧（検索フィルタ適用） */
+            (() => {
+              const filtered = apps.filter((app) => {
+                const q = searchQuery.trim().toLowerCase();
+                if (!q) return true;
+                return (app.thread_label ?? app.name ?? '').toLowerCase().includes(q);
+              });
+              return filtered.length > 0 ? filtered.map((app) => (
+                <CanvasAppCard
+                  key={app.app_id}
+                  app={app}
+                  cardBg={cardBg}
+                  cardBorder={cardBorder}
+                  textColor={textColor}
+                  onClick={() => onStartChat(app.thread_id ?? undefined)}
+                />
+              )) : (
+                <div style={{ textAlign: 'center', padding: '32px 0', color: mutedColor, fontSize: '0.9rem' }}>
+                  「{searchQuery}」に一致するアプリが見つかりません
+                </div>
+              );
+            })()
           )}
         </div>
 
