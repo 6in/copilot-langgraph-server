@@ -255,6 +255,7 @@ Recent decisions affecting current work:
 | 260409-gm0 | CanvasPane srcdoc CORS修正: iframe-rpc.js インライン展開で null オリジン問題を解消 | 2026-04-09 | 001e1e1 | [260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js](.planning/quick/260409-gm0-canvaspane-srcdoc-cors-iframe-rpc-js/) |
 | 260409-gu8 | iframe-rpc.js を static/js/ に移動、FastAPI /js/ CORS ルート追加、CanvasPane リバート | 2026-04-09 | 5fab659 | [260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-](.planning/quick/260409-gu8-iframe-rpc-js-static-js-fastapi-js-cors-/) |
 | 260409-h78 | CanvasChatApp 送信時に現在の HTML をプロンプトに自動埋め込み (onHtmlChange コールバック) | 2026-04-09 | 9f7b00e | [260409-h78-canvaschatapp-html](.planning/quick/260409-h78-canvaschatapp-html/) |
+| 260414-hwa | Canvas iframe_rpc_handler の DB アクセスを MCP db_query ツール経由に移行する | 2026-04-14 | 402bfa7 | [260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer](.planning/quick/260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer/) |
 
 ### Blockers/Concerns
 

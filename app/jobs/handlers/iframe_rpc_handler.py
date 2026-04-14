@@ -1,22 +1,20 @@
 """IframeRpcHandler — handles iframe JSON-RPC requests from Canvas apps (Phase 18).
 
 Supported methods:
-  QUERY — executes a SELECT-only SQL query against a named DB pool.
+  QUERY — executes a SELECT-only SQL query via MCP db_query tool (Phase 23+).
   AI    — invokes ChatCopilot for a one-shot response (no conversation history).
 
 Security notes (T-18-01 through T-18-05):
-  - is_select_only strips SQL comments and rejects multi-statement input before
-    allowing any query to reach the database.
-  - pool_name is validated against ctx["db_pools"] keys — unknown pools rejected.
+  - SQL safety (SELECT-only guard, multi-statement prevention) is enforced by the
+    MCP db_query tool (mcp_server/tools/db_query.py).
+  - pool_name is validated by the MCP db_query tool against its configured pools.
   - github_token is forwarded from the JWT-authenticated HTTP request (T-18-03).
+  - MCP server is internal-network only (mcp-server:8001) — no external access.
 """
 import datetime
 import decimal
 import json
 import logging
-import re
-
-from psycopg.rows import dict_row
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
@@ -27,33 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 def _json_default(obj):
-    """psycopg が返す非 JSON 型を文字列へ変換する。"""
+    """非 JSON 型を文字列へ変換する（handle() の save_result 互換用）。"""
     if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
         return obj.isoformat()
     if isinstance(obj, decimal.Decimal):
         return float(obj)
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
-
-# Matches block comments (/* ... */) and line comments (-- ...)
-_COMMENT_RE = re.compile(r'/\*.*?\*/|--[^\n]*', re.DOTALL)
-_ALLOWED_PREFIXES = frozenset(["SELECT", "WITH"])
-
-
-def is_select_only(sql: str) -> bool:
-    """Return True only if the SQL is a single SELECT or WITH statement.
-
-    Defense layers (T-18-01):
-      1. Strip block and line comments before checking.
-      2. Strip trailing semicolon, then reject any remaining semicolons
-         (multi-statement prevention).
-      3. Verify that the first token is SELECT or WITH.
-    """
-    cleaned = _COMMENT_RE.sub('', sql).strip()
-    body = cleaned.rstrip(';')
-    if ';' in body:
-        return False
-    tokens = body.split()
-    return bool(tokens) and tokens[0].upper() in _ALLOWED_PREFIXES
 
 
 class IframeRpcHandler(TaskHandler):
@@ -84,10 +61,13 @@ class IframeRpcHandler(TaskHandler):
         return {"job_id": job_id, "status": "done"}
 
     async def _handle_query(self, ctx: dict, params: dict) -> dict:
-        """Execute a SELECT-only SQL query against a named psycopg_pool pool.
+        """Execute a SELECT-only SQL query via MCP db_query tool.
+
+        SQL safety (SELECT-only guard, pool validation) is delegated to the
+        MCP db_query tool (mcp_server/tools/db_query.py).
 
         Args:
-            ctx:    arq worker context; must contain ctx["db_pools"] dict.
+            ctx:    arq worker context; must contain ctx["mcp_tools"] list.
             params: {"pool_name": str, "sql": str, "user": str}
 
         Returns:
@@ -97,23 +77,37 @@ class IframeRpcHandler(TaskHandler):
         pool_name = params.get("pool_name", "")
         sql = params.get("sql", "")
         user = params.get("user", "")  # D-08: log for future RLS support
-
-        if not is_select_only(sql):
-            return {"result": False, "error": "Only SELECT queries are allowed"}
-
-        db_pools = ctx.get("db_pools", {})
         logger.info("iframe-rpc QUERY user=%s pool=%s", user, pool_name)
 
-        if pool_name not in db_pools:
-            return {"result": False, "error": f"Unknown pool: {pool_name}"}
+        mcp_tools = ctx.get("mcp_tools") or []
+        tool = next((t for t in mcp_tools if getattr(t, "name", None) == "db_query"), None)
+        if tool is None:
+            return {"result": False, "error": "db_query tool unavailable (MCP DEGRADED)"}
 
-        pool = db_pools[pool_name]
-        async with pool.connection() as conn:
-            async with conn.cursor(row_factory=dict_row) as cur:
-                await cur.execute(sql)
-                rows = await cur.fetchall()
+        try:
+            out = await tool.ainvoke({"sql": sql, "pool_name": pool_name})
+        except Exception as e:
+            return {"result": False, "error": f"db_query invocation failed: {e}"}
 
-        return {"result": True, "rows": [dict(r) for r in rows]}
+        # langchain-mcp-adapters returns a list of content blocks:
+        # [{"type": "text", "text": '{"rows":[...]}', "id": "..."}]
+        if isinstance(out, list):
+            text = next(
+                (item["text"] for item in out if isinstance(item, dict) and item.get("type") == "text"),
+                None,
+            )
+            if text is None:
+                return {"result": False, "error": "db_query returned empty content list"}
+            try:
+                out = json.loads(text)
+            except json.JSONDecodeError:
+                return {"result": False, "error": f"db_query returned unparseable content: {text!r}"}
+
+        if not isinstance(out, dict):
+            return {"result": False, "error": f"db_query returned unexpected type: {type(out).__name__}"}
+        if "error" in out:
+            return {"result": False, "error": out["error"]}
+        return {"result": True, "rows": out.get("rows", [])}
 
     async def _handle_ai(self, job: dict, params: dict) -> dict:
         """Invoke ChatCopilot for a one-shot AI response (D-14: no conversation history).
