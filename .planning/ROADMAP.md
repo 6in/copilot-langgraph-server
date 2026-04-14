@@ -164,13 +164,14 @@ Plans:
 | 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
+| 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
 
-### Phase 25: React Router v6 導入による URL ルーティング実装 — アプリ種別+thread_id の URL 構造、APP_PREFIX(/orochi)対応、スレッド共有リンク基盤
+### Phase 25: React Router v7 による URL ベースルーティング導入
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** BrowserRouter + Routes でアプリ種別・thread_id を URL に反映し、スレッド共有リンクとブラウザ履歴ナビゲーションを実現する
+**Requirements**: URL-01
 **Depends on:** Phase 24
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 25 to break down)
+- [x] 25-01-PLAN.md — BrowserRouter 導入 + Routes 置換 + 各 ChatApp URL 同期 + nginx SPA fallback

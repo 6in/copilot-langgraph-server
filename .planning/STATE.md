@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: executing
-stopped_at: v5.0 roadmap created (Phases 20–24)
-last_updated: "2026-04-13T00:44:23.179Z"
-last_activity: 2026-04-13 -- Phase 22 execution started
+status: idle
+stopped_at: Phase 25 complete — React Router v7 URL ルーティング導入
+last_updated: "2026-04-14T00:00:00.000Z"
+last_activity: 2026-04-14 -- Phase 25 complete
 progress:
-  total_phases: 5
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 6
-  percent: 86
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 8
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 22 — web-search-tavily
+**Current focus:** v5.0 全フェーズ完了
 
 ## Current Position
 
-Phase: 22 (web-search-tavily) — EXECUTING
-Plan: 1 of 2
+Phase: 25 (react-router-v7-url-routing) — COMPLETE
+Plan: 1 of 1
 Milestone: v5.0 Agent Tool Platform
 Status: Executing Phase 22
 Last activity: 2026-04-13 -- Phase 22 execution started
