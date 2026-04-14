@@ -53,7 +53,7 @@ function parseJobResult(raw: string): { text: string; canvas: CanvasResult | nul
     const parsed = JSON.parse(raw);
     if (parsed && parsed.type === 'canvas') {
       const c = parsed as CanvasResult;
-      const name = c.name ?? 'HTMLアプリ';
+      const name = (parsed as { name?: string }).name ?? 'HTMLアプリ';
       const html = c.html ?? '';
       // canvashtml: custom language tag → CollapsibleCodeBlock in MarkdownMessage
       const text = `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\``;
@@ -147,7 +147,8 @@ export function useChat({
           onCanvasResponse({
             app_id: canvas.app_id,
             thread_id: resolvedThreadId,
-            name: 'Canvas App',
+            name: (canvas as unknown as { name?: string }).name ?? 'Canvas App',
+            thread_label: null,
             html: canvas.html,
             source: 'canvas',
             deployed: false,

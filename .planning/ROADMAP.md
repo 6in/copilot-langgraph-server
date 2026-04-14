@@ -164,3 +164,13 @@ Plans:
 | 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
+
+### Phase 25: React Router v6 導入による URL ルーティング実装 — アプリ種別+thread_id の URL 構造、APP_PREFIX(/orochi)対応、スレッド共有リンク基盤
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 24
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 25 to break down)

@@ -2,8 +2,10 @@
 // CanvasChatApp: Canvas App 専用チャット画面。
 // 左右分割レイアウト: ThreadSidebar + sidebar drag handle + MessageArea + canvas drag handle + CanvasPane
 // GemChatApp.tsx を参照実装として、CanvasPane 常時表示（D-01〜D-04, D-14, D-15, D-17）を追加。
+// Phase 25: canvasGemId を内部で取得、useParams/useNavigate で URL 同期。
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
@@ -12,7 +14,7 @@ import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useCanvas } from '../hooks/useCanvas';
 import { useCurrentTheme } from '../contexts/ThemeContext';
-import { renameThread } from '../api/client';
+import { renameThread, getCanvasGemId } from '../api/client';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -20,21 +22,42 @@ const SIDEBAR_DEFAULT = 240;
 const CANVAS_PANE_MIN = 320;    // UI-SPEC: CanvasPane 最小幅
 const CANVAS_PANE_DEFAULT = 400; // 初期幅（ピクセル）
 
+// Phase 25: canvasGemId と initialThreadId props を廃止
+// App.tsx 側は selectedModel と onBack のみ渡す
 interface CanvasChatAppProps {
-  canvasGemId: string;              // Canvas 専用 Gem の gem_id（App.tsx から渡す）
   selectedModel: string;
   onBack: () => void;
-  initialThreadId?: string | null;  // D-10: 既存アプリから起動時にスレッドを復元
 }
 
-export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThreadId }: CanvasChatAppProps) {
+export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
   const cardBg = isDark ? '#2a2a3e' : '#ffffff';
   const textColor = isDark ? '#e0e0e0' : '#333333';
 
+  const { threadId: urlThreadId } = useParams<{ threadId?: string }>();
+  const navigate = useNavigate();
+
+  // Phase 25: canvasGemId をマウント時に内部取得（App.tsx の state を廃止）
+  const [canvasGemId, setCanvasGemId] = useState<string | null>(null);
+  const [gemLoadError, setGemLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { gem_id } = await getCanvasGemId();
+        if (!cancelled) setCanvasGemId(gem_id);
+      } catch {
+        if (!cancelled) setGemLoadError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // D-17: gem_id でスレッドを分離（app_id に依存しない）
+  // canvasGemId が取得できるまで useThreads を呼ばない（空文字避け）
   const {
     threads,
     activeThreadId,
@@ -45,15 +68,14 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     removeThread,
     setMessages,
     refreshThreads,
-  } = useThreads(undefined, canvasGemId);
+  } = useThreads(undefined, canvasGemId ?? undefined);
 
-  // initialThreadId が渡された場合は起動時にスレッドを復元（D-10）
+  // Phase 25: URL を single source of truth として switchThread と同期
   useEffect(() => {
-    if (initialThreadId) {
-      switchThread(initialThreadId);
+    if (urlThreadId && urlThreadId !== activeThreadId) {
+      switchThread(urlThreadId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 初回マウント時のみ
+  }, [urlThreadId, activeThreadId, switchThread]);
 
   // サイドバー幅
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -104,11 +126,12 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
   }, [canvasApp?.app_id]);
 
   const handleNewChat = async () => {
-    await createNewThread();
+    const tid = await createNewThread();
+    navigate(`/canvaschat/${tid}`, { replace: true });
   };
 
   const handleSelectThread = async (threadId: string) => {
-    await switchThread(threadId);
+    navigate(`/canvaschat/${threadId}`);
   };
 
   const handleRenameThread = async (threadId: string, label: string) => {
@@ -122,7 +145,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     activeThreadId,
     selectedModel,
     appId: 'canvas',
-    gemId: canvasGemId,
+    gemId: canvasGemId ?? undefined,
     setMessages,
     refreshThreads,
     onCanvasResponse: (app) => { setCanvasApp(app); setCurrentHtml(app.html); },
@@ -132,6 +155,7 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
+      navigate(`/canvaschat/${threadId}`, { replace: true });
     }
     // エディタに HTML があればプロンプトに埋め込む — AI が常に最新 HTML をベースに修正できる
     const prompt = currentHtml
@@ -189,6 +213,12 @@ export function CanvasChatApp({ canvasGemId, selectedModel, onBack, initialThrea
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   }, [canvasPaneWidth]);
+
+  // gemId ロード前はローディング表示、エラー時はエラー表示
+  if (!canvasGemId) {
+    if (gemLoadError) return <div>Canvas gem が取得できませんでした</div>;
+    return null;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

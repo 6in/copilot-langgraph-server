@@ -1,9 +1,18 @@
 // frontend/src/App.tsx
-// Root component: AuthProvider + auth gate.
-// AuthPanel shown when unauthenticated/expired.
-// 8-screen navigation: menu | chat | superchat | gems | gemchat | debate | canvas | canvaschat
+// Phase 25: React Router v6(v7 declarative) による URL ルーティング
+// URL 構造: /{APP_PREFIX}/{appType}/{threadId?}
+//   - /orochi/             → MenuScreen
+//   - /orochi/chat[/:tid]  → ChatApp
+//   - /orochi/superchat/:appSlug[/:tid] → SuperChatWrapper
+//   - /orochi/gems         → GemsScreen
+//   - /orochi/gemchat/:gemId[/:tid] → GemChatWrapper
+//   - /orochi/canvas       → CanvasScreen
+//   - /orochi/canvaschat[/:tid] → CanvasChatApp
+//   - /orochi/debate[/:tid] → DebateChatApp
+// basename("/orochi") は main.tsx の BrowserRouter で設定済み
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Routes, Route, useNavigate, useParams, Navigate } from 'react-router';
 import { AuthContext, useAuthProvider } from './hooks/useAuth';
 import { AuthPanel } from './components/AuthPanel';
 import { Header } from './components/Header';
@@ -17,74 +26,225 @@ import { CanvasScreen } from './components/CanvasScreen';
 import { CanvasChatApp } from './components/CanvasChatApp';
 import { useTheme } from './hooks/useTheme';
 import { ThemeContext } from './contexts/ThemeContext';
-import { getCanvasGemId } from './api/client';
+import { getApps, listGems } from './api/client';
 import type { AppDefinition, GemInfo } from './types';
 
-type Screen = 'menu' | 'chat' | 'superchat' | 'gems' | 'gemchat' | 'debate' | 'canvas' | 'canvaschat';
+// ---- SuperChat ラッパー: appSlug → AppDefinition 解決 ----
+// 25-RESEARCH.md Pitfall 4 対応。useParams で appSlug を取得し、
+// /api/apps からアプリ定義を解決してから SuperChatApp に渡す。
+function SuperChatWrapper({
+  selectedModel,
+  theme,
+  onToggleTheme,
+  onModelChange,
+}: {
+  selectedModel: string;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  onModelChange: (m: string) => void;
+}) {
+  const { appSlug } = useParams<{ appSlug: string }>();
+  const [app, setApp] = useState<AppDefinition | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const apps = await getApps();
+        const found = apps.find((a) => a.slug === appSlug) ?? null;
+        if (!cancelled) {
+          if (!found) {
+            setNotFound(true);
+          } else {
+            setApp(found);
+          }
+        }
+      } catch {
+        if (!cancelled) setNotFound(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [appSlug]);
+
+  if (notFound) return <Navigate to="/" replace />;
+  if (!app) return null; // ロード中
+
+  return (
+    <>
+      <Header
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onBackToMenu={() => navigate('/')}
+        appName={app.name}
+      />
+      <SuperChatApp
+        selectedModel={selectedModel}
+        appId={app.slug}
+        appName={app.name}
+        appAgents={app.agents}
+      />
+    </>
+  );
+}
+
+// ---- GemChat ラッパー: gemId → GemInfo 解決 ----
+function GemChatWrapper({
+  selectedModel,
+  theme,
+  onToggleTheme,
+  onModelChange,
+}: {
+  selectedModel: string;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  onModelChange: (m: string) => void;
+}) {
+  const { gemId } = useParams<{ gemId: string }>();
+  const [gem, setGem] = useState<GemInfo | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const gems = await listGems();
+        const found = gems.find((g) => g.gem_id === gemId) ?? null;
+        if (!cancelled) {
+          if (!found) setNotFound(true);
+          else setGem(found);
+        }
+      } catch {
+        if (!cancelled) setNotFound(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [gemId]);
+
+  if (notFound) return <Navigate to="/gems" replace />;
+  if (!gem) return null;
+
+  return (
+    <>
+      <Header
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
+      <GemChatApp
+        gem={gem}
+        selectedModel={selectedModel}
+        onBack={() => navigate('/gems')}
+      />
+    </>
+  );
+}
+
+// ---- Menu / Gems / Canvas スクリーンラッパー(URL ナビゲーション注入) ----
+function MenuScreenRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} />
+      <MenuScreen
+        onNavigate={(app) => {
+          if (app.type === 'chat') navigate('/chat');
+          else navigate(`/superchat/${app.slug}`);
+        }}
+        onOpenGems={() => navigate('/gems')}
+        onOpenDebate={() => navigate('/debate')}
+        onOpenCanvas={() => navigate('/canvas')}
+      />
+    </>
+  );
+}
+
+function GemsScreenRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} />
+      <GemsScreen
+        onSelectGem={(gem) => navigate(`/gemchat/${gem.gem_id}`)}
+        onBack={() => navigate('/')}
+      />
+    </>
+  );
+}
+
+function CanvasScreenRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} />
+      <CanvasScreen
+        onBack={() => navigate('/')}
+        onStartChat={(tid) => navigate(tid ? `/canvaschat/${tid}` : '/canvaschat')}
+      />
+    </>
+  );
+}
+
+// ---- ChatApp / CanvasChatApp / DebateChatApp 用 Header 付きルート ----
+function ChatRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} onBackToMenu={() => navigate('/')} />
+      <ChatApp selectedModel={selectedModel} />
+    </>
+  );
+}
+
+function CanvasChatRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} />
+      <CanvasChatApp selectedModel={selectedModel} onBack={() => navigate('/canvas')} />
+    </>
+  );
+}
+
+function DebateRoute({
+  selectedModel, theme, onToggleTheme, onModelChange,
+}: { selectedModel: string; theme: 'light' | 'dark'; onToggleTheme: () => void; onModelChange: (m: string) => void; }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} onBackToMenu={() => navigate('/')} appName="討論チャット" />
+      <DebateChatApp selectedModel={selectedModel} />
+    </>
+  );
+}
+
+// ---- ルート App コンポーネント ----
 export function App() {
   const authValue = useAuthProvider();
-  // Default model per D-07
   const [selectedModel, setSelectedModel] = useState('gpt-4.1');
   const { theme, toggleTheme } = useTheme();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
-  const [activeApp, setActiveApp] = useState<AppDefinition | null>(null);
-  const [activeGem, setActiveGem] = useState<GemInfo | null>(null);
-  const [activeCanvasAppId, setActiveCanvasAppId] = useState<string | null>(null);
-  const [canvasGemId, setCanvasGemId] = useState<string | null>(null);
-
   const isAuthenticated = authValue.authState === 'authenticated';
 
-  const handleNavigate = (app: AppDefinition) => {
-    setActiveApp(app);
-    setCurrentScreen(app.type === 'chat' ? 'chat' : 'superchat');
-  };
-
-  const handleBackToMenu = () => {
-    setCurrentScreen('menu');
-    setActiveApp(null);
-  };
-
-  const handleOpenGems = () => { setCurrentScreen('gems'); };
-
-  const handleOpenDebate = () => { setCurrentScreen('debate'); };
-  const handleBackFromDebate = () => { setCurrentScreen('menu'); };
-
-  const handleSelectGem = (gem: GemInfo) => {
-    setActiveGem(gem);
-    setCurrentScreen('gemchat');
-  };
-
-  // Pitfall 4 対策: GemChatApp → GemsScreen に戻る（MenuScreen まで戻さない）
-  const handleBackFromGemChat = () => {
-    setActiveGem(null);
-    setCurrentScreen('gems');
-  };
-
-  const handleBackFromGems = () => { setCurrentScreen('menu'); };
-
-  // Phase 16: Canvas ナビゲーション（D-07）
-  const handleOpenCanvas = () => { setCurrentScreen('canvas'); };
-  const handleBackFromCanvas = () => { setCurrentScreen('menu'); };
-
-  const handleOpenCanvasChat = async (initialThreadId?: string) => {
-    // canvasGemId が未取得の場合は取得してから遷移
-    let gemId = canvasGemId;
-    if (!gemId) {
-      try {
-        const result = await getCanvasGemId();
-        gemId = result.gem_id;
-        setCanvasGemId(gemId);
-      } catch {
-        // 取得失敗でも遷移は許可（CanvasChatApp 側でエラーハンドリング）
-      }
-    }
-    setActiveCanvasAppId(initialThreadId ?? null);
-    setCurrentScreen('canvaschat');
-  };
-
-  const handleBackFromCanvasChat = () => {
-    setCurrentScreen('canvas');
+  const common = {
+    selectedModel,
+    theme,
+    onToggleTheme: toggleTheme,
+    onModelChange: setSelectedModel,
   };
 
   return (
@@ -92,122 +252,29 @@ export function App() {
       <ThemeContext.Provider value={theme}>
         {isAuthenticated ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {currentScreen === 'menu' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                />
-                <MenuScreen onNavigate={handleNavigate} onOpenGems={handleOpenGems} onOpenDebate={handleOpenDebate} onOpenCanvas={handleOpenCanvas} />
-              </>
-            )}
-            {currentScreen === 'chat' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                  onBackToMenu={handleBackToMenu}
-                  appName={activeApp?.name}
-                />
-                <ChatApp selectedModel={selectedModel} />
-              </>
-            )}
-            {currentScreen === 'superchat' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                  onBackToMenu={handleBackToMenu}
-                  appName={activeApp?.name}
-                />
-                <SuperChatApp
-                  selectedModel={selectedModel}
-                  appId={activeApp?.slug ?? ''}
-                  appName={activeApp?.name ?? ''}
-                  appAgents={activeApp?.agents}
-                />
-              </>
-            )}
-            {currentScreen === 'gems' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                />
-                <GemsScreen onSelectGem={handleSelectGem} onBack={handleBackFromGems} />
-              </>
-            )}
-            {/* Threat model: activeGem null check prevents null ref error */}
-            {currentScreen === 'gemchat' && activeGem && (
-              <>
-                {/* Pitfall 4: onBackToMenu を渡さない。GemChatApp 内の Back ボタンで GemsScreen に戻る */}
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                />
-                <GemChatApp
-                  gem={activeGem}
-                  selectedModel={selectedModel}
-                  onBack={handleBackFromGemChat}
-                />
-              </>
-            )}
-            {/* Phase 16: Canvas 画面 */}
-            {currentScreen === 'canvas' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                />
-                <CanvasScreen
-                  onBack={handleBackFromCanvas}
-                  onStartChat={handleOpenCanvasChat}
-                />
-              </>
-            )}
-            {/* Phase 16: CanvasChatApp 画面 — canvasGemId が null の場合は表示しない（T-16-09） */}
-            {currentScreen === 'canvaschat' && canvasGemId && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                />
-                <CanvasChatApp
-                  canvasGemId={canvasGemId}
-                  selectedModel={selectedModel}
-                  onBack={handleBackFromCanvasChat}
-                  initialThreadId={activeCanvasAppId}
-                />
-              </>
-            )}
-            {/* Phase 17: 討論チャット画面 */}
-            {currentScreen === 'debate' && (
-              <>
-                <Header
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
-                  theme={theme}
-                  onToggleTheme={toggleTheme}
-                  onBackToMenu={handleBackFromDebate}
-                  appName="討論チャット"
-                />
-                <DebateChatApp selectedModel={selectedModel} />
-              </>
-            )}
+            <Routes>
+              <Route index element={<MenuScreenRoute {...common} />} />
+
+              <Route path="chat" element={<ChatRoute {...common} />} />
+              <Route path="chat/:threadId" element={<ChatRoute {...common} />} />
+
+              <Route path="superchat/:appSlug" element={<SuperChatWrapper {...common} />} />
+              <Route path="superchat/:appSlug/:threadId" element={<SuperChatWrapper {...common} />} />
+
+              <Route path="gems" element={<GemsScreenRoute {...common} />} />
+              <Route path="gemchat/:gemId" element={<GemChatWrapper {...common} />} />
+              <Route path="gemchat/:gemId/:threadId" element={<GemChatWrapper {...common} />} />
+
+              <Route path="canvas" element={<CanvasScreenRoute {...common} />} />
+              <Route path="canvaschat" element={<CanvasChatRoute {...common} />} />
+              <Route path="canvaschat/:threadId" element={<CanvasChatRoute {...common} />} />
+
+              <Route path="debate" element={<DebateRoute {...common} />} />
+              <Route path="debate/:threadId" element={<DebateRoute {...common} />} />
+
+              {/* 未知のパスはメニューへ */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
         ) : (
           <AuthPanel />

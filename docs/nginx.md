@@ -99,3 +99,20 @@ services:
 ```
 
 Mount the nginx config shown in the example above as `./nginx.conf`.
+
+## SPA Fallback (Phase 25)
+
+React Router v6(HTML5 History API) を使うため、`/orochi/chat/abc-123` のような
+deep URL を直接開いたときに nginx が 404 を返さないよう `try_files` を設定する。
+
+```nginx
+location /orochi/ {
+  # 既存のプレフィックス strip + proxy_pass 設定はそのまま
+  # SPA fallback を追加:
+  try_files $uri $uri/ /orochi/index.html;
+}
+```
+
+注意:
+- `/orochi/api/` など API パスには fallback が適用されないよう location 分離を維持する
+- 開発環境(Vite dev server)は自動的に fallback するためこの設定は production のみ必要

@@ -2,8 +2,10 @@
 // MainContainer layout root: Sidebar (left) + ChatContainer (main).
 // CRITICAL: outer div must have height: 100vh (Pitfall 1 in 07-RESEARCH.md).
 // Header is rendered ABOVE the MainContainer in App.tsx, not inside it.
+// Phase 25: useParams/useNavigate で URL を single source of truth にする。
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
@@ -22,6 +24,9 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ selectedModel }: ChatAppProps) {
+  const { threadId: urlThreadId } = useParams<{ threadId?: string }>();
+  const navigate = useNavigate();
+
   const {
     threads,
     activeThreadId,
@@ -33,6 +38,16 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     setMessages,
     refreshThreads,
   } = useThreads('chat');
+
+  // 25-RESEARCH.md Pitfall 5 対策: URL を single source of truth とする
+  // URL の threadId が変わったら useThreads の activeThreadId を同期する
+  useEffect(() => {
+    if (urlThreadId && urlThreadId !== activeThreadId) {
+      switchThread(urlThreadId);
+    }
+    // urlThreadId が undefined(/chat) の場合は activeThreadId をクリアしない
+    // (新規スレッド作成時に /chat → /chat/:tid の遷移で消えないように)
+  }, [urlThreadId, activeThreadId, switchThread]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
@@ -52,11 +67,13 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
   const dragStartWidth = useRef<number>(SIDEBAR_DEFAULT);
 
   const handleNewChat = async () => {
-    await createNewThread();
+    const tid = await createNewThread();
+    // 新規スレッドは履歴を汚染しないよう replace
+    navigate(`/chat/${tid}`, { replace: true });
   };
 
   const handleSelectThread = async (threadId: string) => {
-    await switchThread(threadId);
+    navigate(`/chat/${threadId}`);
   };
 
   const handleRenameThread = async (threadId: string, label: string) => {
@@ -76,6 +93,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
+      navigate(`/chat/${threadId}`, { replace: true });
     }
     // Pass threadId explicitly: sendMessage's closure may still capture the
     // stale activeThreadId=null value if createNewThread() just set it and

@@ -4,7 +4,8 @@
 // CanvasPane / GemSelector / selectedGemId を持たないシンプル構成（D-17）。
 // Gem ヘッダーバーを内部実装（UI-SPEC.md 3b 準拠）。
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
@@ -31,6 +32,9 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
   const cardBg = isDark ? '#2a2a3e' : '#ffffff';
   const textColor = isDark ? '#e0e0e0' : '#333333';
 
+  const { gemId, threadId: urlThreadId } = useParams<{ gemId: string; threadId?: string }>();
+  const navigate = useNavigate();
+
   // D-15: Gem 単位のスレッド分離 — gem_id で直接フィルタ（app_id に依存しないため既存スレッドも取得できる）
   const {
     threads,
@@ -44,6 +48,13 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     refreshThreads,
   } = useThreads(undefined, gem.gem_id);
 
+  // Phase 25: URL を single source of truth として switchThread と同期
+  useEffect(() => {
+    if (urlThreadId && urlThreadId !== activeThreadId) {
+      switchThread(urlThreadId);
+    }
+  }, [urlThreadId, activeThreadId, switchThread]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
 
@@ -51,11 +62,12 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
   const dragStartWidth = useRef<number>(SIDEBAR_DEFAULT);
 
   const handleNewChat = async () => {
-    await createNewThread();
+    const tid = await createNewThread();
+    navigate(`/gemchat/${gemId}/${tid}`, { replace: true });
   };
 
   const handleSelectThread = async (threadId: string) => {
-    await switchThread(threadId);
+    navigate(`/gemchat/${gemId}/${threadId}`);
   };
 
   const handleRenameThread = async (threadId: string, label: string) => {
@@ -77,6 +89,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
+      navigate(`/gemchat/${gemId}/${threadId}`, { replace: true });
     }
     await sendMessage(text, threadId);
     await refreshThreads();

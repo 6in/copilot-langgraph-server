@@ -213,6 +213,7 @@ Recent decisions affecting current work:
 - Phase 18 added: Canvas iframe postMessage JSON-RPC API ブリッジ実装 — iframe内JSからDB・AI・WebAPIを呼び出せる仕組み（Web Worker通信レイヤー分離、psycopg3+psycopg_pool、既存SSEフロー流用）
 - Phase 19 added: Canvas アプリのデプロイ＆ホスティング機能（/apps/{app-id}/ ルーティング、iframe ホスティングシェル、Phase 18 RPC ブリッジ流用）
 - v5.0 roadmap created (2026-04-10): Phases 20–24 — FastMCP Docker 基盤、bind_tools 統合、Web 検索、DB + Claude Code ツール、config.yaml ルーティング
+- Phase 25 added: React Router v6 導入による URL ルーティング実装 — アプリ種別+thread_id の URL 構造、APP_PREFIX(/orochi)対応、スレッド共有リンク基盤
 
 ### Pending Todos
 

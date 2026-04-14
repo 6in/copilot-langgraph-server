@@ -5,7 +5,8 @@
 // Layout mirrors ChatApp: sidebar + chat area.
 // appId scopes threads; appAgents filters displayed agent chips.
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
@@ -120,6 +121,8 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading, isDark }: 
 export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgents }: SuperChatAppProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
+  const { appSlug, threadId: urlThreadId } = useParams<{ appSlug: string; threadId?: string }>();
+  const navigate = useNavigate();
 
   const {
     threads,
@@ -132,6 +135,13 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     setMessages,
     refreshThreads,
   } = useThreads(appId || 'superchat');
+
+  // Phase 25: URL を single source of truth として switchThread と同期
+  useEffect(() => {
+    if (urlThreadId && urlThreadId !== activeThreadId) {
+      switchThread(urlThreadId);
+    }
+  }, [urlThreadId, activeThreadId, switchThread]);
 
   // Fetch all agents then filter client-side to the app's declared agents (Option A)
   const { agents: allAgents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
@@ -183,11 +193,12 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
   });
 
   const handleNewChat = async () => {
-    await createNewThread();
+    const tid = await createNewThread();
+    navigate(`/superchat/${appSlug}/${tid}`, { replace: true });
   };
 
   const handleSelectThread = async (threadId: string) => {
-    await switchThread(threadId);
+    navigate(`/superchat/${appSlug}/${threadId}`);
   };
 
   const handleRenameThread = async (threadId: string, label: string) => {
@@ -199,6 +210,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
+      navigate(`/superchat/${appSlug}/${threadId}`, { replace: true });
     }
     await sendMessage(text, threadId);
     await refreshThreads();
