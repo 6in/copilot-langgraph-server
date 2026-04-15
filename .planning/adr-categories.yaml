@@ -44,6 +44,7 @@ adr_categories:
   "0032": { primary: "Data・Persistence", secondary: "Infra・Deploy" }
   "0033": { primary: "Frontend・UI", secondary: "MCP・Tools" }
   "0034": { primary: "Infra・Deploy" }
+  "0035": { primary: "Infra・Deploy" }
 
 missing:
   - "0015"
