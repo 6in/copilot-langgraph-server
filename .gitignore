@@ -54,3 +54,5 @@ frontend/node_modules/
 
 # DB pool config (contains DSN credentials)
 config/db_pools.yaml
+# graphify build cache (canonical output lives in .planning/graphs/)
+graphify-out/
