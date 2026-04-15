@@ -1,0 +1,144 @@
+# Patterns Catalog
+
+**Purpose:** 過去の設計判断（ADR）から抽出した再利用可能パターンのカタログ。
+**Source of Truth:** `docs/adr/` — ADR にないパターンはここに載せない（D-08）。
+**Integration:** 各フェーズの CONTEXT.md の `canonical_refs` に本ファイル（`.planning/patterns.md`）と `docs/adr/INDEX.md` を必ず追加する（CLAUDE.md 運用ルール参照）。
+**Maintenance:** 手動更新。新規 ADR 追加時は `/create-adr` の手順に従って本ファイルにも追記する。
+
+---
+
+## Auth
+
+### JWT ブロックリストの Redis 移行
+httpOnly cookie に格納した JWT の logout 無効化は Redis ブロックリストで実現する。
+インメモリ実装は再起動で無効化できないため Redis へ移行した。
+関連 ADR: [0014](../docs/adr/0014-phase17-security-hardening-jwt-blocklist-redis-and-endpoint-auth.md)
+
+---
+
+## LangGraph・Graph
+
+### OrchestratorGraph Per-Job Construction
+OrchestratorGraph はリクエストごとに生成・廃棄する（アプリ起動時に 1 インスタンス共有しない）。
+github_token のマルチユーザー分離を実現するためのパターン。
+関連 ADR: [0005](../docs/adr/0005-orchestratorgraph-integration-per-job-construction.md)
+
+### APP.md 定義によるアプリケーションパッケージ
+`agents/menus/APP.md` でエージェントサブセットを宣言する。
+コード変更ゼロでアプリ別エージェント構成が可能。
+関連 ADR: [0007](../docs/adr/0007-application-packages-app-md-pattern.md)
+
+### bind_tools プロンプトエンジニアリング方式
+Copilot SDK は OpenAI tool_calls 形式非対応のため、ツールスキーマをシステムプロンプトに JSON として注入し、
+テキスト応答を解析して tool_calls に変換する BoundChatCopilot パターン。
+関連 ADR: [0021](../docs/adr/0021-langgraph-bind-tools-toolnode-via-prompt-engineering.md)
+
+### エージェントプロンプトへの日時・ユーザー自動注入
+ToolEnabledSubAgent の system prompt 先頭に現在日時・ログインユーザーを毎回注入する。
+エージェント AGENT.md には記載不要。
+関連 ADR: [0025](../docs/adr/0025-datetime-and-user-context-injection-into-agent-prompts.md)
+
+### DebateChat ターン制マルチエージェントグラフ
+複数 SubAgent が交互に発言するターン制を LangGraph ループで実現する。
+DebateGraph ノードは state.turn_index で話者を決定する。
+関連 ADR: [0011](../docs/adr/0011-debate-chat-multi-agent-turn-based-platform.md)
+
+### Token Streaming 3 層配管
+Copilot SDK ストリームを worker → SSE → frontend の 3 層で中継する。
+notifier.py でチャンクをキューイングし SSE エンドポイントが消費する。
+関連 ADR: [0031](../docs/adr/0031-copilot-sdk-token-streaming-three-layer-plumbing.md)
+
+---
+
+## MCP・Tools
+
+### FastMCP Docker 独立サービス基盤
+ツール実装を API サーバーに組み込まず FastMCP 独立コンテナとして分離する。
+worker から streamable-http で接続。stdio は Docker 間通信不可、SSE はセッションアフィニティ問題あり。
+関連 ADR: [0020](../docs/adr/0020-fastmcp-docker-service-infrastructure.md)
+
+### MCP ツールカタログ YAML 検証 (ToolRegistry)
+`config/mcp_tools.yaml` に宣言ツールセットを定義し、worker 起動時に MCP 実ツールリストと双方向一致を検証する。
+不一致で RuntimeError → デプロイ後の無言不整合を防止する。
+関連 ADR: [0024](../docs/adr/0024-mcp-tool-catalog-validation.md)
+
+### db_query SELECT-only ガード
+`is_select_only()` ユーティリティで SELECT 以外をブロックする。
+`app/utils/sql_safety.py` に配置し iframe-rpc と MCP ツールの両方から再利用。
+関連 ADR: [0023](../docs/adr/0023-mcp-db-query-and-claude-code-tools.md)
+
+### claude_code env sanitization
+Claude Code CLI サブプロセス起動前に `CLAUDECODE=1` 等の危険な環境変数を除去する。
+タイムアウト 60 秒 + zombie プロセス対策を含む。
+関連 ADR: [0023](../docs/adr/0023-mcp-db-query-and-claude-code-tools.md)
+
+### Tavily JSON モード互換性
+Copilot モデルは関数呼び出し非対応のため、Tavily 検索結果を JSON スキーマとして prompt に注入し
+text 応答から parse する。
+関連 ADR: [0022](../docs/adr/0022-tavily-web-search-json-tool-calling-model-compatibility.md)
+
+---
+
+## Worker・Jobs
+
+### Worker Pluggable Task Routing Facade
+`dispatcher.py` がタスクタイプ（chat/orchestrator/canvas 等）を TaskHandler サブクラスへルーティングする。
+handler 追加はコードのみで完結（コンフィグ変更不要）。
+関連 ADR: [0003](../docs/adr/0003-worker-pluggable-task-routing-facade.md)
+
+---
+
+## Frontend・UI
+
+### nginx prefix-strip URL ルーティング
+リバースプロキシで `/orochi` プレフィックスを strip して転送する。
+FastAPI は `APP_PREFIX` で root_path 設定、Vite は `VITE_APP_BASE` でアセット URL を制御。
+関連 ADR: [0001](../docs/adr/0001-nginx-prefix-strip-for-url-routing.md), [0002](../docs/adr/0002-api-path-prefix-management-in-react-spa.md)
+
+### Canvas iframe postMessage JSON-RPC ブリッジ
+iframe 内 JS から `window.parent.postMessage` 経由で DB/AI ツールを呼び出す。
+JSON-RPC over postMessage パターン。`static/js/iframe-rpc.js` ライブラリとして配布。
+関連 ADR: [0018](../docs/adr/0018-canvas-iframe-postmessage-json-rpc-bridge.md)
+
+### Canvas スタンドアロンホスティングと parent-bridge.js 共通化
+`/apps/{app_id}/` でホスト時も iframe-rpc 機能を利用するため parent-bridge.js を共通化する。
+CanvasPane と HostingShell で同一 relay ロジックを共有。
+関連 ADR: [0019](../docs/adr/0019-canvas-app-standalone-hosting-parent-bridge.md)
+
+### React Router v7 URL ルーティング
+BrowserRouter + Routes でアプリ種別・thread_id を URL に反映する。
+APP_PREFIX 対応は `basename` prop で実現。nginx SPA fallback（`try_files`）が必要。
+関連 ADR: [0028](../docs/adr/0028-react-router-v7-url-based-routing-for-spa.md)
+
+### ai() モデル指定エイリアスホワイトリスト
+Canvas iframe RPC の ai() に model パラメータを追加する際、任意モデル名を通すのではなく
+YAML ホワイトリストでエイリアスを管理する。
+関連 ADR: [0033](../docs/adr/0033-canvas-ai-model-selection-with-alias-whitelist.md)
+
+### Frontend Bun 移行
+フロントエンドランタイムを Node.js/npm から Bun に移行した。
+Docker Compose build の `bun install` + `bun run build`。パッケージマネージャーとして npm の代替。
+D-10 により primary カテゴリは Frontend・UI（secondary: Infra・Deploy）。
+関連 ADR: [0027](../docs/adr/0027-migrate-frontend-runtime-from-nodejs-to-bun.md)
+
+---
+
+## Infra・Deploy
+
+### ADR カタログ化と patterns.md による GSD プランニング統合
+ADR を 7 カテゴリの索引（`docs/adr/INDEX.md`）とパターンカタログ（`.planning/patterns.md`）に分離し、GSD フェーズの CONTEXT.md の canonical_refs に両ファイルを毎回記載する運用で過去意思決定を自動参照させる。INDEX.md は pre-commit hook で自動生成、patterns.md は手動更新。
+関連 ADR: [0034](../docs/adr/0034-adr-catalog-patterns-md-gsd-integration.md)
+
+---
+
+## Data・Persistence
+
+### db_pools.yaml 駆動の接続プールチューニング
+DB 接続プールパラメータ（min_size/max_size/timeout 等）を `config/db_pools.yaml` で宣言する。
+コード変更なしに環境別チューニングが可能。
+関連 ADR: [0032](../docs/adr/0032-db-pools-yaml-driven-tuning-params.md)
+
+### Gem is_public フラグによる公開共有
+Gem 公開は DB カラム `is_public` フラグで制御する。
+共有 Gem は全ユーザーが読み取り可能で、GemsScreen に Shared Gems セクションを表示。
+関連 ADR: [0010](../docs/adr/0010-gem-public-sharing-is-public-flag.md)

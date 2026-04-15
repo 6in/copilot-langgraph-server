@@ -175,3 +175,15 @@ Plans:
 
 Plans:
 - [x] 25-01-PLAN.md — BrowserRouter 導入 + Routes 置換 + 各 ChatApp URL 同期 + nginx SPA fallback
+
+### Phase 26: ADR 整理 + patterns.md 作成 + GSD プランニング統合
+
+**Goal:** 30 件の ADR から再利用可能パターンを `.planning/patterns.md` として抽出・カタログ化し、`docs/adr/INDEX.md`（pre-commit hook 自動生成）と合わせて CLAUDE.md 経由で GSD の discuss/plan フェーズが canonical_refs 経由で自動参照できる状態を作る。ADR 本文の変更・Status 付与・欠番補完は対象外（D-03/D-04/D-05）。
+**Requirements**: none (整備フェーズのため REQ-ID なし)
+**Depends on:** Phase 25
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 26-01-PLAN.md — adr-categories.yaml + generate_adr_index.py + pre-commit hook + pytest
+- [x] 26-02-PLAN.md — docs/adr/INDEX.md 生成 + .planning/patterns.md 新規作成
+- [x] 26-03-PLAN.md — CLAUDE.md 運用ルール追記 + /create-adr リマインダ + ROADMAP 更新

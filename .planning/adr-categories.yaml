@@ -1,0 +1,51 @@
+# ADR 番号 → カテゴリ マッピング
+# D-09 の 7 カテゴリ: Auth / LangGraph・Graph / MCP・Tools / Worker・Jobs / Frontend・UI / Infra・Deploy / Data・Persistence
+# primary = 主カテゴリ、secondary = 副カテゴリ（任意）
+# 欠番 0015-0017 は missing リストに記録する
+
+categories:
+  - Auth
+  - LangGraph・Graph
+  - MCP・Tools
+  - Worker・Jobs
+  - Frontend・UI
+  - Infra・Deploy
+  - Data・Persistence
+
+adr_categories:
+  "0001": { primary: "Infra・Deploy", secondary: "Frontend・UI" }
+  "0002": { primary: "Frontend・UI", secondary: "Infra・Deploy" }
+  "0003": { primary: "Worker・Jobs", secondary: "LangGraph・Graph" }
+  "0004": { primary: "LangGraph・Graph" }
+  "0005": { primary: "LangGraph・Graph", secondary: "Worker・Jobs" }
+  "0006": { primary: "Frontend・UI", secondary: "LangGraph・Graph" }
+  "0007": { primary: "LangGraph・Graph", secondary: "Infra・Deploy" }
+  "0008": { primary: "Frontend・UI" }
+  "0009": { primary: "Frontend・UI", secondary: "Data・Persistence" }
+  "0010": { primary: "Data・Persistence", secondary: "Frontend・UI" }
+  "0011": { primary: "LangGraph・Graph", secondary: "Frontend・UI" }
+  "0012": { primary: "Frontend・UI" }
+  "0013": { primary: "Frontend・UI" }
+  "0014": { primary: "Auth", secondary: "Worker・Jobs" }
+  "0018": { primary: "Frontend・UI", secondary: "Worker・Jobs" }
+  "0019": { primary: "Frontend・UI", secondary: "Infra・Deploy" }
+  "0020": { primary: "MCP・Tools", secondary: "Infra・Deploy" }
+  "0021": { primary: "LangGraph・Graph", secondary: "MCP・Tools" }
+  "0022": { primary: "MCP・Tools", secondary: "LangGraph・Graph" }
+  "0023": { primary: "MCP・Tools", secondary: "Data・Persistence" }
+  "0024": { primary: "MCP・Tools", secondary: "Worker・Jobs" }
+  "0025": { primary: "LangGraph・Graph", secondary: "Auth" }
+  "0026": { primary: "Data・Persistence" }
+  "0027": { primary: "Frontend・UI", secondary: "Infra・Deploy" }
+  "0028": { primary: "Frontend・UI", secondary: "Infra・Deploy" }
+  "0029": { primary: "Frontend・UI" }
+  "0030": { primary: "MCP・Tools", secondary: "Data・Persistence" }
+  "0031": { primary: "LangGraph・Graph", secondary: "Worker・Jobs" }
+  "0032": { primary: "Data・Persistence", secondary: "Infra・Deploy" }
+  "0033": { primary: "Frontend・UI", secondary: "MCP・Tools" }
+  "0034": { primary: "Infra・Deploy" }
+
+missing:
+  - "0015"
+  - "0016"
+  - "0017"

@@ -76,6 +76,24 @@ git worktree remove <path>          # 変更なしの場合
 git worktree remove --force <path>  # 強制削除が必要な場合
 git worktree prune                  # 参照だけ残っているゴミを掃除
 ```
+
+### ADR Pattern Reference (GSD Integration)
+
+`/gsd-discuss-phase` を実行する際は、CONTEXT.md の `canonical_refs` セクションに以下の 2 ファイルを必ず追加すること:
+
+- `.planning/patterns.md` — ADR 由来のパターンカタログ（設計判断の前に参照）
+- `docs/adr/INDEX.md` — ADR カテゴリ別索引（関連 ADR 特定に使用）
+
+これにより `/gsd-research-phase` と `/gsd-plan-phase` が過去の意思決定パターンを自動的に参照できる。
+`@import` 形式での常時ロードはしない（コンテキスト肥大回避 — D-12）。必要なフェーズでのみ canonical_refs 経由で読み込む。
+
+**新規 ADR 追加時の義務:**
+
+- `/create-adr` で新規 ADR を作成した直後、パターンとして記録すべき設計判断があれば `.planning/patterns.md` に**手動で追記**する（D-15）
+- patterns.md は自動生成しない — 要約の粒度は人間判断が必要
+- ADR にないパターンは patterns.md に載せない（ADR が唯一の真実源 — D-08）
+- 1 エントリは 5-10 行（パターン名 + 要約 + 関連 ADR リンク）
+- カテゴリは 7 種: `Auth` / `LangGraph・Graph` / `MCP・Tools` / `Worker・Jobs` / `Frontend・UI` / `Infra・Deploy` / `Data・Persistence`
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
@@ -269,6 +287,17 @@ Use these entry points:
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
 
 **ブランチ必須:** `/gsd:quick`・`/gsd:execute-phase`・`/gsd:debug`・`/gsd:do` など GSD コマンドで作業を開始する際は、必ず最初にブランチを作成すること。`main` ブランチ上で直接コミットしない。
+
+### ADR INDEX 自動生成 hook のインストール
+
+`docs/adr/INDEX.md` は `scripts/generate_adr_index.py` により自動生成される。新規クローン直後は以下を 1 回実行して pre-commit hook を有効化すること:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+これにより `docs/adr/NNNN-*.md` がコミットに含まれる際、hook が自動で `INDEX.md` を再生成・ステージングする。
+カテゴリマッピングは `.planning/adr-categories.yaml` で管理する。新規 ADR を追加したら YAML にも番号とカテゴリを追記すること。
 <!-- GSD:workflow-end -->
 
 

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: idle
-stopped_at: Phase 25 complete — React Router v7 URL ルーティング導入
-last_updated: "2026-04-14T00:00:00.000Z"
-last_activity: 2026-04-14 -- Phase 25 complete
+status: verifying
+stopped_at: Completed 26-03-PLAN.md
+last_updated: "2026-04-15T13:31:42.055Z"
+last_activity: 2026-04-15
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 Phase: 25 (react-router-v7-url-routing) — COMPLETE
 Plan: 1 of 1
 Milestone: v5.0 Agent Tool Platform
-Status: Executing Phase 22
-Last activity: 2026-04-13 -- Phase 22 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-04-15
 
 Progress: [██░░░░░░░░] 20% (1/5 phases)
 
@@ -87,6 +87,9 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 | Phase 13-scalable-routing P02 | 3min | 2 tasks | 3 files |
 | Phase 15-gem-canvas P04 | 0 | 3 tasks | 4 files |
 | Phase 19 P01 | 15min | 4 tasks | 5 files |
+| Phase 26 P01 | 4min | 3 tasks | 5 files |
+| Phase 26 P02 | 3min | 2 tasks | 1 files |
+| Phase 26 P03 | 6m | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -197,6 +200,10 @@ Recent decisions affecting current work:
 - [v5.0 Research]: MultiServerMCPClient v0.2.2 では async with パターン廃止 — get_tools() を直接呼ぶか session() を使う
 - [v5.0 Research]: Claude Code CLI は CLAUDECODE=1 を継承すると即失敗 — subprocess 起動前に env sanitization 必須
 - [v5.0 Research]: is_select_only() を app/jobs/handlers/iframe_rpc_handler.py から app/utils/sql_safety.py に移動して DB ツールで再利用
+- [Phase 26]: Date 正規表現を [*:\s]+ 文字クラス方式にして **Date:** と **Date**: を両立
+- [Phase 26]: Plan 02: INDEX.md 再生成は Plan 01 の生成結果と完全一致のため追加コミット不要。patterns.md は 21 エントリ 7 カテゴリで新規作成
+- [Phase 26]: CLAUDE.md に canonical_refs 必須追加ルールを明記（@import しない — D-12 準拠）
+- [Phase 26]: patterns.md は手動更新運用（D-15）— /create-adr にリマインダ追加
 
 ### Roadmap Evolution
 
@@ -214,6 +221,7 @@ Recent decisions affecting current work:
 - Phase 19 added: Canvas アプリのデプロイ＆ホスティング機能（/apps/{app-id}/ ルーティング、iframe ホスティングシェル、Phase 18 RPC ブリッジ流用）
 - v5.0 roadmap created (2026-04-10): Phases 20–24 — FastMCP Docker 基盤、bind_tools 統合、Web 検索、DB + Claude Code ツール、config.yaml ルーティング
 - Phase 25 added: React Router v6 導入による URL ルーティング実装 — アプリ種別+thread_id の URL 構造、APP_PREFIX(/orochi)対応、スレッド共有リンク基盤
+- Phase 26 added: ADR 整理 + patterns.md 作成 + GSD プランニング統合 — 33本のADRから再利用可能パターンを抽出し docs/patterns.md として圧縮、重複ADR統合、CLAUDE.md から参照させて /gsd-plan-phase で暗黙参照させる
 
 ### Pending Todos
 
@@ -267,6 +275,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-15 - Completed quick task 260415-mbc: Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する
-Last session: 2026-04-15T07:04:01.711Z
-Stopped at: v5.0 roadmap created (Phases 20–24)
+Last session: 2026-04-15T13:31:42.052Z
+Stopped at: Completed 26-03-PLAN.md
 Resume file: None
