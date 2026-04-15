@@ -89,7 +89,7 @@ async def test_handle_query_degraded():
 async def test_handle_ai_success():
     handler = IframeRpcHandler()
     job = {"github_token": "ghu_test"}
-    params = {"model": "claude-sonnet-4.5", "prompt": "Hello!"}
+    params = {"model": "claude-sonnet-4-6", "prompt": "Hello!"}
 
     mock_llm = AsyncMock()
     mock_llm.ainvoke = AsyncMock(return_value=MagicMock(content="Hi there!"))
@@ -165,7 +165,7 @@ async def test_handle_ai_dispatch():
         "job_id": "job-ai-1",
         "reply_to": {"type": "web", "job_id": "job-ai-1"},
         "rpc_method": "AI",
-        "rpc_params": {"model": "claude-sonnet-4.5", "prompt": "What is 2+2?"},
+        "rpc_params": {"model": "claude-sonnet-4-6", "prompt": "What is 2+2?"},
         "github_token": "ghu_test_token",
     }
 

@@ -29,10 +29,11 @@ Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI�
   <script type="module">
     import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
 
-    // AI 呼び出し例
+    // AI 呼び出し例（既定は haiku — 軽量・高速・低コスト）
     async function askAI() {
       try {
         const res = await ai('こんにちは！一言で挨拶してください。');
+        // 複雑な推論が必要なら: await ai(prompt, { model: 'sonnet' })
         console.log(res.responseText);
       } catch (e) {
         console.error(e.message);
@@ -57,13 +58,24 @@ Canvas アプリ（HTML）は、`iframe-rpc.js` ライブラリを通じて AI�
 
 | メソッド | シグネチャ | 戻り値 |
 |---------|-----------|--------|
-| `ai` | `(prompt: string, timeoutMs?: number)` | `{ responseText: string }` |
+| `ai` | `(prompt: string, opts?: { model?: string, timeoutMs?: number } \| number)` | `{ responseText: string }` |
 | `query` | `(poolName: string, sql: string, timeoutMs?: number)` | `{ rows: object[] }` |
 | `call` | `(method: string, params: object, timeoutMs?: number)` | `object` |
 
 - エラー時は `Promise.reject(new Error(...))` — `try/catch` で処理する
 - `RPC.ai` のデフォルトタイムアウト: 60秒、`RPC.query`: 30秒
 - `RPC.query` は SELECT 文のみ有効（INSERT/UPDATE/DELETE は拒否される）
+
+#### `ai()` のモデル指定
+
+| エイリアス | 実モデル | 用途 |
+|-----------|---------|------|
+| `haiku` *(既定)* | Claude Haiku 4.5 | 軽量・高速・低コスト |
+| `sonnet` | Claude Sonnet 4.6 | バランス型（複雑な説明・コード生成） |
+| `gpt-4.1` | GPT-4.1 | 長文推論・構造化出力 |
+
+- 第 2 引数に `number` を渡すと旧シグネチャ互換で `timeoutMs` として扱われる
+- 未知のモデル指定は silent fallback せず `Error` が送出される
 
 ---
 

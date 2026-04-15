@@ -5,6 +5,8 @@
  *   <script type="module">
  *     import { ai, query, call } from '$URL_PREFIX/js/iframe-rpc.js';
  *     const res = await ai('Hello');
+ *     const res2 = await ai('Hello', { model: 'sonnet' });       // モデル指定
+ *     const res3 = await ai('Hi',    { model: 'haiku', timeoutMs: 30000 });
  *   </script>
  *
  * Communicates with the parent frame via postMessage using JSON-RPC 2.0 protocol.
@@ -55,12 +57,33 @@ function _call(method, params, timeoutMs) {
 
 /**
  * Call the parent AI endpoint.
+ *
  * @param {string} prompt
- * @param {number} [timeoutMs=60000]
+ * @param {object|number} [optsOrTimeout]
+ *   Object form (new): `{ model?, timeoutMs? }`
+ *     - `model` — alias (`'haiku'`|`'sonnet'`|`'gpt-4.1'`) or a full Copilot
+ *       model ID. If omitted, the server defaults to Haiku (low-cost, fast).
+ *       Unknown values are rejected with `{result:false, error:...}` — no
+ *       silent fallback.
+ *     - `timeoutMs` — RPC timeout in ms (default 60000).
+ *   Number form (legacy): `ai(prompt, 30000)` — treated as `timeoutMs`.
  * @returns {Promise<{result: true, responseText: string}>}
  */
-export function ai(prompt, timeoutMs = 60000) {
-  return _call('AI', { prompt }, timeoutMs);
+export function ai(prompt, optsOrTimeout) {
+  let model;
+  let timeoutMs = 60000;
+  if (typeof optsOrTimeout === 'number') {
+    // legacy: ai(prompt, 30000)
+    timeoutMs = optsOrTimeout;
+  } else if (optsOrTimeout && typeof optsOrTimeout === 'object') {
+    model = optsOrTimeout.model;
+    if (typeof optsOrTimeout.timeoutMs === 'number') {
+      timeoutMs = optsOrTimeout.timeoutMs;
+    }
+  }
+  const params = { prompt };
+  if (model !== undefined) params.model = model;
+  return _call('AI', params, timeoutMs);
 }
 
 /**

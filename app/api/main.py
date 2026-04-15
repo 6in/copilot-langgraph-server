@@ -215,9 +215,12 @@ async def lifespan(app: FastAPI):
   <script type="module">
     import { ai, query } from '$URL_PREFIX/js/iframe-rpc.js';
 
-    // AI 呼び出し例
+    // AI 呼び出し例（既定は haiku = 軽量・高速・低コスト）
     // const res = await ai('こんにちは！');
     // console.log(res.responseText);
+
+    // モデル指定例（用途に応じて使い分け）
+    // const res = await ai('複雑な要約をお願いします', { model: 'sonnet' });
 
     // DB クエリ例（SELECT のみ有効）
     // const res = await query('default', 'SELECT current_timestamp AS now');
@@ -230,12 +233,24 @@ async def lifespan(app: FastAPI):
 ## RPC API リファレンス
 | メソッド | シグネチャ | 戻り値 |
 |---------|-----------|-------|
-| `ai` | `(prompt: string, timeoutMs?: number)` | `{ responseText: string }` |
+| `ai` | `(prompt: string, opts?: { model?: string, timeoutMs?: number } \\| number)` | `{ responseText: string }` |
 | `query` | `(poolName: string, sql: string, timeoutMs?: number)` | `{ rows: object[] }` |
 | `call` | `(method: string, params: object, timeoutMs?: number)` | `object` |
 
 - エラー時は `Promise.reject(new Error(...))` — `try/catch` で処理すること
 - `query` は SELECT 文のみ有効（INSERT/UPDATE/DELETE は拒否される）
+
+### `ai()` のモデル指定
+
+| エイリアス | 実モデル | 用途の目安 |
+|-----------|---------|-----------|
+| `haiku` *(既定)* | Claude Haiku 4.5 | 軽量・高速・低コスト — 挨拶/要約/分類など |
+| `sonnet` | Claude Sonnet 4.6 | バランス型 — 複雑な説明・コード生成 |
+| `gpt-4.1` | GPT-4.1 | 長文推論・厳密な構造化出力 |
+
+- 第 2 引数を省略すると `haiku` で呼ばれる
+- 旧シグネチャ互換: 第 2 引数に `number` を渡すと `timeoutMs` として扱われる（既存アプリを壊さない）
+- 上記エイリアス以外の未知モデルは拒否され `Error` が送出される（silent fallback なし）
 """
             CANVAS_DESCRIPTION = "AI チャットで HTML アプリを生成・プレビュー・デプロイします"
             cur_gem = await conn.execute(

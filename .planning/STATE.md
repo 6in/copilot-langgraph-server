@@ -257,6 +257,7 @@ Recent decisions affecting current work:
 | 260409-h78 | CanvasChatApp 送信時に現在の HTML をプロンプトに自動埋め込み (onHtmlChange コールバック) | 2026-04-09 | 9f7b00e | [260409-h78-canvaschatapp-html](.planning/quick/260409-h78-canvaschatapp-html/) |
 | 260414-hwa | Canvas iframe_rpc_handler の DB アクセスを MCP db_query ツール経由に移行する | 2026-04-14 | 402bfa7 | [260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer](.planning/quick/260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer/) |
 | 260415-lnq | db_pools.yaml に接続プールのチューニングパラメータを追加する | 2026-04-15 | 859bae7 | [260415-lnq-db-pools-yaml](.planning/quick/260415-lnq-db-pools-yaml/) |
+| 260415-mbc | Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する | 2026-04-15 | 3185a82 | [260415-mbc-canvas-ai](.planning/quick/260415-mbc-canvas-ai/) |
 
 ### Blockers/Concerns
 
@@ -265,7 +266,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-15 - Completed quick task 260415-lnq: db_pools.yaml に接続プールのチューニングパラメータを追加する
-Last session: 2026-04-15T06:35:41.846Z
+Last activity: 2026-04-15 - Completed quick task 260415-mbc: Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する
+Last session: 2026-04-15T07:04:01.711Z
 Stopped at: v5.0 roadmap created (Phases 20–24)
 Resume file: None

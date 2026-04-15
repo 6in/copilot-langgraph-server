@@ -24,6 +24,46 @@ from langchain_core.messages import HumanMessage
 logger = logging.getLogger(__name__)
 
 
+# AI モデルエイリアス → Copilot SDK の実モデル ID へのマッピング。
+# 将来 config.yaml に移行する余地を残すためクラス外の定数として定義する。
+MODEL_ALIASES: dict[str, str] = {
+    "haiku": "claude-haiku-4-5-20251001",
+    "sonnet": "claude-sonnet-4-6",
+    "gpt-4.1": "gpt-4.1",
+}
+# 許可済み実モデル ID（エイリアスを使わず直接指定された場合のホワイトリスト）
+ALLOWED_MODEL_IDS: frozenset[str] = frozenset(MODEL_ALIASES.values())
+DEFAULT_MODEL_ALIAS: str = "haiku"
+
+
+def resolve_model(value: str | None) -> str:
+    """モデル値をエイリアス解決する。
+
+    - None → 既定 (haiku)
+    - エイリアス ('haiku'/'sonnet'/'gpt-4.1') → 対応する実 ID
+    - 実 ID 直指定 (ALLOWED_MODEL_IDS 内) → 素通り
+    - 空文字列・未知のエイリアス・ALLOWED 外の実 ID → ValueError
+
+    silent fallback は行わない。呼び出し側は ValueError を捕捉して
+    {"result": False, "error": str(e)} を返すこと。
+    """
+    if value is None:
+        return MODEL_ALIASES[DEFAULT_MODEL_ALIAS]
+    if value == "":
+        raise ValueError(
+            f"model must not be empty. Allowed aliases: {sorted(MODEL_ALIASES.keys())}, "
+            f"or one of the real IDs: {sorted(ALLOWED_MODEL_IDS)}"
+        )
+    if value in MODEL_ALIASES:
+        return MODEL_ALIASES[value]
+    if value in ALLOWED_MODEL_IDS:
+        return value
+    raise ValueError(
+        f"Unknown model '{value}'. Allowed aliases: {sorted(MODEL_ALIASES.keys())}, "
+        f"or one of the real IDs: {sorted(ALLOWED_MODEL_IDS)}"
+    )
+
+
 def _json_default(obj):
     """非 JSON 型を文字列へ変換する（handle() の save_result 互換用）。"""
     if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
@@ -120,9 +160,15 @@ class IframeRpcHandler(TaskHandler):
             {"result": true, "responseText": "..."} on success
             {"result": false, "error": "..."} on exception
         """
-        model = params.get("model", "claude-sonnet-4.5")
+        raw_model = params.get("model")  # None と未指定は同一扱い(default=haiku)、
+        # 空文字列 "" は明示的な無効値として拒否する
         prompt = params.get("prompt", "")
         github_token = job.get("github_token", "")
+
+        try:
+            model = resolve_model(raw_model)
+        except ValueError as e:
+            return {"result": False, "error": str(e)}
 
         llm = ChatCopilot(github_token=github_token, model=model)
         try:
