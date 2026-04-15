@@ -1,5 +1,15 @@
 # Local development DB pool config.
 # Uses the same postgres instance as the main app.
+#
+# 接続プールのチューニングパラメータ（すべて任意 — 省略時は psycopg_pool のデフォルト値が適用される）:
+#   min_size:          プール内の最小接続数（psycopg_pool デフォルト: 4）
+#   max_size:          プール内の最大接続数（デフォルト: min_size と同じ）
+#   max_idle:          アイドル接続を保持する最大秒数（デフォルト: 600 秒）
+#   reconnect_timeout: 接続失敗時に再接続を試み続ける最大秒数（デフォルト: 300 秒）
 pools:
   default:
     dsn: postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    min_size: 1
+    max_size: 5
+    max_idle: 300
+    reconnect_timeout: 30

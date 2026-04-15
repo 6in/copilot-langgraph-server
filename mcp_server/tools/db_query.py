@@ -87,12 +87,20 @@ async def init_pools(config_path: str = "/mcp_server/config/db_pools.yaml") -> N
     pools_config = config.get("pools", {})
     for name, pool_cfg in pools_config.items():
         dsn = pool_cfg.get("dsn", "")
+        # YAML で指定されたチューニングパラメータのみを kwargs に含める。
+        # 未指定のキーは psycopg_pool のデフォルト値にフォールバックさせる（後方互換）。
+        pool_kwargs: dict = {}
+        for key in ("min_size", "max_size", "max_idle", "reconnect_timeout"):
+            if key in pool_cfg:
+                pool_kwargs[key] = pool_cfg[key]
         try:
-            pool = AsyncConnectionPool(dsn, open=False, min_size=1, max_size=5)
+            pool = AsyncConnectionPool(dsn, open=False, **pool_kwargs)
             await pool.open()
             _pools[name] = pool
             # T-23-03: DSN をログに出さない — pool 名のみ
             logger.info("db_query: pool '%s' opened", name)
+            # T-23-03: pool_kwargs は DSN を含まないためデバッグログ出力可。
+            logger.debug("db_query: pool '%s' kwargs=%s", name, pool_kwargs)
         except Exception as e:
             logger.error("db_query: failed to open pool '%s' — %s", name, e)
 
