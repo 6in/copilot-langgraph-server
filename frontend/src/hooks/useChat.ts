@@ -44,6 +44,7 @@ interface UseChatOptions {
 interface UseChatReturn {
   isThinking: boolean;
   currentTool: {tool: string; query: string} | null;
+  streamPreview: string;
   sendMessage: (text: string, threadId?: string) => Promise<void>;
 }
 
@@ -91,6 +92,7 @@ export function useChat({
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
   const [currentTool, setCurrentTool] = useState<{tool: string; query: string} | null>(null);
+  const [streamPreview, setStreamPreview] = useState<string>('');
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Cleanup fallback polling timer on unmount
@@ -113,6 +115,7 @@ export function useChat({
 
     // Optimistically add user message
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setStreamPreview('');
     setIsThinking(true);
 
     try {
@@ -197,7 +200,17 @@ export function useChat({
 
       es.onmessage = async (e: MessageEvent) => {
         try {
-          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string }; tool?: string; query?: string };
+          const event = JSON.parse(e.data as string) as { status: string; turn?: { name: string; content: string }; tool?: string; query?: string; token?: string };
+          if (event.status === 'token') {
+            // SDK streaming=True による real-time delta（1〜4 文字/chunk）を蓄積。
+            // 末尾 200 文字のみ保持して DOM 肥大化を防ぐ。
+            const incoming = event.token ?? '';
+            setStreamPreview((prev) => {
+              const next = prev + incoming;
+              return next.length > 200 ? next.slice(-200) : next;
+            });
+            return;
+          }
           if (event.status === 'message' && event.turn) {
             // リアルタイムで各エージェントの発言を表示
             streamedTurnCount++;
@@ -217,6 +230,7 @@ export function useChat({
               const parsed = (() => { try { return JSON.parse(result.result); } catch { return null; } })();
               if (parsed?.type === 'debate_result') {
                 // SSE で未表示のターンを result から補完（ストリーム失敗時のフォールバック）
+                setStreamPreview('');
                 const allTurns: DebateTurn[] = parsed.turns ?? [];
                 if (allTurns.length > streamedTurnCount) {
                   const remaining = allTurns.slice(streamedTurnCount);
@@ -236,8 +250,13 @@ export function useChat({
                   });
                 }
               } else {
+                // 通常応答: 真のストリーミング（SDK streaming=True）により streamPreview は
+                // 既に応答末尾が表示されている。プレビューを消して完成メッセージに切替える。
+                setStreamPreview('');
                 handleResult(result.result);
               }
+            } else {
+              setStreamPreview('');
             }
             setIsThinking(false);
             await refreshThreads?.();
@@ -276,5 +295,5 @@ export function useChat({
     }
   }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
 
-  return { isThinking, currentTool, sendMessage };
+  return { isThinking, currentTool, streamPreview, sendMessage };
 }

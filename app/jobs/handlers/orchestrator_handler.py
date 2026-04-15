@@ -148,7 +148,22 @@ class OrchestratorHandler(TaskHandler):
 
                 _token = tool_event_cb.set(_tool_cb)
                 try:
-                    result = await graph.ainvoke(initial, config=config)
+                    # astream_events で on_chat_model_stream を捕捉してトークンを SSE に流す。
+                    # Router (graph.py::Router) と ToolEnabledSubAgent は ainvoke のままなので
+                    # これらの LLM 呼び出しは stream 発火しない（意図通り）。
+                    # tool なし SubAgent / GemSubAgent のみ token が流れる。
+                    result = None
+                    async for event in graph.astream_events(initial, config=config, version="v2"):
+                        kind = event.get("event")
+                        if kind == "on_chat_model_stream":
+                            chunk = event["data"].get("chunk")
+                            token = getattr(chunk, "content", None) if chunk is not None else None
+                            if token:
+                                await notifier.send_token(token)
+                        elif kind == "on_chain_end" and event.get("name") == "LangGraph":
+                            result = event["data"].get("output")
+                    if result is None:
+                        result = await graph.ainvoke(initial, config=config)
                 finally:
                     tool_event_cb.reset(_token)
                     await job_store.clear_tool_event(job_id)

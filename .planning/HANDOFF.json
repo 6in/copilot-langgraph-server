@@ -1,47 +1,49 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-09T06:15:05.537Z",
-  "phase": "19",
-  "phase_name": "canvas-apps-app-id-iframe-phase-18-rpc",
-  "phase_dir": ".planning/phases/19-canvas-apps-app-id-iframe-phase-18-rpc",
-  "plan": 2,
-  "task": 2,
-  "total_tasks": 2,
+  "timestamp": "2026-04-15T02:38:58.249Z",
+  "phase": "quick-260415-fhu",
+  "phase_name": "AI 応答ストリーミングプレビュー実装",
+  "phase_dir": ".planning/quick/260415-fhu-ai",
+  "plan": 1,
+  "task": 4,
+  "total_tasks": 4,
   "status": "paused",
   "completed_tasks": [
-    {"id": "19-01 T1", "name": "parent-bridge.js 作成", "status": "done", "commit": "6f255f8"},
-    {"id": "19-01 T2", "name": "hosted_apps.py 作成", "status": "done", "commit": "ead25e7"},
-    {"id": "19-01 T3", "name": "CanvasPane.tsx リファクタ", "status": "done", "commit": "e10b637"},
-    {"id": "19-01 T4", "name": "iframe_rpc JWT 削除 + main.py 登録", "status": "done", "commit": "b6fec71"},
-    {"id": "19-02 T1", "name": "自動検証 ALL CHECKS PASSED", "status": "done", "commit": null},
-    {"id": "fix-1", "name": "trailing slash 404 修正", "status": "done", "commit": "cfadc7c"},
-    {"id": "fix-2", "name": "$URL_PREFIX / VITE_APP_BASE 修正", "status": "done", "commit": "cb7aebc"},
-    {"id": "fix-3", "name": "window.__APP_PREFIX 注入", "status": "done", "commit": "c824d10"}
+    {"id": 1, "name": "ChatCopilot._astream + Notifier.send_token 追加", "status": "done", "commit": "92b6ddf"},
+    {"id": 2, "name": "langgraph_handler astream_events 配管", "status": "done", "commit": "9e4ba2b"},
+    {"id": 3, "name": "フロント streamPreview 表示 + done ハンドラ 1500ms プレビュー", "status": "done", "commit": "56c2802"},
+    {"id": 4, "name": "human-verify checkpoint", "status": "in_progress", "progress": "ユーザーが docker restart frontend 後にブラウザで動作確認中"}
   ],
   "remaining_tasks": [
-    {"id": "19-02 T2", "name": "人間確認チェックポイント（ブラウザ動作確認）", "status": "not_started"}
+    {"id": 4, "name": "ブラウザ動作確認 (human-verify) → approved 受領", "status": "in_progress"},
+    {"id": "merge", "name": "quick ブランチを main に squash merge + STATE.md 更新", "status": "not_started"}
   ],
   "blockers": [
     {
-      "description": "ブラウザでの動作確認が未完了。docker restart 後の確認待ち。",
-      "type": "human_action",
-      "workaround": "none"
+      "description": "Copilot SDK が ASSISTANT_MESSAGE_DELTA イベントを発火しない（Technical Preview 制限）",
+      "type": "technical",
+      "workaround": "ASSISTANT_MESSAGE フォールバック + フロントの done ハンドラで 150 文字を 1500ms 表示"
+    },
+    {
+      "description": "chatbot_node が llm.ainvoke() を使うため astream_events の on_chat_model_stream が発火しない",
+      "type": "technical",
+      "workaround": "フロント側フォールバックで対応済み。SDK が将来 delta を送り始めれば自動昇格"
     }
   ],
   "human_actions_pending": [
     {
-      "action": "http://localhost:5173/orochi/apps/{app_id}/ をブラウザで開いて動作確認し、OK なら approved と入力",
-      "context": "Plan 02 Task 2 のチェックポイント。自動検証は通過済み。",
+      "action": "ブラウザで http://localhost:5173/orochi/ を開き、チャット送信時に 3 ドット下に gray テキストが約 1.5 秒表示されることを確認",
+      "context": "docker compose restart frontend 実行済み。確認できたら 'approved' と返答",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "parent-bridge.js で window.__APP_PREFIX を使って API URL を構築", "rationale": "Vite プロキシは /orochi/api/ のみマッチするため、プレフィックスなしの /api/ が 404 になる", "phase": "19"},
-    {"decision": "VITE_APP_BASE を docker-compose.yml の api サービスにも追加", "rationale": "hosted_apps.py が URL プレフィックスを知る必要がある", "phase": "19"},
-    {"decision": "$URL_PREFIX を hosted_apps.py の srcdoc 生成時に置換", "rationale": "Canvas HTML の $URL_PREFIX はサーバー側で解決する必要がある", "phase": "19"},
-    {"decision": "trailing slash バリアントを @router.get 追加", "rationale": "StaticFiles mount がプレフィックスマッチで先に捕捉するため redirect_slashes が機能しない", "phase": "19"}
+    {"decision": "ASSISTANT_MESSAGE_DELTA 未対応のフォールバックとして done ハンドラで previewText.slice(0,150) を 1500ms 表示", "rationale": "SDK が delta を送らないため、受信完了後の一時表示で streaming 感を演出", "phase": "quick-260415-fhu"},
+    {"decision": "asyncio.get_running_loop() を _astream 内で使用", "rationale": "Python 3.12 では get_event_loop() が非推奨", "phase": "quick-260415-fhu"},
+    {"decision": "max-height 制限を撤廃", "rationale": "3em では視認できなかった", "phase": "quick-260415-fhu"},
+    {"decision": "token SSE イベントの大きな chunk (>=100 chars) は done ハンドラ側でプレビュー処理するため無視", "rationale": "フォールバックパスで full text が 1 chunk で届くが done とほぼ同時で視認不可のため", "phase": "quick-260415-fhu"}
   ],
   "uncommitted_files": [],
-  "next_action": "ブラウザで http://localhost:5173/orochi/apps/{app_id}/ を開いて動作確認。OK なら approved を入力して Plan 02 完了",
-  "context_notes": "Plan 01 は全タスク完了・コミット済み。Plan 02 の人間確認チェックポイントのみ残っている。4つのデバッグ修正がすべてコミット済みで最後の docker restart が完了した状態でポーズ。"
+  "next_action": "ユーザーの approved を受けて quick ブランチを main に squash merge し STATE.md の Quick Tasks Completed を更新する",
+  "context_notes": "SDK の delta streaming が効かないため全てフロント側フォールバックで対応。_astream 実装自体は正しく、将来 SDK が delta を送り始めたとき自動的に真のストリーミングに昇格する設計。"
 }

@@ -81,7 +81,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     await refreshThreads();
   };
 
-  const { isThinking, sendMessage } = useChat({
+  const { isThinking, streamPreview, sendMessage } = useChat({
     activeThreadId,
     selectedModel,
     setMessages,
@@ -173,6 +173,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
             <MessageArea
               messages={messages}
               isThinking={isThinking}
+              streamPreview={streamPreview}
               onSend={handleSend}
             />
             {canvasApp && (

@@ -121,7 +121,14 @@ class SubAgent:
             SystemMessage(content=system_prompt),
             HumanMessage(content=state["input"]),
         ]
-        response = await self._llm.ainvoke(messages)
+        # llm.astream() で iterate することで LangGraph の on_chat_model_stream が
+        # 発火し、orchestrator_handler が notifier.send_token 経由で SSE にトークンを
+        # 流せるようになる。chunk を accumulate して最終 AIMessage を返す。
+        response: AIMessage | None = None
+        async for chunk in self._llm.astream(messages):
+            response = chunk if response is None else response + chunk
+        if response is None:
+            response = AIMessage(content="")
         return {
             "output": response.content,
             "agent_name": self.name,

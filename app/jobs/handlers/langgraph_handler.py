@@ -87,11 +87,26 @@ class LangGraphHandler(TaskHandler):
                 # HumanMessage のみ state に追加（SystemMessage は含めない）
                 messages_input: list = [HumanMessage(content=prompt)]
 
-                result = await graph.ainvoke(
-                    {"messages": messages_input},
-                    config=config,
-                )
-                final_text = result["messages"][-1].content
+                # astream_events(version="v2") で on_chat_model_stream を捕捉して
+                # トークンを send_token 経由で SSE に転送する。
+                # on_chain_end / LangGraph イベントから最終状態を取得する。
+                state_input = {"messages": messages_input}
+                final_state = None
+                async for event in graph.astream_events(state_input, config=config, version="v2"):
+                    kind = event.get("event")
+                    if kind == "on_chat_model_stream":
+                        chunk = event["data"].get("chunk")
+                        token = getattr(chunk, "content", None) if chunk is not None else None
+                        if token:
+                            await notifier.send_token(token)
+                    elif kind == "on_chain_end" and event.get("name") == "LangGraph":
+                        final_state = event["data"].get("output")
+
+                if final_state is None:
+                    # フォールバック: astream_events がルート出力を返さなかった場合
+                    final_state = await graph.ainvoke(state_input, config=config)
+
+                final_text = final_state["messages"][-1].content
 
                 # Canvas Gem の場合: HTML 抽出 + canvas_apps upsert + JSON result
                 if gem_type == "canvas":

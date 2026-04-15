@@ -99,7 +99,14 @@ def build_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
         if gem_system_prompt:
             system_messages.append(SystemMessage(content=gem_system_prompt))
 
-        response = await llm.ainvoke(system_messages + state["messages"])
+        # llm.astream() で iterate することで LangGraph の on_chat_model_stream が
+        # 発火し、langgraph_handler が notifier.send_token 経由で SSE にトークンを
+        # 流せるようになる。chunk を accumulate して最終 AIMessage を返す。
+        response: AIMessage | None = None
+        async for chunk in llm.astream(system_messages + state["messages"]):
+            response = chunk if response is None else response + chunk
+        if response is None:
+            response = AIMessage(content="")
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)
@@ -133,7 +140,11 @@ def build_canvas_graph(llm: BaseChatModel, checkpointer: BaseCheckpointSaver):
         if gem_system_prompt:
             system_messages.append(SystemMessage(content=gem_system_prompt))
 
-        response = await llm.ainvoke(system_messages + _trim_html_history(state["messages"]))
+        response: AIMessage | None = None
+        async for chunk in llm.astream(system_messages + _trim_html_history(state["messages"])):
+            response = chunk if response is None else response + chunk
+        if response is None:
+            response = AIMessage(content="")
         return {"messages": [response]}
 
     builder = StateGraph(MessagesState)

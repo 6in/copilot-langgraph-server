@@ -173,25 +173,36 @@ async def stream_job(job_id: str, request: Request, payload: dict = Depends(get_
     async def generator():
         import asyncio
         seen_turns = 0
+        seen_tokens = 0
         while True:
             if await request.is_disconnected():
                 break
-            # 新しいターンをポーリング（500ms ごと）
+            # 新しいターンをポーリング
             turns = await job_store.get_turns(job_id, since=seen_turns)
             for turn in turns:
                 yield f"data: {json.dumps({'status': 'message', 'turn': turn})}\n\n"
                 seen_turns += 1
+            # 新しいストリーミングトークンを drain
+            tokens = await job_store.get_tokens(job_id, since=seen_tokens)
+            for tok in tokens:
+                yield f"data: {json.dumps({'status': 'token', 'token': tok})}\n\n"
+                seen_tokens += 1
             # 完了チェック
             result = await job_store.get(job_id)
             if result and result.get("status") == "done":
+                # 残っているトークンを最後に flush
+                tokens = await job_store.get_tokens(job_id, since=seen_tokens)
+                for tok in tokens:
+                    yield f"data: {json.dumps({'status': 'token', 'token': tok})}\n\n"
+                    seen_tokens += 1
                 yield f"data: {json.dumps({'status': 'done'})}\n\n"
                 break
             tool_info = await job_store.get_tool_event(job_id)
             if tool_info:
                 yield f"data: {json.dumps({'status': 'tool_executing', 'tool': tool_info['tool'], 'query': tool_info.get('query', '')})}\n\n"
-            else:
+            elif not tokens:
                 yield f"data: {json.dumps({'status': 'thinking'})}\n\n"
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.15)
 
     return StreamingResponse(
         generator(),

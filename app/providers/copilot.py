@@ -13,19 +13,20 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
 import uuid
-from typing import Any, List, Optional, Sequence
+from typing import Any, AsyncIterator, List, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.messages.tool import ToolCall
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict, PrivateAttr
@@ -33,6 +34,7 @@ from pydantic import ConfigDict, PrivateAttr
 # SDK imports are at module top-level so that tests can patch them at
 # app.providers.copilot.CopilotClient / SubprocessConfig / PermissionHandler
 from copilot import CopilotClient, SubprocessConfig, PermissionHandler  # type: ignore[import-untyped]
+from copilot.generated.session_events import SessionEventType  # type: ignore[import-untyped]
 
 
 class ChatCopilot(BaseChatModel):
@@ -117,6 +119,81 @@ class ChatCopilot(BaseChatModel):
                     ChatGeneration(message=AIMessage(content=content))
                 ]
             )
+        except Exception:
+            # Reset client so next call will re-initialise cleanly
+            try:
+                await self._client.stop()
+            except Exception:
+                pass
+            self._client = None
+            raise
+
+    async def _astream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """Stream tokens from Copilot using ASSISTANT_MESSAGE_DELTA events.
+
+        Uses session.on() to register event handlers and session.send() (non-blocking)
+        to initiate the request, then yields ChatGenerationChunk for each delta token.
+
+        Falls back to ASSISTANT_MESSAGE full content if no delta events are received
+        (e.g. when the SDK version doesn't emit deltas — Technical Preview limitation).
+
+        The handler is registered BEFORE send() to avoid missing early delta events.
+        """
+        await self._ensure_client()
+        prompt = self._messages_to_prompt(messages)
+
+        try:
+            session = await self._client.create_session(
+                on_permission_request=PermissionHandler.approve_all,
+                model=self.model,
+                streaming=True,
+            )
+
+            # asyncio.Queue items: str (token) or None (completion signal)
+            queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+            # Capture the running loop here (inside async context) for use in sync callback
+            loop = asyncio.get_running_loop()
+            # Track whether any delta tokens arrived (for fallback logic)
+            has_deltas: list[bool] = [False]
+            fallback_content: list[Optional[str]] = [None]
+
+            def on_event(event: Any) -> None:
+                event_type = getattr(event, "type", None)
+                if event_type == SessionEventType.ASSISTANT_MESSAGE_DELTA:
+                    token = getattr(event.data, "delta_content", None)
+                    if token:
+                        has_deltas[0] = True
+                        loop.call_soon_threadsafe(queue.put_nowait, token)
+                elif event_type == SessionEventType.ASSISTANT_MESSAGE:
+                    # Capture full content as fallback when no deltas are emitted
+                    content = getattr(event.data, "content", None)
+                    if content:
+                        fallback_content[0] = content
+                elif event_type == SessionEventType.SESSION_IDLE:
+                    # If no deltas arrived, emit the full message as a single chunk
+                    if not has_deltas[0] and fallback_content[0]:
+                        loop.call_soon_threadsafe(queue.put_nowait, fallback_content[0])
+                    loop.call_soon_threadsafe(queue.put_nowait, None)
+
+            # Register handler BEFORE send() to avoid missing early delta events
+            session.on(on_event)
+            await session.send(prompt)
+
+            # Yield chunks from the queue until completion signal (None)
+            while True:
+                token = await asyncio.wait_for(queue.get(), timeout=120.0)
+                if token is None:
+                    break
+                yield ChatGenerationChunk(message=AIMessageChunk(content=token))
+
+            await session.disconnect()
+
         except Exception:
             # Reset client so next call will re-initialise cleanly
             try:

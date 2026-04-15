@@ -42,6 +42,16 @@ class JobStore:
         await self.redis.rpush(f"job:{job_id}:turns", _json.dumps({"name": name, "content": content}))
         await self.redis.expire(f"job:{job_id}:turns", 3600)
 
+    async def push_token(self, job_id: str, token: str) -> None:
+        """Append a streaming token to a Redis list (cross-process safe, polled by SSE)."""
+        await self.redis.rpush(f"job:{job_id}:tokens", token)
+        await self.redis.expire(f"job:{job_id}:tokens", 3600)
+
+    async def get_tokens(self, job_id: str, since: int = 0) -> list[str]:
+        """Return streaming tokens from index `since` onward."""
+        raws = await self.redis.lrange(f"job:{job_id}:tokens", since, -1)
+        return [r.decode() if isinstance(r, bytes) else r for r in raws]
+
     async def get_turns(self, job_id: str, since: int = 0) -> list[dict]:
         """Return debate turns from index `since` onward."""
         raws = await self.redis.lrange(f"job:{job_id}:turns", since, -1)
