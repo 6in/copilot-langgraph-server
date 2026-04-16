@@ -19,7 +19,7 @@ import { useCanvas } from '../hooks/useCanvas';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { agentAccentColor } from '../utils/agentColor';
 import { renameThread } from '../api/client';
-import type { AgentInfo, CanvasAppInfo } from '../types';
+import type { AgentInfo, CanvasAppInfo, ContextMessage } from '../types';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -207,13 +207,13 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     await refreshThreads();
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, contextMessages?: ContextMessage[]) => {
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
       navigate(`/superchat/${appSlug}/${threadId}`, { replace: true });
     }
-    await sendMessage(text, threadId);
+    await sendMessage(text, threadId, contextMessages);
     await refreshThreads();
   };
 
@@ -297,6 +297,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               streamPreview={streamPreview}
               onSend={handleSend}
               onCancel={cancelJob}
+              enableResend
             />
           )}
         </div>

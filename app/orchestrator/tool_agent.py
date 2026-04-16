@@ -183,8 +183,16 @@ class ToolEnabledSubAgent:
         system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
         init_messages: list[BaseMessage] = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=state["input"]),
         ]
+        # Inject past conversation context if provided
+        ctx_msgs = state.get("context_messages")
+        if ctx_msgs:
+            for cm in ctx_msgs:
+                if cm["role"] == "user":
+                    init_messages.append(HumanMessage(content=cm["content"]))
+                else:
+                    init_messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
+        init_messages.append(HumanMessage(content=state["input"]))
         try:
             result = await mini_graph.ainvoke(
                 {"messages": init_messages},

@@ -26,6 +26,13 @@ class AppInfo(BaseModel):
     type: str = "superchat"
 
 
+class ContextMessage(BaseModel):
+    """Past conversation message for context injection (SuperChat)."""
+    role: Literal["user", "ai"]
+    content: str
+    sender_name: str | None = None
+
+
 class ChatRequest(BaseModel):
     message: str
     thread_id: str
@@ -36,6 +43,7 @@ class ChatRequest(BaseModel):
     app_id: str | None = None  # Application identifier (preferred over mode-derived mapping)
     gem_id: str | None = None  # Phase 15: Gem ID for thread association
     gem_ids: list[str] | None = None  # Phase 16: Gem IDs for SuperChat sub-agents
+    context_messages: list[ContextMessage] | None = None  # 過去の会話コンテキスト（SuperChat用）
     # Phase 17: 討論チャット用フィールド
     participants: list[str] | None = None  # 討論参加者エージェント名リスト
     pattern: str = "debate"                # "debate" | "panel" | "chain"

@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
-import type { CanvasAppInfo, CanvasResult, ChatMessage } from '../types';
+import type { CanvasAppInfo, CanvasResult, ChatMessage, ContextMessage } from '../types';
 
 // Phase 17: 討論チャット結果
 interface DebateTurn {
@@ -45,7 +45,7 @@ interface UseChatReturn {
   isThinking: boolean;
   currentTool: {tool: string; query: string} | null;
   streamPreview: string;
-  sendMessage: (text: string, threadId?: string) => Promise<void>;
+  sendMessage: (text: string, threadId?: string, contextMessages?: ContextMessage[]) => Promise<void>;
   cancelJob: () => void;
 }
 
@@ -107,7 +107,7 @@ export function useChat({
     };
   }, []);
 
-  const sendMessage = useCallback(async (text: string, threadId?: string) => {
+  const sendMessage = useCallback(async (text: string, threadId?: string, contextMessages?: ContextMessage[]) => {
     if (!text.trim() || isThinking) return;
 
     // Prefer explicitly passed threadId (avoids stale closure when caller just
@@ -136,6 +136,8 @@ export function useChat({
         ...(gemId ? { gem_id: gemId } : {}),
         // Phase 15: Pass gem_ids when multiple Gems are selected
         ...(gemIds && gemIds.length > 0 ? { gem_ids: gemIds } : {}),
+        // 過去の会話コンテキスト（SuperChat用）
+        ...(contextMessages && contextMessages.length > 0 ? { context_messages: contextMessages } : {}),
         // Phase 17: 討論チャットフィールド
         ...(participants && participants.length > 0 ? { participants } : {}),
         ...(pattern ? { pattern } : {}),

@@ -132,6 +132,7 @@ async def process_chat(
     app_id: str | None = None,
     gem_id: str | None = None,
     gem_ids: list[str] | None = None,
+    context_messages: list[dict] | None = None,  # 過去の会話コンテキスト
     # Phase 17: 討論チャット
     participants: list[str] | None = None,
     pattern: str = "debate",
@@ -169,6 +170,7 @@ async def process_chat(
         "app_id": app_id,
         "gem_id": gem_id,
         "gem_ids": gem_ids,
+        "context_messages": context_messages,
         # Phase 17
         "participants": participants,
         "pattern": pattern,

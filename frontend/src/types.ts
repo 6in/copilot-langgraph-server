@@ -72,6 +72,12 @@ export interface AppDefinition {
   type?: string;
 }
 
+export interface ContextMessage {
+  role: 'user' | 'ai';
+  content: string;
+  sender_name?: string;
+}
+
 export interface ChatRequest {
   message: string;
   thread_id: string;
@@ -82,6 +88,7 @@ export interface ChatRequest {
   app_id?: string;
   gem_id?: string | null;  // Phase 15: Gem association for thread creation
   gem_ids?: string[];
+  context_messages?: ContextMessage[];  // 過去の会話コンテキスト（SuperChat用）
   // Phase 17: 討論チャット
   participants?: string[];
   pattern?: string;        // "debate" | "panel" | "chain"

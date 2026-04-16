@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 34 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 35 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -21,6 +21,7 @@
 | [0021](0021-langgraph-bind-tools-toolnode-via-prompt-engineering.md) | LangGraph bind_tools + ToolNode の実装: プロンプトエンジニアリング方式 | 2026-04-10 |
 | [0025](0025-datetime-and-user-context-injection-into-agent-prompts.md) | 全エージェントへの現在日時・ログインユーザー自動注入 | 2026-04-13 |
 | [0031](0031-copilot-sdk-token-streaming-three-layer-plumbing.md) | Copilot SDK トークンストリーミング実装 — 3 層配管の発見と修正 | 2026-04-15 |
+| [0038](0038-superchat-context-messages-and-agent-name-persistence.md) | SuperChat 過去メッセージコンテキスト注入とエージェント名永続化 | 2026-04-16 |
 
 ## MCP・Tools
 

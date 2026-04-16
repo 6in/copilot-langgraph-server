@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any
 from app.providers.copilot import ChatCopilot
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
 from app.orchestrator.state import AgentState
@@ -109,13 +109,32 @@ def fallback_node(state: AgentState) -> AgentState:
     }
 
 
+def _wrap_agent_run(agent):
+    """Wrap agent.run to ensure AIMessage.name is set after SubAgent returns.
+
+    LangGraph checkpoint serialization can lose AIMessage.name.
+    DebateGraph works around this by force-setting name after each agent call.
+    Apply the same pattern here so orchestrator threads preserve agent names on reload.
+    """
+    async def wrapped(state: AgentState) -> AgentState:
+        result = await agent.run(state)
+        raw_messages = result.get("messages", [])
+        fixed = [
+            AIMessage(content=m.content, name=agent.name)
+            if isinstance(m, AIMessage) and not m.name else m
+            for m in raw_messages
+        ]
+        return {**result, "messages": fixed}
+    return wrapped
+
+
 def build_orchestrator_graph(registry: SubAgentRegistry, github_token: str, checkpointer=None) -> Any:
     graph = StateGraph(AgentState)
 
     graph.add_node("router", RouterNode(registry, github_token))
     graph.add_node("fallback", fallback_node)
     for agent in registry.all():
-        graph.add_node(agent.name, agent.run)
+        graph.add_node(agent.name, _wrap_agent_run(agent))
 
     graph.set_entry_point("router")
 

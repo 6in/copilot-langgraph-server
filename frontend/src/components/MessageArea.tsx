@@ -17,17 +17,18 @@ import {
   Message,
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ContextMessage } from '../types';
 
 interface MessageAreaProps {
   messages: ChatMessage[];
   isThinking: boolean;
   currentTool?: {tool: string; query: string} | null;
   streamPreview?: string;   // ストリーミング中のテキストプレビュー（最大 200 文字）
-  onSend: (text: string) => void;
+  onSend: (text: string, contextMessages?: ContextMessage[]) => void;
   onCancel?: () => void;    // AI 応答キャンセル（SSE 中断）
   disabled?: boolean;       // Phase 17: 外部から入力を無効化（討論終了・延長待ち）
   placeholder?: string;     // Phase 17: カスタムプレースホルダー
+  enableResend?: boolean;   // 過去メッセージ再送信機能を有効化（SuperChat用）
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -116,7 +117,7 @@ function useElapsedSeconds(active: boolean): number {
   return elapsed;
 }
 
-export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder, enableResend = false }: MessageAreaProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
@@ -126,6 +127,18 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
   const messageListRef = useRef<any>(null);
   const elapsed = useElapsedSeconds(isThinking);
 
+  // Context inclusion: track which messages to exclude (default = all included)
+  const [excludedIndices, setExcludedIndices] = useState<Set<number>>(new Set());
+
+  const toggleMsgInclusion = (index: number) => {
+    setExcludedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   useEffect(() => {
     messageListRef.current?.scrollToBottom('auto');
   }, [messages, isThinking]);
@@ -133,7 +146,21 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
   const handleSend = () => {
     const text = inputValue.trim();
     if (!text || isInputDisabled) return;
-    onSend(text);
+
+    if (enableResend && messages.length > 0) {
+      // Build context messages from included messages (all except excluded)
+      const ctxMsgs: ContextMessage[] = messages
+        .filter((_, i) => !excludedIndices.has(i))
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.senderName ? { sender_name: m.senderName } : {}),
+        }));
+      onSend(text, ctxMsgs.length > 0 ? ctxMsgs : undefined);
+    } else {
+      onSend(text);
+    }
+
     setInputValue('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -180,6 +207,7 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
         )}
 
         {messages.map((msg, index) => {
+          const isIncluded = enableResend && !excludedIndices.has(index);
           if (msg.role === 'user') {
             return (
               <Message
@@ -190,14 +218,29 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                   type: 'text',
                   message: msg.content,
                 }}
+                style={enableResend ? {
+                  opacity: isIncluded ? 1 : 0.45,
+                  transition: 'opacity 0.15s',
+                } : undefined}
               >
-                <Message.Footer style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Message.Footer style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', alignItems: 'center' }}>
+                  {enableResend && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: isDark ? '#9090a8' : '#888', cursor: 'pointer', marginLeft: 'auto' }}>
+                      <input
+                        type="checkbox"
+                        checked={isIncluded}
+                        onChange={() => toggleMsgInclusion(index)}
+                        style={{ margin: 0, cursor: 'pointer', accentColor: '#0366d6' }}
+                      />
+                      送信に含める
+                    </label>
+                  )}
                   <CopyButton text={msg.content} />
                 </Message.Footer>
               </Message>
             );
           }
-          // AI message — use type="custom" with MarkdownMessage inside CustomContent
+          // AI message
           return (
             <Message
               key={index}
@@ -206,6 +249,10 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                 position: 'single',
                 type: 'custom',
               }}
+              style={enableResend ? {
+                opacity: isIncluded ? 1 : 0.45,
+                transition: 'opacity 0.15s',
+              } : undefined}
               >
               <Message.CustomContent>
                 <div style={msg.senderName ? {
@@ -235,8 +282,19 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                   <MarkdownMessage content={msg.content} />
                 </div>
               </Message.CustomContent>
-              <Message.Footer>
+              <Message.Footer style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                 <CopyButton text={msg.content} />
+                {enableResend && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: isDark ? '#9090a8' : '#888', cursor: 'pointer', marginLeft: 'auto' }}>
+                    <input
+                      type="checkbox"
+                      checked={isIncluded}
+                      onChange={() => toggleMsgInclusion(index)}
+                      style={{ margin: 0, cursor: 'pointer', accentColor: '#0366d6' }}
+                    />
+                    送信に含める
+                  </label>
+                )}
               </Message.Footer>
             </Message>
           );

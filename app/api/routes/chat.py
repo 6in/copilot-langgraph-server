@@ -138,6 +138,7 @@ async def send_message(
         app_id=app_id,
         gem_id=body.gem_id,
         gem_ids=body.gem_ids,
+        context_messages=[m.model_dump() for m in body.context_messages] if body.context_messages else None,
         # Phase 17: 討論チャット
         participants=body.participants,
         pattern=body.pattern,
@@ -375,68 +376,109 @@ async def rename_thread(thread_id: str, body: RenameThreadRequest, request: Requ
 async def get_thread_messages(thread_id: str, request: Request, payload: dict = Depends(get_jwt_payload)):
     """Get all messages for a specific thread.
 
-    JWT-protected. Uses graph.aget_state() to retrieve the full message list from the checkpoint.
-    Debate threads (app_id='debate') use DebateState schema to recover per-agent turns.
+    JWT-protected. Determines thread type (chat/orchestrator/debate) from threads table
+    and uses the matching state schema to read the checkpoint correctly.
+    - chat threads: MessagesState (default graph)
+    - orchestrator/superchat threads: AgentState (preserves AIMessage.name for agent badges)
+    - debate threads: DebateState (preserves per-agent turns)
     """
-    graph = request.app.state.graph
     config = {"configurable": {"thread_id": thread_id}}
+    db_uri = request.app.state.db_uri
 
+    # Determine thread type to select the correct state schema
+    thread_app_id: str | None = None
     try:
-        state = await graph.aget_state(config)
-        if state.values and "messages" in state.values:
-            messages = []
-            for msg in state.values["messages"]:
-                if isinstance(msg, SystemMessage):
-                    continue  # システムプロンプトはチャット履歴に表示しない
-                role = "user" if isinstance(msg, HumanMessage) else "ai"
-                entry: dict = {"role": role, "content": msg.content}
-                sender = getattr(msg, "name", None)
-                if sender:
-                    entry["senderName"] = sender
-                messages.append(entry)
-            if messages:
-                # Canvas threads: replace last AI message with canvas JSON so the
-                # frontend CollapsibleCodeBlock renders it the same as live responses.
-                try:
-                    db_uri = request.app.state.db_uri
-                    async with await psycopg.AsyncConnection.connect(db_uri) as conn:
-                        async with conn.cursor() as cur:
-                            await cur.execute(
-                                "SELECT app_id, name, html FROM canvas_apps WHERE thread_id = %s LIMIT 1",
-                                (thread_id,),
-                            )
-                            row = await cur.fetchone()
-                    if row:
-                        app_id_val, name_val, html_val = row
-                        canvas_json = json.dumps({
-                            "type": "canvas",
-                            "app_id": str(app_id_val),
-                            "name": name_val or "Canvas App",
-                            "html": html_val or "",
-                        })
-                        # Replace last AI message content with canvas JSON
-                        for i in range(len(messages) - 1, -1, -1):
-                            if messages[i]["role"] == "ai":
-                                messages[i] = {**messages[i], "content": canvas_json}
-                                break
-                except Exception:
-                    pass  # canvas_apps lookup failure is non-fatal
-                return {"messages": messages, "thread_id": thread_id}
-    except Exception:
-        pass
-
-    # Fallback: debate threads store state under DebateState schema.
-    # Build a minimal graph with the same schema to read the checkpoint.
-    try:
-        db_uri = request.app.state.db_uri
         async with await psycopg.AsyncConnection.connect(db_uri) as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
                     "SELECT app_id FROM threads WHERE thread_id = %s", (thread_id,)
                 )
                 row = await cur.fetchone()
+                thread_app_id = row[0] if row else None
+    except Exception:
+        pass
 
-        if row and row[0] == "debate":
+    # Helper: convert BaseMessage list to API response format
+    def _messages_to_response(raw_messages: list) -> list[dict]:
+        messages = []
+        for msg in raw_messages:
+            if isinstance(msg, SystemMessage):
+                continue
+            role = "user" if isinstance(msg, HumanMessage) else "ai"
+            entry: dict = {"role": role, "content": msg.content}
+            sender = getattr(msg, "name", None)
+            if sender:
+                entry["senderName"] = sender
+            messages.append(entry)
+        return messages
+
+    # --- Orchestrator/SuperChat threads: read with AgentState schema ---
+    if thread_app_id and thread_app_id not in ("chat", "debate"):
+        try:
+            from app.orchestrator.state import AgentState
+            from langgraph.graph import StateGraph as _SG
+            from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+            async with AsyncPostgresSaver.from_conn_string(db_uri) as ckpt:
+                minimal = _SG(AgentState)
+                minimal.add_node("_r", lambda s: s)
+                minimal.set_entry_point("_r")
+                compiled = minimal.compile(checkpointer=ckpt)
+                orch_state = await compiled.aget_state(config)
+
+            if orch_state and orch_state.values and "messages" in orch_state.values:
+                messages = _messages_to_response(orch_state.values["messages"])
+                # AgentState stores agent_name at state level; apply to last AI message
+                # if AIMessage.name was lost during checkpoint serialization
+                agent_name = orch_state.values.get("agent_name")
+                if agent_name and messages:
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i]["role"] == "ai" and "senderName" not in messages[i]:
+                            messages[i]["senderName"] = agent_name
+                            break
+                if messages:
+                    return {"messages": messages, "thread_id": thread_id}
+        except Exception:
+            pass
+
+    # --- Default: chat threads with MessagesState ---
+    if thread_app_id in (None, "chat"):
+        graph = request.app.state.graph
+        try:
+            state = await graph.aget_state(config)
+            if state.values and "messages" in state.values:
+                messages = _messages_to_response(state.values["messages"])
+                if messages:
+                    # Canvas threads: replace last AI message with canvas JSON
+                    try:
+                        async with await psycopg.AsyncConnection.connect(db_uri) as conn:
+                            async with conn.cursor() as cur:
+                                await cur.execute(
+                                    "SELECT app_id, name, html FROM canvas_apps WHERE thread_id = %s LIMIT 1",
+                                    (thread_id,),
+                                )
+                                row = await cur.fetchone()
+                        if row:
+                            app_id_c, name_val, html_val = row
+                            canvas_json = json.dumps({
+                                "type": "canvas",
+                                "app_id": str(app_id_c),
+                                "name": name_val or "Canvas App",
+                                "html": html_val or "",
+                            })
+                            for i in range(len(messages) - 1, -1, -1):
+                                if messages[i]["role"] == "ai":
+                                    messages[i] = {**messages[i], "content": canvas_json}
+                                    break
+                    except Exception:
+                        pass
+                    return {"messages": messages, "thread_id": thread_id}
+        except Exception:
+            pass
+
+    # --- Debate threads: read with DebateState schema ---
+    try:
+        if thread_app_id == "debate":
             from app.orchestrator.debate_graph import DebateState
             from langgraph.graph import StateGraph as _SG
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver

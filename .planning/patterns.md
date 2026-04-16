@@ -43,6 +43,18 @@ ToolEnabledSubAgent の system prompt 先頭に現在日時・ログインユー
 DebateGraph ノードは state.turn_index で話者を決定する。
 関連 ADR: [0011](../docs/adr/0011-debate-chat-multi-agent-turn-based-platform.md)
 
+### AIMessage.name 強制付与ラッパー (_wrap_agent_run)
+LangGraph checkpoint のシリアライズで `AIMessage.name` が失われる問題への対策。
+エージェントノードをラッパーで包み、戻り値の `AIMessage` に `name` が未設定なら強制付与する。
+DebateGraph の `dispatch_node` が先行実装。OrchestratorGraph にも同パターンを適用。
+関連 ADR: [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
+
+### context_messages によるシステム的コンテキスト注入
+過去の会話をメッセージテキストに埋め込むのではなく、API の `context_messages` フィールドで
+バックエンドに渡し、SubAgent の LLM メッセージリストに HumanMessage/AIMessage として注入する。
+プレゼンテーション層とデータ層の責務分離。
+関連 ADR: [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
+
 ### Token Streaming 3 層配管
 Copilot SDK ストリームを worker → SSE → frontend の 3 層で中継する。
 notifier.py でチャンクをキューイングし SSE エンドポイントが消費する。

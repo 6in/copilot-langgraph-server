@@ -114,10 +114,18 @@ class SubAgent:
         context = state.get("context")
         user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
         system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
-        messages = [
+        messages: list = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=state["input"]),
         ]
+        # Inject past conversation context if provided
+        ctx_msgs = state.get("context_messages")
+        if ctx_msgs:
+            for cm in ctx_msgs:
+                if cm["role"] == "user":
+                    messages.append(HumanMessage(content=cm["content"]))
+                else:
+                    messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
+        messages.append(HumanMessage(content=state["input"]))
         # llm.astream() で iterate することで LangGraph の on_chat_model_stream が
         # 発火し、orchestrator_handler が notifier.send_token 経由で SSE にトークンを
         # 流せるようになる。chunk を accumulate して最終 AIMessage を返す。

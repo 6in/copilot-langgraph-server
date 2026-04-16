@@ -146,6 +146,7 @@ class OrchestratorHandler(TaskHandler):
                     "error": None,
                     "agent_name": None,
                     "context": context,
+                    "context_messages": job.get("context_messages"),
                 }
                 from app.orchestrator.tool_context import tool_event_cb
 

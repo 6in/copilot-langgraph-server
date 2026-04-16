@@ -15,3 +15,4 @@ class AgentState(TypedDict):
     context: Annotated[RPCContext, _keep_first]
     error: str | None
     agent_name: str | None  # which agent produced the final output
+    context_messages: list[dict] | None  # 過去の会話コンテキスト [{role, content, sender_name}]
