@@ -121,6 +121,19 @@ Docker Compose build の `bun install` + `bun run build`。パッケージマネ
 D-10 により primary カテゴリは Frontend・UI（secondary: Infra・Deploy）。
 関連 ADR: [0027](../docs/adr/0027-migrate-frontend-runtime-from-nodejs-to-bun.md)
 
+### Mermaid.js オンデマンド render パターン
+mermaid パッケージ（~1MB）は lazy load し、描画は View ボタンクリック時のみ実行する。
+デフォルト View にすると複数ブロックの同時 render で OS ハングの危険がある。
+SVG は `dangerouslySetInnerHTML` でインライン表示（blob URL + `<img>` は foreignObject が描画されない）。
+固定 width/height を除去し viewBox ベースのスケーリングでコンテナにフィットさせる。
+関連 ADR: [0037](../docs/adr/0037-chat-ui-batch-enhancements.md)
+
+### SSE キャンセルの Phase 分離
+AI 応答キャンセルは Phase 1（フロントのみ: EventSource.close + 状態リセット）と
+Phase 2（バックエンド: ジョブキャンセル API）に分離する。
+Copilot SDK の `send_and_wait` がブロッキングのため、Phase 1 だけでも十分実用的。
+関連 ADR: [0037](../docs/adr/0037-chat-ui-batch-enhancements.md)
+
 ---
 
 ## Infra・Deploy

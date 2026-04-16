@@ -19,6 +19,39 @@
 }
 
 /* ============================================================
+   Markdown content — compact spacing inside chat bubbles
+   ============================================================ */
+
+.cs-message__custom-content h1,
+.cs-message__custom-content h2,
+.cs-message__custom-content h3,
+.cs-message__custom-content h4,
+.cs-message__custom-content h5,
+.cs-message__custom-content h6 {
+  margin: 0.4em 0 0.15em 0;
+}
+
+.cs-message__custom-content h1:first-child,
+.cs-message__custom-content h2:first-child,
+.cs-message__custom-content h3:first-child {
+  margin-top: 0;
+}
+
+.cs-message__custom-content ul,
+.cs-message__custom-content ol {
+  margin: 0.1em 0 0.2em 0;
+  padding-left: 1.5em;
+}
+
+.cs-message__custom-content li {
+  margin-bottom: 0.05em;
+}
+
+.cs-message__custom-content blockquote {
+  margin: 0.2em 0;
+}
+
+/* ============================================================
    Monaco editor — break out of chatscope bubble width constraint
    ============================================================ */
 

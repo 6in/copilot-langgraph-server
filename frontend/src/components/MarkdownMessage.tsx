@@ -14,6 +14,9 @@ import { extractTableData, shouldUseAgGrid, type MarkdownTableData } from '../ut
 // AG Grid is ~400KB; load only when a response actually contains a large table.
 const ChatAgGridTable = lazy(() => import('./ChatAgGridTable'));
 
+// Mermaid is ~1MB; load only when a response contains a mermaid code block.
+const MermaidBlock = lazy(() => import('./MermaidBlock'));
+
 function StyledFallbackTable({ data }: { data: MarkdownTableData }) {
   return (
     <div className="md-table-wrap">
@@ -269,7 +272,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
       return <div style={{ width: '100%', minWidth: 0 }}>{children}</div>;
     },
     p({ children }: { children?: React.ReactNode }) {
-      return <p style={{ margin: '0 0 0.4em 0' }}>{children}</p>;
+      return <p style={{ margin: '0 0 0.2em 0' }}>{children}</p>;
     },
     table({ children }: { children?: React.ReactNode }) {
       const data = extractTableData(children);
@@ -299,6 +302,15 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
               // canvashtml: canvas AI response — collapsible, read-only HTML block
               if (language === 'canvashtml') {
                 return <CollapsibleCodeBlock value={value} monacoTheme={monacoTheme} />;
+              }
+
+              // mermaid: render diagram with View/Source toggle
+              if (language === 'mermaid') {
+                return (
+                  <Suspense fallback={<div style={{ padding: '12px', fontSize: '13px', color: '#858585' }}>Loading Mermaid...</div>}>
+                    <MermaidBlock value={value} monacoTheme={monacoTheme} theme={theme} />
+                  </Suspense>
+                );
               }
 
               return (
