@@ -1,6 +1,6 @@
 // frontend/src/components/AuthPanel.tsx
 // Device Flow UI: shows user_code + verification_uri, polls for completion.
-// Mirrors static/index.html #auth-panel + static/app.js auth section.
+// Device Flow UI: shows user_code + verification_uri, polls for completion.
 
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';

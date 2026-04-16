@@ -386,5 +386,7 @@ async def serve_js(filename: str):
         raise _HTTPException(status_code=404)
     return _FileResponse(path, headers={"Access-Control-Allow-Origin": "*"})
 
-# Static files LAST — serves index.html for any non-API path
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Static files LAST — serves remaining static assets (apps/, js/).
+# html=False: the Vanilla JS frontend (index.html) has been removed;
+# React UI is served via Vite dev server (dev) or /react mount (prod).
+app.mount("/", StaticFiles(directory="static", html=False), name="static")

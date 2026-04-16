@@ -22,7 +22,7 @@ from tools.web_search import register_tools as register_web_search_tools
 
 
 @asynccontextmanager
-async def lifespan(server):
+async def lifespan(_server):
     """FastMCP lifespan: db_query プールを起動時に初期化し、終了時にクローズする。
 
     Pitfall 4 (23-RESEARCH.md): FastMCP lifespan は Callable[[FastMCP], AsyncContextManager]

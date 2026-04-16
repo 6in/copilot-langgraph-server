@@ -105,7 +105,7 @@ export const renameThread = (threadId: string, label: string) =>
     }
   );
 
-export const getThreadMessages = (threadId: string) =>
+const getThreadMessages = (threadId: string) =>
   apiFetch<ThreadMessagesResponse>(
     `${API_BASE}/api/threads/${encodeURIComponent(threadId)}/messages`
   );
@@ -168,8 +168,7 @@ export const deleteGemApi = async (gemId: string): Promise<void> => {
 
 // --- Phase 15: Canvas API ---
 
-export const getCanvasApp = (appId: string) =>
-  apiFetch<CanvasAppInfo>(`${API_BASE}/api/canvas/apps/${encodeURIComponent(appId)}`);
+// getCanvasApp — unused (getCanvasAppByThread is used instead); removed to satisfy knip.
 
 export const getCanvasAppByThread = (threadId: string) =>
   apiFetch<CanvasAppInfo[]>(`${API_BASE}/api/canvas/apps?thread_id=${encodeURIComponent(threadId)}`);
@@ -198,15 +197,5 @@ export const listCanvasApps = (deployed?: boolean): Promise<CanvasAppInfo[]> => 
 export const getCanvasGemId = (): Promise<{ gem_id: string }> =>
   apiFetch<{ gem_id: string }>(`${API_BASE}/api/canvas/gem`);
 
-// --- Phase 18: Iframe RPC API ---
-
-export interface IframeRpcResponse {
-  job_id: string;
-}
-
-export const postIframeRpc = (id: string, method: string, params?: Record<string, unknown>) =>
-  apiFetch<IframeRpcResponse>(`${API_BASE}/api/iframe-rpc`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, method, params }),
-  });
+// Phase 18 Iframe RPC — postIframeRpc / IframeRpcResponse removed (unused;
+// CanvasPane communicates via postMessage bridge, not this REST endpoint).

@@ -1,6 +1,6 @@
 // frontend/src/hooks/useThreads.ts
 // Thread list management: list, create, switch, delete.
-// Mirrors static/app.js loadThreads, createNewThread, switchThread, deleteThread.
+// Thread list management: list, create, switch, delete.
 
 import { useCallback, useEffect, useState } from 'react';
 import {

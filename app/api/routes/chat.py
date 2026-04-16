@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from psycopg.rows import dict_row
 
-from app.api.models import ChatAsyncResponse, ChatRequest, ChatResponse, RenameThreadRequest, ThreadInfo
+from app.api.models import ChatAsyncResponse, ChatRequest, RenameThreadRequest, ThreadInfo
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token, async_is_blocked
 
 router = APIRouter(prefix="/api", tags=["chat"])

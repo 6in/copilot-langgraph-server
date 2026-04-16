@@ -1,6 +1,6 @@
 // frontend/src/components/Header.tsx
 // App header: model selector (gpt-4.1 default, per D-07) + avatar + logout.
-// Model list copied from static/index.html <select id="model-select">.
+// App header: model selector (gpt-4.1 default, per D-07) + avatar + logout.
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -17,7 +17,7 @@ interface HeaderProps {
   appName?: string;
 }
 
-// Model list from static/index.html — keep in sync if models change.
+// Available Copilot models and their display labels.
 const MODEL_OPTIONS = [
   { group: 'Claude', models: [
     { value: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5 (1x)' },

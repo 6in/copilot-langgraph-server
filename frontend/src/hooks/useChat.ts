@@ -1,6 +1,6 @@
 // frontend/src/hooks/useChat.ts
 // sendMessage with SSE completion + polling fallback.
-// Mirrors static/app.js sendMessage (lines ~370-450).
+// sendMessage with SSE completion + polling fallback.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';

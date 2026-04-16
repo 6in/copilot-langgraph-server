@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { checkAuthStatus, startAuthFlow, pollAuthFlow, logout } from '../api/client';
 import type { AuthStartResponse } from '../types';
 
-export type AuthState = 'unknown' | 'authenticated' | 'unauthenticated' | 'expired';
+type AuthState = 'unknown' | 'authenticated' | 'unauthenticated' | 'expired';
 
 interface AuthContextValue {
   authState: AuthState;

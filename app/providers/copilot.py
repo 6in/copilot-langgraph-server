@@ -27,7 +27,6 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.messages.tool import ToolCall
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
-from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict, PrivateAttr
 
@@ -267,7 +266,7 @@ class ChatCopilot(BaseChatModel):
         self,
         tools: Sequence[Any],
         *,
-        tool_choice: Optional[str] = None,
+        _tool_choice: Optional[str] = None,  # unused; accepted for BaseChatModel compat
         **kwargs: Any,
     ) -> "BoundChatCopilot":
         """Bind tools to this model via prompt engineering (D-01).
