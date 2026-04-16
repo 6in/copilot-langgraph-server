@@ -66,6 +66,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   } = useThreads(undefined, canvasGemId ?? undefined);
@@ -142,7 +143,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
 
   // D-14: gemId と onCanvasResponse を useChat に渡す
   // app_id: 'canvas' を明示することで通常の ChatApp スレッドと混在しないようにする
-  const { isThinking, streamPreview, sendMessage } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
     activeThreadId,
     selectedModel,
     appId: 'canvas',
@@ -273,6 +274,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
             onSelectThread={handleSelectThread}
             onNewChat={handleNewChat}
             onDeleteThread={removeThread}
+            onBulkDeleteThreads={bulkRemoveThreads}
             onRenameThread={handleRenameThread}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
@@ -305,6 +307,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
               isThinking={isThinking}
               streamPreview={streamPreview}
               onSend={handleSend}
+              onCancel={cancelJob}
             />
           )}
 

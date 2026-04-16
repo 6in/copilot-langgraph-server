@@ -542,6 +542,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   } = useThreads('debate');
@@ -576,7 +577,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
     []
   );
 
-  const { isThinking, sendMessage } = useChat({
+  const { isThinking, sendMessage, cancelJob } = useChat({
     activeThreadId,
     selectedModel,
     selectedTaskType: 'debate',
@@ -675,6 +676,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
           onSelectThread={handleSelectThread}
           onNewChat={handleNewChat}
           onDeleteThread={removeThread}
+          onBulkDeleteThreads={bulkRemoveThreads}
           onRenameThread={handleRenameThread}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
@@ -781,6 +783,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
                   messages={messages}
                   isThinking={isThinking}
                   onSend={inputDisabled ? () => {} : handleSend}
+                  onCancel={cancelJob}
                   disabled={inputDisabled}
                   placeholder={inputPlaceholder}
                 />

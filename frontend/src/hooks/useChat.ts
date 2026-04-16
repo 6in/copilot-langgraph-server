@@ -46,6 +46,7 @@ interface UseChatReturn {
   currentTool: {tool: string; query: string} | null;
   streamPreview: string;
   sendMessage: (text: string, threadId?: string) => Promise<void>;
+  cancelJob: () => void;
 }
 
 // Phase 15/17: Parse job result — detect Canvas / debate_result / orchestrator_result JSON payload vs plain text.
@@ -94,6 +95,7 @@ export function useChat({
   const [currentTool, setCurrentTool] = useState<{tool: string; query: string} | null>(null);
   const [streamPreview, setStreamPreview] = useState<string>('');
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Cleanup fallback polling timer on unmount
   useEffect(() => {
@@ -195,6 +197,7 @@ export function useChat({
 
       // 3. Open SSE stream for real-time completion notification
       const es = streamJob(job_id);
+      eventSourceRef.current = es;
       // SSE で表示済みのターン数を追跡（done 時の重複防止）
       let streamedTurnCount = 0;
 
@@ -295,5 +298,25 @@ export function useChat({
     }
   }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
 
-  return { isThinking, currentTool, streamPreview, sendMessage };
+  const cancelJob = useCallback(() => {
+    // Close SSE connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    // Clear fallback polling
+    if (fallbackTimerRef.current) {
+      clearInterval(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    // Finalize partial streaming text if any
+    if (streamPreview) {
+      setMessages((prev) => [...prev, { role: 'ai', content: streamPreview + '\n\n_(中断されました)_' }]);
+    }
+    setStreamPreview('');
+    setCurrentTool(null);
+    setIsThinking(false);
+  }, [streamPreview, setMessages]);
+
+  return { isThinking, currentTool, streamPreview, sendMessage, cancelJob };
 }

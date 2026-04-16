@@ -73,6 +73,16 @@ export function useThreads(appId?: string, gemId?: string): UseThreadsReturn {
     }
   }, [activeThreadId]);
 
+  const bulkRemoveThreads = useCallback(async (threadIds: string[]) => {
+    await Promise.all(threadIds.map((id) => apiDeleteThread(id)));
+    const idSet = new Set(threadIds);
+    setThreads((prev) => prev.filter((t) => !idSet.has(t.thread_id)));
+    if (activeThreadId && idSet.has(activeThreadId)) {
+      setActiveThreadId(null);
+      setMessages([]);
+    }
+  }, [activeThreadId]);
+
   return {
     threads,
     activeThreadId,
@@ -81,6 +91,7 @@ export function useThreads(appId?: string, gemId?: string): UseThreadsReturn {
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   };

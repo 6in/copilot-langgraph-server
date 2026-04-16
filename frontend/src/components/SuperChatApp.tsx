@@ -132,6 +132,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   } = useThreads(appId || 'superchat');
@@ -180,7 +181,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     dismissCanvas,
   } = useCanvas();
 
-  const { isThinking, currentTool, streamPreview, sendMessage } = useChat({
+  const { isThinking, currentTool, streamPreview, sendMessage, cancelJob } = useChat({
     activeThreadId,
     selectedModel,
     selectedMode: 'super',
@@ -247,6 +248,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
           onSelectThread={handleSelectThread}
           onNewChat={handleNewChat}
           onDeleteThread={removeThread}
+          onBulkDeleteThreads={bulkRemoveThreads}
           onRenameThread={handleRenameThread}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
@@ -294,6 +296,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               currentTool={currentTool}
               streamPreview={streamPreview}
               onSend={handleSend}
+              onCancel={cancelJob}
             />
           )}
         </div>

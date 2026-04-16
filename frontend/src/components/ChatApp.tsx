@@ -35,6 +35,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   } = useThreads('chat');
@@ -81,7 +82,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     await refreshThreads();
   };
 
-  const { isThinking, streamPreview, sendMessage } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
     activeThreadId,
     selectedModel,
     setMessages,
@@ -141,6 +142,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
           onSelectThread={handleSelectThread}
           onNewChat={handleNewChat}
           onDeleteThread={removeThread}
+          onBulkDeleteThreads={bulkRemoveThreads}
           onRenameThread={handleRenameThread}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
@@ -175,6 +177,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
               isThinking={isThinking}
               streamPreview={streamPreview}
               onSend={handleSend}
+              onCancel={cancelJob}
             />
             {canvasApp && (
               <CanvasPane

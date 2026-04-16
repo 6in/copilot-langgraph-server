@@ -2,7 +2,8 @@
 // Left sidebar: thread list + New Chat button + title filter.
 // Per D-06: sidebar on left with thread list and New Chat button.
 // Uses chatscope Sidebar component for layout compatibility.
-// Features: collapse toggle, title filter, inline title editing, drag-to-resize (handle in ChatApp).
+// Features: collapse toggle, title filter, inline title editing, drag-to-resize (handle in ChatApp),
+//           bulk select + bulk delete mode.
 
 import { useState, useRef } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
@@ -16,6 +17,7 @@ interface ThreadSidebarProps {
   onSelectThread: (threadId: string) => void;
   onNewChat: () => void;
   onDeleteThread: (threadId: string) => void;
+  onBulkDeleteThreads?: (threadIds: string[]) => void;
   onRenameThread: (threadId: string, label: string) => Promise<void>;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -28,6 +30,7 @@ export function ThreadSidebar({
   onSelectThread,
   onNewChat,
   onDeleteThread,
+  onBulkDeleteThreads,
   onRenameThread,
   collapsed,
   onToggleCollapse,
@@ -41,6 +44,11 @@ export function ThreadSidebar({
   const [editLabel, setEditLabel] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const cancelledRef = useRef<boolean>(false);
+
+  // Bulk select mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   const filtered = filter.trim()
     ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
@@ -68,6 +76,40 @@ export function ThreadSidebar({
   const cancelEdit = () => {
     cancelledRef.current = true;
     setEditingId(null);
+  };
+
+  const toggleSelect = (threadId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(threadId)) next.delete(threadId);
+      else next.add(threadId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((t) => t.thread_id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    if (onBulkDeleteThreads) {
+      onBulkDeleteThreads(Array.from(selectedIds));
+    } else {
+      // Fallback: delete one by one
+      selectedIds.forEach((id) => onDeleteThread(id));
+    }
+    exitSelectMode();
+    setBulkDeleteConfirm(false);
   };
 
   if (collapsed) {
@@ -98,7 +140,7 @@ export function ThreadSidebar({
     <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
       <div className="sidebar-content" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
 
-        {/* Header row: New Chat + collapse button */}
+        {/* Header row: New Chat + select mode toggle + collapse button */}
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
           <button
             onClick={onNewChat}
@@ -118,6 +160,23 @@ export function ThreadSidebar({
             + New Chat
           </button>
           <button
+            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+            title={selectMode ? 'Exit select mode' : 'Select mode'}
+            className="sidebar-collapse-btn"
+            style={{
+              background: selectMode ? (isDark ? '#3a3a52' : '#e8f0fe') : 'none',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              color: selectMode ? (isDark ? '#e8e8f0' : '#0366d6') : '#555',
+              padding: '4px 6px',
+              flexShrink: 0,
+            }}
+          >
+            ☑
+          </button>
+          <button
             onClick={onToggleCollapse}
             title="Collapse sidebar"
             className="sidebar-collapse-btn"
@@ -135,6 +194,46 @@ export function ThreadSidebar({
             ◀
           </button>
         </div>
+
+        {/* Select mode controls */}
+        {selectMode && (
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.78rem' }}>
+            <button
+              onClick={toggleSelectAll}
+              style={{
+                background: 'none',
+                border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                color: isDark ? '#9090a8' : '#555',
+                padding: '2px 6px',
+              }}
+            >
+              {selectedIds.size === filtered.length && filtered.length > 0 ? '全解除' : '全選択'}
+            </button>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setBulkDeleteConfirm(true)}
+                style={{
+                  background: '#e05252',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  fontWeight: 600,
+                }}
+              >
+                {selectedIds.size}件削除
+              </button>
+            )}
+            <span style={{ color: isDark ? '#9090a8' : '#888', marginLeft: 'auto' }}>
+              {selectedIds.size}/{filtered.length}
+            </span>
+          </div>
+        )}
 
         {/* Title filter input */}
         <div style={{ position: 'relative' }}>
@@ -204,8 +303,25 @@ export function ThreadSidebar({
                 background: activeThreadId === thread.thread_id ? '#e8f0fe' : 'transparent',
                 fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
               }}
-              onClick={() => editingId !== thread.thread_id && onSelectThread(thread.thread_id)}
+              onClick={() => {
+                if (selectMode) {
+                  toggleSelect(thread.thread_id);
+                } else if (editingId !== thread.thread_id) {
+                  onSelectThread(thread.thread_id);
+                }
+              }}
             >
+              {/* Checkbox in select mode */}
+              {selectMode && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(thread.thread_id)}
+                  onChange={() => toggleSelect(thread.thread_id)}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ marginRight: '6px', flexShrink: 0, cursor: 'pointer' }}
+                />
+              )}
+
               {editingId === thread.thread_id ? (
                 <input
                   autoFocus
@@ -231,8 +347,8 @@ export function ThreadSidebar({
               ) : (
                 <div
                   style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
-                  onDoubleClick={(e) => startEdit(thread, e)}
-                  title="Double-click to rename"
+                  onDoubleClick={(e) => !selectMode && startEdit(thread, e)}
+                  title={selectMode ? undefined : 'Double-click to rename'}
                 >
                   <span
                     className="sidebar-thread-label"
@@ -260,7 +376,7 @@ export function ThreadSidebar({
                 </div>
               )}
 
-              {editingId !== thread.thread_id && (
+              {!selectMode && editingId !== thread.thread_id && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -286,6 +402,8 @@ export function ThreadSidebar({
           ))}
         </div>
       </div>
+
+      {/* Single delete confirm */}
       <ConfirmModal
         isOpen={deleteTargetId !== null}
         message={`「${threads.find((t) => t.thread_id === deleteTargetId)?.label ?? ''}」を削除しますか？`}
@@ -296,6 +414,16 @@ export function ThreadSidebar({
           setDeleteTargetId(null);
         }}
         onCancel={() => setDeleteTargetId(null)}
+      />
+
+      {/* Bulk delete confirm */}
+      <ConfirmModal
+        isOpen={bulkDeleteConfirm}
+        message={`${selectedIds.size}件のスレッドを削除しますか？`}
+        confirmLabel={`${selectedIds.size}件削除`}
+        isDark={isDark}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkDeleteConfirm(false)}
       />
     </Sidebar>
   );

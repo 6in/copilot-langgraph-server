@@ -44,6 +44,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     switchThread,
     createNewThread,
     removeThread,
+    bulkRemoveThreads,
     setMessages,
     refreshThreads,
   } = useThreads(undefined, gem.gem_id);
@@ -77,7 +78,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
 
   // D-16: gem_id を useChat に渡す。appId は送らない（applications FK 制約があるため 'gem-xxx' は無効）
   // スレッドは app_id='chat' で保存されるが gem_id で絞り込めるため問題なし（Todo 8）
-  const { isThinking, streamPreview, sendMessage } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
     activeThreadId,
     selectedModel,
     gemId: gem.gem_id,
@@ -174,6 +175,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
             onSelectThread={handleSelectThread}
             onNewChat={handleNewChat}
             onDeleteThread={removeThread}
+            onBulkDeleteThreads={bulkRemoveThreads}
             onRenameThread={handleRenameThread}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
@@ -207,6 +209,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
               isThinking={isThinking}
               streamPreview={streamPreview}
               onSend={handleSend}
+              onCancel={cancelJob}
             />
           )}
         </MainContainer>

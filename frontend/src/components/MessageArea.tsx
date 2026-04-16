@@ -25,6 +25,7 @@ interface MessageAreaProps {
   currentTool?: {tool: string; query: string} | null;
   streamPreview?: string;   // ストリーミング中のテキストプレビュー（最大 200 文字）
   onSend: (text: string) => void;
+  onCancel?: () => void;    // AI 応答キャンセル（SSE 中断）
   disabled?: boolean;       // Phase 17: 外部から入力を無効化（討論終了・延長待ち）
   placeholder?: string;     // Phase 17: カスタムプレースホルダー
 }
@@ -115,7 +116,7 @@ function useElapsedSeconds(active: boolean): number {
   return elapsed;
 }
 
-export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, disabled = false, placeholder }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder }: MessageAreaProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
@@ -260,6 +261,24 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                   }}>
                     {elapsed}s
                   </span>
+                )}
+                {onCancel && (
+                  <button
+                    onClick={onCancel}
+                    title="応答をキャンセル"
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.72rem',
+                      color: isDark ? '#9090a8' : '#888',
+                      padding: '1px 6px',
+                      marginLeft: 8,
+                    }}
+                  >
+                    ✕ キャンセル
+                  </button>
                 )}
               </div>
               {currentTool && (
