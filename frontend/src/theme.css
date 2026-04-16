@@ -386,3 +386,12 @@
 [data-theme="dark"] .md-table tbody tr:nth-child(even) {
   background: #252535;
 }
+
+/* ============================================================
+   AG Grid — block selection drag override
+   ============================================================ */
+
+.ag-body-viewport.block-selecting {
+  user-select: none;
+  -webkit-user-select: none;
+}

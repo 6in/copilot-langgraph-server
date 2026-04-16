@@ -15,6 +15,7 @@ import {
   type IRowNode,
 } from 'ag-grid-community';
 import type { MarkdownTableData } from '../utils/markdownTable';
+import { useBlockSelection } from '../hooks/useBlockSelection';
 
 function escapeTsvCell(value: string): string {
   // TSV breaks on tabs and newlines. Swap them for spaces so the copied
@@ -35,7 +36,17 @@ const MAX_VISIBLE_ROWS = 12;
 
 export default function ChatAgGridTable({ data, theme }: ChatAgGridTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
+  const gridRef = useRef<AgGridReact | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const isDark = theme === 'dark';
+  const { onCellMouseDown, onCellMouseOver, wrapColumnDefs } = useBlockSelection({
+    gridRef,
+    containerRef,
+    selectionColor: isDark ? '#1a3a5c' : '#bbdefb',
+    selectionBorderColor: isDark ? '#4a9eff' : '#1976d2',
+  });
 
   const columnDefs = useMemo<ColDef[]>(
     () =>
@@ -129,18 +140,23 @@ export default function ChatAgGridTable({ data, theme }: ChatAgGridTableProps) {
   const buttonColor = theme === 'dark' ? '#9090a8' : '#57606a';
   const buttonBorder = theme === 'dark' ? '#3a3a52' : '#e1e4e8';
 
+  const wrappedColumnDefs = useMemo(() => wrapColumnDefs(columnDefs), [wrapColumnDefs, columnDefs]);
+
   return (
-    <div style={{ width: '100%', margin: '8px 0' }}>
+    <div ref={containerRef} style={{ width: '100%', margin: '8px 0' }}>
       <div style={{ width: '100%', height }}>
         <AgGridReact
+          ref={gridRef}
           theme={gridTheme}
-          columnDefs={columnDefs}
+          columnDefs={wrappedColumnDefs}
           rowData={rowData}
           headerHeight={HEADER_HEIGHT}
           rowHeight={ROW_HEIGHT}
           suppressMovableColumns={false}
           domLayout="normal"
           onGridReady={onGridReady}
+          onCellMouseDown={onCellMouseDown}
+          onCellMouseOver={onCellMouseOver}
         />
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>

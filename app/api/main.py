@@ -230,6 +230,44 @@ async def lifespan(app: FastAPI):
 </html>
 ```
 
+## AG Grid（データテーブル表示）
+
+テーブル形式のデータを表示する場合は、素の `<table>` ではなく **AG Grid Community (MIT)** を使用してください。
+ソート・フィルタ・列リサイズがすべて無料で利用できます。
+
+### CDN 読み込み（`<head>` に追加）
+```html
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+```
+
+### 基本パターン
+```html
+<div id="myGrid" style="height: 400px;" class="ag-theme-quartz"></div>
+<script>
+  const gridOptions = {
+    columnDefs: [
+      { field: 'name', headerName: '名前', sortable: true, filter: true },
+      { field: 'age',  headerName: '年齢', sortable: true, filter: true },
+    ],
+    rowData: [
+      { name: '田中', age: 30 },
+      { name: '佐藤', age: 25 },
+    ],
+    defaultColDef: { flex: 1, minWidth: 100, resizable: true },
+  };
+  agGrid.createGrid(document.getElementById('myGrid'), gridOptions);
+</script>
+```
+
+### ダークモード対応
+- ライトモード: `class="ag-theme-quartz"`
+- ダークモード: `class="ag-theme-quartz-dark"`
+- `prefers-color-scheme` で切り替える場合:
+```js
+const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+document.getElementById('myGrid').className = theme;
+```
+
 ## RPC API リファレンス
 | メソッド | シグネチャ | 戻り値 |
 |---------|-----------|-------|
