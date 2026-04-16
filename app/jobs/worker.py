@@ -71,6 +71,7 @@ async def startup(ctx: dict) -> None:
     # Pitfall 5: MCP server may not be running — graceful degradation
     ctx["mcp_tools"] = []
     ctx["mcp_client"] = None
+    ctx["mcp_privileged_tool_names"] = frozenset()
     mcp_tools_loaded: list = []
     mcp_connected = False
     try:
@@ -101,6 +102,7 @@ async def startup(ctx: dict) -> None:
         await registry.validate(mcp_tools_loaded)  # 不一致なら RuntimeError → worker 起動失敗
         logger.info("[worker] ToolRegistry validation passed (%d tools)", len(mcp_tools_loaded))
         ctx["mcp_tools"] = mcp_tools_loaded
+        ctx["mcp_privileged_tool_names"] = registry.privileged_tool_names()
 
 
 async def shutdown(ctx: dict) -> None:

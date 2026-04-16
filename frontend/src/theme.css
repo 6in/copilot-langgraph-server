@@ -285,3 +285,71 @@
 [data-theme="dark"] .typing-dot {
   background: #9090a8 !important;
 }
+
+/* ============================================================
+   Markdown tables — styled fallback (#8).
+   Used below the AG Grid threshold or as Suspense fallback.
+   ============================================================ */
+
+.md-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+}
+
+.md-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+  background: #ffffff;
+  color: #24292e;
+}
+
+.md-table thead th {
+  background: #f6f8fa;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.md-table th,
+.md-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #eaecef;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.md-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.md-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+[data-theme="dark"] .md-table-wrap {
+  border-color: #3a3a52;
+}
+
+[data-theme="dark"] .md-table {
+  background: #1e1e2e;
+  color: #e8e8f0;
+}
+
+[data-theme="dark"] .md-table thead th {
+  background: #2a2a3e;
+  border-bottom-color: #3a3a52;
+}
+
+[data-theme="dark"] .md-table th,
+[data-theme="dark"] .md-table td {
+  border-bottom-color: #313145;
+}
+
+[data-theme="dark"] .md-table tbody tr:nth-child(even) {
+  background: #252535;
+}

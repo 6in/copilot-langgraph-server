@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Bun lockfile — intentionally not committed (b9598c9 / ADR-0027)
+bun.lock
+bun.lockb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

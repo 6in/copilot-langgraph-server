@@ -21,8 +21,12 @@ class ToolRegistry:
     def __init__(self, yaml_path: str) -> None:
         with open(yaml_path) as f:
             cfg = yaml.safe_load(f) or {}
+        entries = cfg.get("tools") or []
         self._expected: frozenset[str] = frozenset(
-            entry["name"] for entry in (cfg.get("tools") or [])
+            entry["name"] for entry in entries
+        )
+        self._privileged: frozenset[str] = frozenset(
+            entry["name"] for entry in entries if entry.get("privileged") is True
         )
 
     async def validate(self, mcp_tools: list[BaseTool]) -> None:
@@ -44,3 +48,11 @@ class ToolRegistry:
     def expected_tool_names(self) -> frozenset[str]:
         """YAML で宣言された期待ツール名集合を返す。"""
         return self._expected
+
+    def privileged_tool_names(self) -> frozenset[str]:
+        """`privileged: true` が付いたツール名集合を返す。
+
+        privileged ツールは worker コンテナの FS 等への広範な権限を持つため、
+        SubAgent が宣言した際は SubAgentRegistry が WARNING ログを出す。
+        """
+        return self._privileged

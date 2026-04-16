@@ -3,12 +3,41 @@
 // Block code is rendered via Monaco Editor (read-only, auto-height, theme-aware, copy button).
 // Inline code uses a styled <code> tag.
 
-import { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, memo, lazy, Suspense } from 'react';
 import type { editor } from 'monaco-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Editor from '@monaco-editor/react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
+import { extractTableData, shouldUseAgGrid, type MarkdownTableData } from '../utils/markdownTable';
+
+// AG Grid is ~400KB; load only when a response actually contains a large table.
+const ChatAgGridTable = lazy(() => import('./ChatAgGridTable'));
+
+function StyledFallbackTable({ data }: { data: MarkdownTableData }) {
+  return (
+    <div className="md-table-wrap">
+      <table className="md-table">
+        <thead>
+          <tr>
+            {data.headers.map((h, i) => (
+              <th key={i}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.rows.map((row, i) => (
+            <tr key={i}>
+              {row.map((cell, j) => (
+                <td key={j}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 interface MarkdownMessageProps {
   content: string;
@@ -241,6 +270,23 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
     },
     p({ children }: { children?: React.ReactNode }) {
       return <p style={{ margin: '0 0 0.4em 0' }}>{children}</p>;
+    },
+    table({ children }: { children?: React.ReactNode }) {
+      const data = extractTableData(children);
+      // Structurally invalid table (empty headers or rows) — fall back to
+      // react-markdown's default <table> structure with our CSS.
+      if (!shouldUseAgGrid(data)) {
+        return (
+          <div className="md-table-wrap">
+            <table className="md-table">{children}</table>
+          </div>
+        );
+      }
+      return (
+        <Suspense fallback={<StyledFallbackTable data={data} />}>
+          <ChatAgGridTable data={data} theme={theme} />
+        </Suspense>
+      );
     },
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
             const match = /language-(\w+)/.exec(className || '');

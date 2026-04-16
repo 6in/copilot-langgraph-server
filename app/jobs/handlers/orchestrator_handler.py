@@ -38,7 +38,13 @@ class OrchestratorHandler(TaskHandler):
         # gem_ids (multi-select) takes precedence; fall back to singular gem_id for backward compat
         gem_ids: list[str] = job.get("gem_ids") or ([job["gem_id"]] if job.get("gem_id") else [])
         mcp_tools = ctx.get("mcp_tools", [])
-        registry = SubAgentRegistry(AGENT_DIR, github_token, mcp_tools=mcp_tools or None)
+        privileged_names = ctx.get("mcp_privileged_tool_names") or frozenset()
+        registry = SubAgentRegistry(
+            AGENT_DIR,
+            github_token,
+            mcp_tools=mcp_tools or None,
+            privileged_tool_names=privileged_names,
+        )
         agents_filter: list[str] | None = job.get("agents")
         try:
             await notifier.progress("thinking")

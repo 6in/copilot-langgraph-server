@@ -59,6 +59,10 @@ class ChatCopilot(BaseChatModel):
     model: str = "gpt-4.1"
     github_token: Optional[str] = None
     auth_manager: Optional[Any] = None
+    # Copilot SDK send_and_wait timeout (seconds). Default 60s is too short
+    # for tool-bound ReAct loops where the second LLM call includes tool
+    # results in the prompt, making the context significantly larger.
+    send_timeout: float = 120.0
 
     # Private — not part of the Pydantic schema
     _client: Any = PrivateAttr(default=None)
@@ -103,7 +107,7 @@ class ChatCopilot(BaseChatModel):
                 model=self.model,
             )
 
-            response = await session.send_and_wait(prompt)
+            response = await session.send_and_wait(prompt, timeout=self.send_timeout)
 
             if response is None or response.data.content is None:
                 raise RuntimeError(
@@ -291,11 +295,20 @@ You have access to the following tools:
 To call a tool, respond ONLY with valid JSON (no markdown, no explanation, no preamble):
 {{"tool": "<tool_name>", "args": {{...}}}}
 
-Example: {{"tool": "web_search", "args": {{"query": "Tokyo weather tomorrow"}}}}
+Examples:
+  {{"tool": "web_search", "args": {{"query": "Tokyo weather tomorrow"}}}}
+  {{"tool": "db_query", "args": {{"sql": "SELECT * FROM gems LIMIT 10"}}}}
+  {{"tool": "db_query", "args": {{"sql": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"}}}}
 
-Call a tool whenever the user asks about current events, weather, latest versions, recent news, \
-prices, or anything that requires up-to-date information. \
-When web_search results include source_urls, cite them in your final answer.
+When to call a tool:
+- web_search: current events, weather, latest versions, recent news, prices, or anything \
+that requires up-to-date information from the internet. \
+When results include source_urls, cite them in your final answer.
+- db_query: whenever the user asks about database tables, records, data, or anything that \
+requires querying the PostgreSQL database. This includes metadata queries such as listing \
+tables, showing columns, or describing schema (use information_schema or pg_catalog). \
+Convert the user's natural language request into a valid SELECT or WITH query. \
+Only SELECT is allowed — never generate INSERT/UPDATE/DELETE.
 
 For pure conversation, greetings, math, translation, or summarization of already-provided text, \
 respond normally without calling a tool.\
@@ -369,6 +382,54 @@ class BoundChatCopilot(ChatCopilot):
             )
 
         return result
+
+    async def _astream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """Bypass Copilot SDK streaming for tool-bound calls.
+
+        Why: LangChain's `BaseChatModel.ainvoke` routes through `_astream`
+        whenever it runs inside an `astream_events` context (our orchestrator
+        handler does). Token-by-token streaming cannot reliably parse a
+        partial JSON tool call, and `ChatCopilot._astream` doesn't inject
+        tool schemas into the prompt either. The result is an empty
+        `tool_calls` list and the ReAct loop falls through without ever
+        invoking a tool.
+
+        Fix: delegate to `_agenerate` (which injects the tool schema,
+        awaits the full response, and parses JSON → ToolCall), then yield
+        the result as a single chunk. For tool calls we emit
+        `tool_call_chunks` so LangChain's message aggregator reconstructs
+        `AIMessage.tool_calls` correctly on the receiving end.
+        """
+        result = await self._agenerate(
+            messages, stop=stop, run_manager=run_manager, **kwargs
+        )
+        message = result.generations[0].message
+
+        chunk_message: AIMessageChunk
+        if getattr(message, "tool_calls", None):
+            tool_call_chunks = [
+                {
+                    "name": tc["name"],
+                    "args": json.dumps(tc.get("args") or {}, ensure_ascii=False),
+                    "id": tc.get("id"),
+                    "index": i,
+                }
+                for i, tc in enumerate(message.tool_calls)
+            ]
+            chunk_message = AIMessageChunk(
+                content=message.content or "",
+                tool_call_chunks=tool_call_chunks,
+            )
+        else:
+            chunk_message = AIMessageChunk(content=message.content or "")
+
+        yield ChatGenerationChunk(message=chunk_message)
 
     def _try_parse_tool_call(self, content: str) -> Optional[ToolCall]:
         """Attempt to parse a tool call from an LLM response string.

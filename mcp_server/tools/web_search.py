@@ -29,21 +29,23 @@ def register_tools(mcp: "FastMCP") -> None:
 
             tavily = TavilySearchResults(max_results=3)
             results: list[dict] = tavily.invoke(query)
-            # SEARCH-02: コンテキスト超過防止 — 各結果の content を 1000 文字で切り捨て
+            # SEARCH-02 REVISED: コンテキスト超過防止 — 各結果の content を 500 文字で切り捨て。
+            # ReAct ループの 2 回目 LLM 呼び出しでツール結果がプロンプトに含まれるため、
+            # 合計サイズを 〜2KB に収めないと Copilot SDK がタイムアウトする。
+            max_content = 500
+            trimmed = []
             for r in results:
-                if isinstance(r, dict) and "content" in r:
-                    r["content"] = r["content"][:1000]
-            formatted_parts = []
-            for i, r in enumerate(results, 1):
-                url = r.get("url", "")
-                title = r.get("title", "")
-                content = r.get("content", "")[:1000]
-                formatted_parts.append(f"[{i}] {url}\n{title}\n{content}")
+                if not isinstance(r, dict):
+                    continue
+                trimmed.append({
+                    "title": r.get("title", ""),
+                    "url": r.get("url", ""),
+                    "content": r.get("content", "")[:max_content],
+                })
 
             return {
-                "results": results,
-                "formatted": "\n\n---\n\n".join(formatted_parts),
-                "source_urls": [r.get("url", "") for r in results if r.get("url")],
+                "results": trimmed,
+                "source_urls": [r["url"] for r in trimmed if r.get("url")],
             }
         except Exception as e:
             return {"error": f"web_search failed: {e}"}

@@ -95,6 +95,26 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
+function useElapsedSeconds(active: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(0);
+
+  useEffect(() => {
+    if (!active) {
+      setElapsed(0);
+      return;
+    }
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return elapsed;
+}
+
 export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, disabled = false, placeholder }: MessageAreaProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
@@ -103,6 +123,7 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
   const isInputDisabled = isThinking || disabled;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messageListRef = useRef<any>(null);
+  const elapsed = useElapsedSeconds(isThinking);
 
   useEffect(() => {
     messageListRef.current?.scrollToBottom('auto');
@@ -230,6 +251,16 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                 <span className="typing-dot" />
                 <span className="typing-dot" />
                 <span className="typing-dot" />
+                {elapsed > 0 && (
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: isDark ? '#9090a8' : '#888',
+                    marginLeft: 8,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {elapsed}s
+                  </span>
+                )}
               </div>
               {currentTool && (
                 <div style={{ fontSize: '0.8em', color: '#888', padding: '4px 8px' }}>

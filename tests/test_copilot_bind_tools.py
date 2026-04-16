@@ -130,6 +130,68 @@ async def test_bound_copilot_handles_markdown_wrapped_json(mock_copilot, mock_to
 
 
 # ---------------------------------------------------------------------------
+# astream_events regression — Issue: SuperChat tools stopped working after
+# commit 6d79f36 added ChatCopilot._astream. Inside astream_events, ainvoke
+# routes through _astream, which bypassed tool schema injection and JSON
+# parsing. Fix: BoundChatCopilot._astream delegates to _agenerate and yields
+# a single chunk carrying tool_call_chunks.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_bound_copilot_astream_preserves_tool_calls(mock_copilot, mock_tool):
+    """BoundChatCopilot._astream() must yield a chunk with tool_call_chunks
+    when the underlying LLM returns a JSON tool call — because LangChain
+    routes ainvoke through _astream inside astream_events contexts."""
+    mock_copilot["response"].data.content = (
+        '{"tool": "ping", "args": {"q": "hi"}}'
+    )
+
+    bound = BoundChatCopilot(tools=[mock_tool], model="gpt-4.1", github_token="ghu_test")
+    chunks = [c async for c in bound._astream([HumanMessage(content="test")])]
+
+    assert len(chunks) == 1
+    chunk = chunks[0]
+    msg = chunk.message
+    # tool_call_chunks → LangChain re-assembles into tool_calls on the receiving end
+    assert msg.tool_call_chunks, "expected tool_call_chunks on the streamed chunk"
+    assert msg.tool_call_chunks[0]["name"] == "ping"
+    assert msg.tool_call_chunks[0]["args"] == '{"q": "hi"}'
+
+
+@pytest.mark.asyncio
+async def test_bound_copilot_astream_events_reconstructs_tool_calls(mock_copilot, mock_tool):
+    """End-to-end regression: ainvoke() inside an astream_events context
+    must produce an AIMessage with non-empty tool_calls. This exercises
+    the exact path SuperChat / ToolEnabledSubAgent uses."""
+    from langchain_core.runnables import RunnableLambda
+
+    mock_copilot["response"].data.content = (
+        '{"tool": "ping", "args": {"message": "hi"}}'
+    )
+
+    bound = BoundChatCopilot(tools=[mock_tool], model="gpt-4.1", github_token="ghu_test")
+
+    async def agent_fn(messages):
+        return await bound.ainvoke(messages)
+
+    chain = RunnableLambda(agent_fn)
+    final = None
+    async for ev in chain.astream_events([HumanMessage("search")], version="v2"):
+        if ev.get("event") == "on_chat_model_end":
+            final = ev["data"].get("output")
+
+    assert final is not None, "expected on_chat_model_end event to fire"
+    assert final.tool_calls, (
+        "expected tool_calls on the aggregated message — if empty, "
+        "BoundChatCopilot._astream is not injecting tool schemas or "
+        "preserving tool_call_chunks through streaming"
+    )
+    assert final.tool_calls[0]["name"] == "ping"
+    assert final.tool_calls[0]["args"] == {"message": "hi"}
+
+
+# ---------------------------------------------------------------------------
 # TestToolSystemPromptTemplate
 # ---------------------------------------------------------------------------
 

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from app.utils.datetime_utils import get_datetime_context
+from app.utils.system_prompt import build_system_prompt_prefix
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
 from app.orchestrator.tool_agent import ToolEnabledSubAgent
@@ -113,10 +113,7 @@ class SubAgent:
     async def run(self, state: AgentState) -> AgentState:
         context = state.get("context")
         user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
-        prefix = get_datetime_context()
-        if user_id:
-            prefix += f"\nログイン中のユーザー: {user_id}"
-        system_prompt = prefix + "\n\n" + self._system_prompt
+        system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=state["input"]),
@@ -140,10 +137,17 @@ class SubAgent:
 
 
 class SubAgentRegistry:
-    def __init__(self, agent_dir: str, github_token: str, mcp_tools: list | None = None):
+    def __init__(
+        self,
+        agent_dir: str,
+        github_token: str,
+        mcp_tools: list | None = None,
+        privileged_tool_names: frozenset[str] | set[str] | None = None,
+    ):
         self.agents: dict[str, SubAgent] = {}
         self.health: dict[str, AgentHealth] = {}
         self._github_token = github_token
+        self._privileged: frozenset[str] = frozenset(privileged_tool_names or ())
         for path in Path(agent_dir).glob("*/AGENT.md"):
             agent_name = path.parent.name  # fallback name from directory
             try:
@@ -159,6 +163,15 @@ class SubAgentRegistry:
                         # Filter mcp_tools by name declared in AGENT.md (D-03)
                         tool_map = {t.name: t for t in mcp_tools}
                         selected_tools = [tool_map[name] for name in tools_list if name in tool_map]
+                        # Warn loudly when an agent opts into a privileged tool (FS access etc.)
+                        privileged_used = [n for n in tools_list if n in self._privileged]
+                        if privileged_used:
+                            logger.warning(
+                                "[registry] SECURITY: agent '%s' declares privileged tools %s — "
+                                "this agent has broad access (filesystem / subprocess). "
+                                "Ensure this is intentional and remove unused privileged tools.",
+                                meta["name"], privileged_used,
+                            )
                         if selected_tools:
                             agent = ToolEnabledSubAgent(
                                 name=meta["name"],
