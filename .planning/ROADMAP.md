@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 last_updated: "2026-04-17T14:28:39.965Z"
 progress:
-  total_phases: 29
+  total_phases: 30
   completed_phases: 29
   total_plans: 81
   completed_plans: 85
@@ -81,6 +81,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 - [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限 (completed 2026-04-13)
 - [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト） (completed 2026-04-13)
 - [x] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml に MCP ツールカタログを宣言、ToolRegistry クラスが worker 起動時に YAML と MCP 実ツールの完全一致を検証 (completed 2026-04-13)
+- [ ] **Phase 29: ユーザー選択モデルのエージェントデフォルト優先** — フロントエンド選択モデルを AGENT.md デフォルトより優先し、SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent 全種別で model_override を伝搬
 
 ## Phase Details
 
@@ -197,6 +198,7 @@ Plans:
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
 | 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
+| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 0/0 | Planned | — |
 
 ### Phase 25: React Router v7 による URL ベースルーティング導入
 
@@ -245,3 +247,17 @@ Plans:
 
 - [ ] 28-01-PLAN.md — execute_python MCP ツール実装 + sandbox_allowlist.yaml + サーバー登録 + テスト
 - [ ] 28-02-PLAN.md — CodeAct エージェント定義 + ToolEnabledSubAgent recursion_limit 拡張 + テスト
+
+### Phase 29: ユーザー選択モデルのエージェントデフォルト優先
+
+**Goal:** フロントエンドで選択したモデルが SuperChat モードのエージェントデフォルト（AGENT.md `model` フィールド）より優先され、ユーザーの意図通りのモデルで推論が実行される
+**Requirements**: none (UX 改善フェーズのため REQ-ID なし)
+**Depends on:** Phase 28
+**Success Criteria** (what must be TRUE):
+
+  1. SuperChat で gpt-4.1 を選択した状態でメッセージを送ると、AGENT.md に claude-sonnet-4-6 と書かれたエージェントでも gpt-4.1 で推論される
+  2. モデル未選択（デフォルト）の場合は従来通り AGENT.md の `model` フィールドが使われる
+  3. SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent の全エージェント種別で model_override が機能する
+  4. 通常 Chat モードの動作に影響がない（既存の model パラメータがそのまま使われる）
+
+**Plans**: TBD
