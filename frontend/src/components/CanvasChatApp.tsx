@@ -143,7 +143,7 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
 
   // D-14: gemId と onCanvasResponse を useChat に渡す
   // app_id: 'canvas' を明示することで通常の ChatApp スレッドと混在しないようにする
-  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit } = useChat({
     activeThreadId,
     selectedModel,
     appId: 'canvas',
@@ -308,6 +308,8 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
               streamPreview={streamPreview}
               onSend={handleSend}
               onCancel={cancelJob}
+              pendingQuestion={pendingQuestion}
+              onQuestionSubmit={handleQuestionSubmit}
             />
           )}
 

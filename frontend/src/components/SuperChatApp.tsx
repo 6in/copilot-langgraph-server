@@ -181,7 +181,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     dismissCanvas,
   } = useCanvas();
 
-  const { isThinking, currentTool, streamPreview, sendMessage, cancelJob } = useChat({
+  const { isThinking, currentTool, streamPreview, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit } = useChat({
     activeThreadId,
     selectedModel,
     selectedMode: 'super',
@@ -298,6 +298,8 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               onSend={handleSend}
               onCancel={cancelJob}
               enableResend
+              pendingQuestion={pendingQuestion}
+              onQuestionSubmit={handleQuestionSubmit}
             />
           )}
         </div>

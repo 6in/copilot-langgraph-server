@@ -82,7 +82,7 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
     await refreshThreads();
   };
 
-  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit } = useChat({
     activeThreadId,
     selectedModel,
     setMessages,
@@ -178,6 +178,8 @@ export function ChatApp({ selectedModel }: ChatAppProps) {
               streamPreview={streamPreview}
               onSend={handleSend}
               onCancel={cancelJob}
+              pendingQuestion={pendingQuestion}
+              onQuestionSubmit={handleQuestionSubmit}
             />
             {canvasApp && (
               <CanvasPane

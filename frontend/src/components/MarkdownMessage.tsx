@@ -268,7 +268,33 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
 
   const components = useMemo(() => ({
-    pre({ children }: { children?: React.ReactNode }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pre({ children, node }: { children?: React.ReactNode; node?: any }) {
+      // Extract language from pre > code.properties.className (hast node tree).
+      const codeNode = node?.children?.find((c: { tagName?: string }) => c.tagName === 'code');
+      const classNames: string[] = codeNode?.properties?.className ?? [];
+      const langMatch = classNames.join(' ').match(/language-(\w+)/);
+      const language = langMatch ? normalizeLanguage(langMatch[1]) : '';
+
+      const value = codeNode
+        ? String(codeNode.children?.map((c: { value?: string }) => c.value ?? '').join('') ?? '').replace(/\n$/, '')
+        : '';
+
+      // canvashtml / html: collapsible, read-only HTML block
+      if (language === 'canvashtml' || language === 'html') {
+        return <CollapsibleCodeBlock value={value} monacoTheme={monacoTheme} />;
+      }
+
+      // mermaid: render diagram with View/Source toggle
+      if (language === 'mermaid') {
+        return (
+          <Suspense fallback={<div style={{ padding: '12px', fontSize: '13px', color: '#858585' }}>Loading Mermaid...</div>}>
+            <MermaidBlock value={value} monacoTheme={monacoTheme} theme={theme} />
+          </Suspense>
+        );
+      }
+
+      // Other block code — let the code component handle it inside this wrapper
       return <div style={{ width: '100%', minWidth: 0 }}>{children}</div>;
     },
     p({ children }: { children?: React.ReactNode }) {
@@ -291,28 +317,23 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
         </Suspense>
       );
     },
-    code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
-            const match = /language-(\w+)/.exec(className || '');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    code({ className, children, node, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode; node?: any }) {
+            // react-markdown v10: className may come from hast node properties
+            const effectiveClassName = className
+              || (node?.properties?.className && Array.isArray(node.properties.className)
+                  ? node.properties.className.join(' ')
+                  : node?.properties?.className)
+              || '';
+            const match = /language-(\w+)/.exec(effectiveClassName);
             const isBlock = !!match || (typeof children === 'string' && children.includes('\n'));
 
             if (isBlock) {
               const language = normalizeLanguage(match ? match[1] : '');
               const value = String(children).replace(/\n$/, '');
 
-              // canvashtml: canvas AI response — collapsible, read-only HTML block
-              if (language === 'canvashtml') {
-                return <CollapsibleCodeBlock value={value} monacoTheme={monacoTheme} />;
-              }
-
-              // mermaid: render diagram with View/Source toggle
-              if (language === 'mermaid') {
-                return (
-                  <Suspense fallback={<div style={{ padding: '12px', fontSize: '13px', color: '#858585' }}>Loading Mermaid...</div>}>
-                    <MermaidBlock value={value} monacoTheme={monacoTheme} theme={theme} />
-                  </Suspense>
-                );
-              }
-
+              // canvashtml and mermaid are handled by the pre component above;
+              // this handles all other block code languages
               return (
                 <CodeBlock
                   language={language}

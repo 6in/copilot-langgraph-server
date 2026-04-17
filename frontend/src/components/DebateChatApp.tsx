@@ -577,7 +577,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
     []
   );
 
-  const { isThinking, sendMessage, cancelJob } = useChat({
+  const { isThinking, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit } = useChat({
     activeThreadId,
     selectedModel,
     selectedTaskType: 'debate',
@@ -786,6 +786,8 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
                   onCancel={cancelJob}
                   disabled={inputDisabled}
                   placeholder={inputPlaceholder}
+                  pendingQuestion={pendingQuestion}
+                  onQuestionSubmit={handleQuestionSubmit}
                 />
                 {awaitingExtension && (
                   <div style={{ padding: '0 8px 0' }}>

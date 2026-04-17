@@ -146,6 +146,12 @@ Phase 2（バックエンド: ジョブキャンセル API）に分離する。
 Copilot SDK の `send_and_wait` がブロッキングのため、Phase 1 だけでも十分実用的。
 関連 ADR: [0037](../docs/adr/0037-chat-ui-batch-enhancements.md)
 
+### AskUserQuestion — システムプロンプト注入 + フロントエンド検出
+AI に `<ask_user_question>` XML タグで構造化質問を出力させ、フロントエンドで検出して QuestionPanel UI を表示する。
+SuperChat 経由の応答は `orchestrator_result` JSON でラップされるため、外側を先にアンラップしてから AUQ 検出する。
+履歴ロード時のタグ除去はデータ取得層（`client.ts`）で行い、レンダリング層（`MarkdownMessage`）では行わない。
+関連 ADR: [0039](../docs/adr/0039-askuserquestion-auq-protocol.md)
+
 ---
 
 ## Infra・Deploy

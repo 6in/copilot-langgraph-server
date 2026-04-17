@@ -187,3 +187,14 @@ Plans:
 - [x] 26-01-PLAN.md — adr-categories.yaml + generate_adr_index.py + pre-commit hook + pytest
 - [x] 26-02-PLAN.md — docs/adr/INDEX.md 生成 + .planning/patterns.md 新規作成
 - [x] 26-03-PLAN.md — CLAUDE.md 運用ルール追記 + /create-adr リマインダ + ROADMAP 更新
+
+### Phase 27: AskUserQuestion の実装 — AI エージェントがユーザーに選択肢・確認を提示する対話的インタラクションパターンをチャット UI + バックエンドに組み込む
+
+**Goal:** AI エージェントが `<ask_user_question>` タグで構造化質問（single/multi/text）をユーザーに提示し、QuestionPanel UI で回答を受け取り、テキスト化して既存チャットフローに送信する対話パターンを全アプリで動作させる
+**Requirements**: AUQ-01, AUQ-02, AUQ-03, AUQ-04, AUQ-05
+**Depends on:** Phase 26
+**Plans:** 2/2 plans complete
+
+Plans:
+- [x] 27-01-PLAN.md — AUQ_PROTOCOL system prompt 注入（両経路）+ AUQ 型定義 + QuestionPanel.tsx 作成
+- [x] 27-02-PLAN.md — useChat AUQ 検出 + MessageArea 入力置換 + 全 5 アプリ伝播 + ブラウザ確認

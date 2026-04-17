@@ -20,6 +20,29 @@ SECURITY_GUARDRAIL = (
     "禁止です（幻覚・作話の禁止）。"
 )
 
+AUQ_PROTOCOL = (
+    "\n\n## 質問プロトコル\n\n"
+    "ユーザーに確認が必要な場合、以下の <ask_user_question> フォーマットのみで応答すること。\n"
+    "通常の会話文と混在させてはならない。\n\n"
+    "### フォーマット\n\n"
+    "<ask_user_question>\n"
+    '{"questions": [{"question": "質問テキスト", "header": "ラベル（12文字以内）", '
+    '"type": "single|multi|text", '
+    '"options": [{"label": "選択肢", "description": "補足説明"}], '
+    '"allowFreeText": true, "placeholder": "入力例", "optional": true}]}\n'
+    "</ask_user_question>\n\n"
+    "### type の使い分け\n"
+    "- single: 1つだけ選ぶ（デフォルト）\n"
+    "- multi: 複数選べる\n"
+    "- text: 自由記述\n\n"
+    "### ルール\n"
+    "- 選択肢は 2〜4 個に絞ること\n"
+    "- 1回のパネルに収める上限は 10 問まで\n"
+    "- 確認事項が 10 問を超える場合はテーマ単位で分割して複数ラウンドに分けること\n"
+    "- 質問が 1〜3 問程度で済む場合はまとめて 1 回で聞くこと\n"
+    "- 回答を受け取ったら作業を進め、追加確認が必要なら再度同フォーマットで質問すること"
+)
+
 
 def build_system_prompt_prefix(user_id: str | None) -> str:
     """Return the common prefix injected ahead of every SubAgent system prompt.
@@ -33,4 +56,5 @@ def build_system_prompt_prefix(user_id: str | None) -> str:
     if user_id:
         parts.append(f"ログイン中のユーザー: {user_id}")
     parts.append(SECURITY_GUARDRAIL)
+    parts.append(AUQ_PROTOCOL)
     return "\n".join(parts)

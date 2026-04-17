@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 35 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 36 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -56,6 +56,7 @@
 | [0029](0029-ui-todo-batch-orochi-branding-canvas-debate-fixes.md) | UI Todo バッチ実装 — Orochi ブランディング・Canvas/DebateChat 機能改善 | 2026-04-14 |
 | [0033](0033-canvas-ai-model-selection-with-alias-whitelist.md) | Canvas iframe RPC `ai()` モデル指定機能とエイリアスホワイトリスト | 2026-04-15 |
 | [0037](0037-chat-ui-batch-enhancements.md) | チャット UI 一括機能強化（レンダリング・操作・AG Grid） | 2026-04-16 |
+| [0039](0039-askuserquestion-auq-protocol.md) | AskUserQuestion — AI-UI 対話的質問プロトコル | 2026-04-18 |
 
 ## Infra・Deploy
 

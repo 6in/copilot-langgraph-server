@@ -78,7 +78,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
 
   // D-16: gem_id を useChat に渡す。appId は送らない（applications FK 制約があるため 'gem-xxx' は無効）
   // スレッドは app_id='chat' で保存されるが gem_id で絞り込めるため問題なし（Todo 8）
-  const { isThinking, streamPreview, sendMessage, cancelJob } = useChat({
+  const { isThinking, streamPreview, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit } = useChat({
     activeThreadId,
     selectedModel,
     gemId: gem.gem_id,
@@ -210,6 +210,8 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
               streamPreview={streamPreview}
               onSend={handleSend}
               onCancel={cancelJob}
+              pendingQuestion={pendingQuestion}
+              onQuestionSubmit={handleQuestionSubmit}
             />
           )}
         </MainContainer>

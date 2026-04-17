@@ -110,9 +110,18 @@ const getThreadMessages = (threadId: string) =>
     `${API_BASE}/api/threads/${encodeURIComponent(threadId)}/messages`
   );
 
+// Strip <ask_user_question> tags from stored AI messages (shown on reload).
+// Replaces raw XML with a short note so the chat stays clean.
+const AUQ_TAG_RE = /<ask_user_question>[\s\S]*?<\/ask_user_question>/g;
+function stripAUQTags(text: string): string {
+  if (!text.includes('<ask_user_question>')) return text;
+  return text.replace(AUQ_TAG_RE, '\n\n> _（AI からの質問パネルが表示されました）_\n\n').trim();
+}
+
 // Convenience: fetch the full message list as ChatMessage[]
 // Canvas responses are stored as raw JSON in the DB; convert them to canvashtml
 // markdown blocks so CollapsibleCodeBlock renders them the same as live responses.
+// AUQ responses are stripped so raw XML tags don't appear on reload.
 export const loadThreadMessages = async (threadId: string): Promise<ChatMessage[]> => {
   const data = await getThreadMessages(threadId);
   return data.messages.map((msg) => {
@@ -125,6 +134,10 @@ export const loadThreadMessages = async (threadId: string): Promise<ChatMessage[
         return { ...msg, content: `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\`` };
       }
     } catch { /* not JSON — leave as-is */ }
+    // Strip AUQ tags from stored messages (only on history load, not live responses)
+    if (msg.content.includes('<ask_user_question>')) {
+      return { ...msg, content: stripAUQTags(msg.content) };
+    }
     return msg;
   });
 };

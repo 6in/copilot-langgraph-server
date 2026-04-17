@@ -141,3 +141,24 @@ export interface CanvasResult {
   app_id: string;
   html: string;
 }
+
+// --- Phase 27: AskUserQuestion types ---
+
+export interface AUQOption {
+  label: string;
+  description?: string;
+}
+
+export interface AUQQuestion {
+  question: string;
+  header: string;
+  type?: 'single' | 'multi' | 'text';
+  options?: AUQOption[];
+  allowFreeText?: boolean;
+  placeholder?: string;
+  optional?: boolean;
+}
+
+export interface AskUserQuestionPayload {
+  questions: AUQQuestion[];
+}

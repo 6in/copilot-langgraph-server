@@ -4,7 +4,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
-import type { CanvasAppInfo, CanvasResult, ChatMessage, ContextMessage } from '../types';
+import type { AskUserQuestionPayload, CanvasAppInfo, CanvasResult, ChatMessage, ContextMessage } from '../types';
+import { parseAUQ } from '../components/QuestionPanel';
 
 // Phase 17: 討論チャット結果
 interface DebateTurn {
@@ -47,10 +48,22 @@ interface UseChatReturn {
   streamPreview: string;
   sendMessage: (text: string, threadId?: string, contextMessages?: ContextMessage[]) => Promise<void>;
   cancelJob: () => void;
+  pendingQuestion: AskUserQuestionPayload | null;
+  handleQuestionSubmit: (answers: Record<string, string>) => void;
 }
 
-// Phase 15/17: Parse job result — detect Canvas / debate_result / orchestrator_result JSON payload vs plain text.
-function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null; debate: DebateResult | null; agentName: string | null } {
+// Phase 15/17: Parse job result — detect AUQ / Canvas / debate_result / orchestrator_result JSON payload vs plain text.
+function parseJobResult(raw: string): { text: string; canvas: CanvasResult | null; debate: DebateResult | null; agentName: string | null; askUserQuestion: AskUserQuestionPayload | null } {
+  // AUQ check FIRST — before any JSON.parse attempt.
+  // The AI may return <ask_user_question> as plain text or wrapped in other content.
+  if (raw.includes('<ask_user_question>')) {
+    const auq = parseAUQ(raw);
+    if (auq) {
+      // Strip the AUQ tag portion; keep any surrounding text as the message
+      const textWithout = raw.replace(/<ask_user_question>[\s\S]*?<\/ask_user_question>/g, '').trim();
+      return { text: textWithout, canvas: null, debate: null, agentName: null, askUserQuestion: auq };
+    }
+  }
   try {
     const parsed = JSON.parse(raw);
     if (parsed && parsed.type === 'canvas') {
@@ -59,18 +72,26 @@ function parseJobResult(raw: string): { text: string; canvas: CanvasResult | nul
       const html = c.html ?? '';
       // canvashtml: custom language tag → CollapsibleCodeBlock in MarkdownMessage
       const text = `🎨 **${name}**\n\n\`\`\`canvashtml\n${html}\n\`\`\``;
-      return { text, canvas: c, debate: null, agentName: null };
+      return { text, canvas: c, debate: null, agentName: null, askUserQuestion: null };
     }
     if (parsed && parsed.type === 'debate_result') {
-      return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult, agentName: null };
+      return { text: parsed.debate_text as string, canvas: null, debate: parsed as DebateResult, agentName: null, askUserQuestion: null };
     }
     if (parsed && parsed.type === 'orchestrator_result') {
-      return { text: parsed.content as string, canvas: null, debate: null, agentName: parsed.agent_name ?? null };
+      const content = parsed.content as string;
+      if (content.includes('<ask_user_question>')) {
+        const auq = parseAUQ(content);
+        if (auq) {
+          const textWithout = content.replace(/<ask_user_question>[\s\S]*?<\/ask_user_question>/g, '').trim();
+          return { text: textWithout, canvas: null, debate: null, agentName: parsed.agent_name ?? null, askUserQuestion: auq };
+        }
+      }
+      return { text: content, canvas: null, debate: null, agentName: parsed.agent_name ?? null, askUserQuestion: null };
     }
   } catch {
-    // plain text — not JSON
+    // plain text — not JSON; already checked for AUQ above
   }
-  return { text: raw, canvas: null, debate: null, agentName: null };
+  return { text: raw, canvas: null, debate: null, agentName: null, askUserQuestion: null };
 }
 
 export function useChat({
@@ -94,6 +115,7 @@ export function useChat({
   const [isThinking, setIsThinking] = useState(false);
   const [currentTool, setCurrentTool] = useState<{tool: string; query: string} | null>(null);
   const [streamPreview, setStreamPreview] = useState<string>('');
+  const [pendingQuestion, setPendingQuestion] = useState<AskUserQuestionPayload | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -145,9 +167,13 @@ export function useChat({
         ...(currentTurn !== undefined ? { current_turn: currentTurn } : {}),
       });
 
-      // Helper: handle result raw string (Canvas / debate_result / plain text)
+      // Helper: handle result raw string (Canvas / debate_result / AUQ / plain text)
       const handleResult = (raw: string) => {
-        const { text: resultText, canvas, debate, agentName } = parseJobResult(raw);
+        const { text: resultText, canvas, debate, agentName, askUserQuestion } = parseJobResult(raw);
+        if (askUserQuestion) {
+          setPendingQuestion(askUserQuestion);
+          return;
+        }
         if (canvas && onCanvasResponse) {
           // Canvas response: show raw text in chat + open Canvas pane
           setMessages((prev) => [...prev, { role: 'ai', content: resultText }]);
@@ -191,6 +217,18 @@ export function useChat({
       // 2. Check if already done (reconnect / very fast response edge case)
       const immediate = await getJob(job_id);
       if (immediate.status === 'done' && immediate.result) {
+        // Unwrap orchestrator_result then check AUQ
+        let immContent = immediate.result;
+        try { const o = JSON.parse(immediate.result); if (o?.type === 'orchestrator_result' && typeof o.content === 'string') immContent = o.content; } catch {}
+        if (immContent.includes('<ask_user_question>')) {
+          const auq = parseAUQ(immContent);
+          if (auq) {
+            setPendingQuestion(auq);
+            setIsThinking(false);
+            await refreshThreads?.();
+            return;
+          }
+        }
         handleResult(immediate.result);
         setIsThinking(false);
         await refreshThreads?.();
@@ -232,6 +270,24 @@ export function useChat({
             es.close();
             const result = await getJob(job_id);
             if (result.result) {
+              // Unwrap orchestrator_result if present, then check for AUQ
+              let rawContent = result.result;
+              try {
+                const outer = JSON.parse(result.result);
+                if (outer?.type === 'orchestrator_result' && typeof outer.content === 'string') {
+                  rawContent = outer.content;
+                }
+              } catch { /* not JSON — use as-is */ }
+              if (rawContent.includes('<ask_user_question>')) {
+                const auq = parseAUQ(rawContent);
+                if (auq) {
+                  setStreamPreview('');
+                  setPendingQuestion(auq);
+                  setIsThinking(false);
+                  await refreshThreads?.();
+                  return;
+                }
+              }
               const parsed = (() => { try { return JSON.parse(result.result); } catch { return null; } })();
               if (parsed?.type === 'debate_result') {
                 // SSE で未表示のターンを result から補完（ストリーム失敗時のフォールバック）
@@ -281,6 +337,18 @@ export function useChat({
             if (job.status === 'done' && job.result) {
               clearInterval(fallbackTimerRef.current!);
               fallbackTimerRef.current = null;
+              // Unwrap orchestrator_result then check AUQ
+              let pollContent = job.result;
+              try { const o = JSON.parse(job.result); if (o?.type === 'orchestrator_result' && typeof o.content === 'string') pollContent = o.content; } catch {}
+              if (pollContent.includes('<ask_user_question>')) {
+                const auq = parseAUQ(pollContent);
+                if (auq) {
+                  setPendingQuestion(auq);
+                  setIsThinking(false);
+                  await refreshThreads?.();
+                  return;
+                }
+              }
               handleResult(job.result);
               setIsThinking(false);
               await refreshThreads?.();
@@ -299,6 +367,15 @@ export function useChat({
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
   }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
+
+  const handleQuestionSubmit = useCallback((answers: Record<string, string>) => {
+    setPendingQuestion(null);
+    const text = Object.entries(answers)
+      .filter(([, v]) => v)
+      .map(([q, a]) => `${q}：${a}`)
+      .join('\n');
+    sendMessage(text);
+  }, [sendMessage]);
 
   const cancelJob = useCallback(() => {
     // Close SSE connection
@@ -320,5 +397,5 @@ export function useChat({
     setIsThinking(false);
   }, [streamPreview, setMessages]);
 
-  return { isThinking, currentTool, streamPreview, sendMessage, cancelJob };
+  return { isThinking, currentTool, streamPreview, sendMessage, cancelJob, pendingQuestion, handleQuestionSubmit };
 }

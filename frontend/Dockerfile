@@ -2,7 +2,7 @@
 FROM oven/bun:1-alpine AS dev
 WORKDIR /app
 COPY package.json bun.lock* bun.lockb* ./
-RUN bun install
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
 COPY . .
 EXPOSE 5173
 CMD ["bun", "run", "dev", "--", "--host", "0.0.0.0"]
@@ -11,7 +11,7 @@ CMD ["bun", "run", "dev", "--", "--host", "0.0.0.0"]
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock* bun.lockb* ./
-RUN bun install --frozen-lockfile || bun install
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile || bun install
 COPY . .
 ARG VITE_APP_BASE=/orochi
 ENV VITE_APP_BASE=$VITE_APP_BASE

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: verifying
-stopped_at: Completed 26-03-PLAN.md
-last_updated: "2026-04-15T13:31:42.055Z"
-last_activity: 2026-04-15
+status: executing
+stopped_at: Phase 27 UI-SPEC approved
+last_updated: "2026-04-17T02:19:25.036Z"
+last_activity: 2026-04-17
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 8
+  completed_phases: 8
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v5.0 全フェーズ完了
+**Current focus:** Phase 27 — askuserquestion-ai-ui
 
 ## Current Position
 
-Phase: 25 (react-router-v7-url-routing) — COMPLETE
-Plan: 1 of 1
+Phase: 27
+Plan: Not started
 Milestone: v5.0 Agent Tool Platform
-Status: Phase complete — ready for verification
-Last activity: 2026-04-15
+Status: Executing Phase 27
+Last activity: 2026-04-17
 
 Progress: [██░░░░░░░░] 20% (1/5 phases)
 
@@ -37,7 +37,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 
 **Velocity:**
 
-- Total plans completed: 0 (v5.0)
+- Total plans completed: 2 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -45,7 +45,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 27 | 2 | - | - |
 
 **Recent Trend:**
 
@@ -222,6 +222,7 @@ Recent decisions affecting current work:
 - v5.0 roadmap created (2026-04-10): Phases 20–24 — FastMCP Docker 基盤、bind_tools 統合、Web 検索、DB + Claude Code ツール、config.yaml ルーティング
 - Phase 25 added: React Router v6 導入による URL ルーティング実装 — アプリ種別+thread_id の URL 構造、APP_PREFIX(/orochi)対応、スレッド共有リンク基盤
 - Phase 26 added: ADR 整理 + patterns.md 作成 + GSD プランニング統合 — 33本のADRから再利用可能パターンを抽出し docs/patterns.md として圧縮、重複ADR統合、CLAUDE.md から参照させて /gsd-plan-phase で暗黙参照させる
+- Phase 27 added: AskUserQuestion の実装 — AI エージェントがユーザーに選択肢・確認を提示する対話的インタラクションパターンをチャット UI + バックエンドに組み込む
 
 ### Pending Todos
 
@@ -275,6 +276,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-15 - Completed quick task 260415-mbc: Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する
-Last session: 2026-04-15T13:31:42.052Z
-Stopped at: Completed 26-03-PLAN.md
-Resume file: None
+Last session: 2026-04-17T00:36:11.426Z
+Stopped at: Phase 27 UI-SPEC approved
+Resume file: .planning/phases/27-askuserquestion-ai-ui/27-UI-SPEC.md

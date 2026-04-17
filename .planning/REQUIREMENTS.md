@@ -35,6 +35,14 @@
 - [ ] **CODE-02**: `CLAUDECODE=1` 等の危険な環境変数が引き継がれない
 - [ ] **CODE-03**: タイムアウト（60秒）と zombie プロセス対策が実装される
 
+### AskUserQuestion 対話パターン
+
+- [ ] **AUQ-01**: LangGraph 経路の system prompt に AUQ プロトコルが注入され、AI が `<ask_user_question>` タグを生成できる
+- [ ] **AUQ-02**: Orchestrator 経路の system prompt に AUQ プロトコルが注入され、全 SubAgent が質問可能
+- [ ] **AUQ-03**: フロントエンドの parseJobResult が `<ask_user_question>` タグを検出し pendingQuestion 状態を管理する
+- [ ] **AUQ-04**: ユーザー回答が「質問：回答」テキスト形式で POST /api/chat に送信される
+- [ ] **AUQ-05**: 全 5 アプリ（Chat / SuperChat / GemChat / CanvasChat / DebateChat）で QuestionPanel が動作する
+
 ---
 
 ## Future Requirements（v5.1+）
@@ -73,3 +81,8 @@
 | CODE-01 | Phase 23 | Not started |
 | CODE-02 | Phase 23 | Not started |
 | CODE-03 | Phase 23 | Not started |
+| AUQ-01 | Phase 27 | Not started |
+| AUQ-02 | Phase 27 | Not started |
+| AUQ-03 | Phase 27 | Not started |
+| AUQ-04 | Phase 27 | Not started |
+| AUQ-05 | Phase 27 | Not started |

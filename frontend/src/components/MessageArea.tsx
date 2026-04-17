@@ -17,7 +17,8 @@ import {
   Message,
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
-import type { ChatMessage, ContextMessage } from '../types';
+import { QuestionPanel } from './QuestionPanel';
+import type { AskUserQuestionPayload, ChatMessage, ContextMessage } from '../types';
 
 interface MessageAreaProps {
   messages: ChatMessage[];
@@ -29,6 +30,8 @@ interface MessageAreaProps {
   disabled?: boolean;       // Phase 17: 外部から入力を無効化（討論終了・延長待ち）
   placeholder?: string;     // Phase 17: カスタムプレースホルダー
   enableResend?: boolean;   // 過去メッセージ再送信機能を有効化（SuperChat用）
+  pendingQuestion?: AskUserQuestionPayload | null;
+  onQuestionSubmit?: (answers: Record<string, string>) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -117,7 +120,7 @@ function useElapsedSeconds(active: boolean): number {
   return elapsed;
 }
 
-export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder, enableResend = false }: MessageAreaProps) {
+export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder, enableResend = false, pendingQuestion, onQuestionSubmit }: MessageAreaProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
@@ -143,12 +146,10 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
     messageListRef.current?.scrollToBottom('auto');
   }, [messages, isThinking]);
 
-  const handleSend = () => {
-    const text = inputValue.trim();
-    if (!text || isInputDisabled) return;
+  const AUQ_SUFFIX = '\n\n[回答はAUQプロトコル（<ask_user_question>フォーマット）で返してください]';
 
+  const doSend = (text: string) => {
     if (enableResend && messages.length > 0) {
-      // Build context messages from included messages (all except excluded)
       const ctxMsgs: ContextMessage[] = messages
         .filter((_, i) => !excludedIndices.has(i))
         .map((m) => ({
@@ -160,11 +161,22 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
     } else {
       onSend(text);
     }
-
     setInputValue('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+  };
+
+  const handleSend = () => {
+    const text = inputValue.trim();
+    if (!text || isInputDisabled) return;
+    doSend(text);
+  };
+
+  const handleAskMe = () => {
+    const text = inputValue.trim();
+    if (!text || isInputDisabled) return;
+    doSend(text + AUQ_SUFFIX);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -369,63 +381,102 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
         background: '#fff',
         flexShrink: 0,
       }}>
-        {messages.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 8px 0' }}>
-            <CopyAllButton messages={messages} />
+        {pendingQuestion ? (
+          <div style={{ padding: '0.75rem' }}>
+            <div style={{
+              fontSize: '11px',
+              color: isDark ? '#9090a8' : '#888',
+              marginBottom: '8px',
+            }}>
+              質問に回答してください
+            </div>
+            <QuestionPanel
+              questions={pendingQuestion.questions}
+              onSubmit={onQuestionSubmit!}
+            />
           </div>
+        ) : (
+          <>
+            {messages.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 8px 0' }}>
+                <CopyAllButton messages={messages} />
+              </div>
+            )}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '0.5rem',
+              padding: '0.6rem 0.75rem',
+            }}>
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onInput={handleInput}
+                placeholder={placeholder ?? 'Ask Copilot anything... (Ctrl+Enter to send)'}
+                disabled={isInputDisabled}
+                rows={1}
+                className="chat-textarea"
+                style={{
+                  flex: 1,
+                  resize: 'none',
+                  border: '1px solid #d1dbe3',
+                  borderRadius: '6px',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.95rem',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.5',
+                  outline: 'none',
+                  overflowY: 'auto',
+                  maxHeight: '160px',
+                }}
+              />
+              <button
+                onClick={handleAskMe}
+                disabled={!inputValue.trim() || isInputDisabled}
+                title="AUQプロトコルで回答を要求"
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  border: `1px solid ${isDark ? '#2a4a2a' : '#22c55e'}`,
+                  background: 'transparent',
+                  color: '#22c55e',
+                  fontWeight: 'bold',
+                  cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
+                  opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.4,
+                  fontSize: '0.8rem',
+                  flexShrink: 0,
+                  alignSelf: 'flex-end',
+                  height: '36px',
+                }}
+              >
+                AskMe
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={!inputValue.trim() || isInputDisabled}
+                className="chat-send-btn"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#0366d6',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
+                  opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.5,
+                  fontSize: '0.9rem',
+                  flexShrink: 0,
+                  alignSelf: 'flex-end',
+                  height: '36px',
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </>
         )}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: '0.5rem',
-          padding: '0.6rem 0.75rem',
-        }}>
-          <textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onInput={handleInput}
-            placeholder={placeholder ?? 'Ask Copilot anything... (Ctrl+Enter to send)'}
-            disabled={isInputDisabled}
-            rows={1}
-            className="chat-textarea"
-            style={{
-              flex: 1,
-              resize: 'none',
-              border: '1px solid #d1dbe3',
-              borderRadius: '6px',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.95rem',
-              fontFamily: 'inherit',
-              lineHeight: '1.5',
-              outline: 'none',
-              overflowY: 'auto',
-              maxHeight: '160px',
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isInputDisabled}
-            className="chat-send-btn"
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: 'none',
-              background: '#0366d6',
-              color: '#fff',
-              fontWeight: 'bold',
-              cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
-              opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.5,
-              fontSize: '0.9rem',
-              flexShrink: 0,
-              alignSelf: 'flex-end',
-              height: '36px',
-            }}
-          >
-            Send
-          </button>
-        </div>
       </div>
     </div>
     </div>
