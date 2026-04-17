@@ -13,6 +13,7 @@ from app.utils.system_prompt import build_system_prompt_prefix
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
 from app.orchestrator.tool_agent import ToolEnabledSubAgent
+from app.orchestrator.codeact_agent import CodeActSubAgent
 
 logger = logging.getLogger(__name__)
 
@@ -181,16 +182,30 @@ class SubAgentRegistry:
                                 meta["name"], privileged_used,
                             )
                         if selected_tools:
-                            agent = ToolEnabledSubAgent(
-                                name=meta["name"],
-                                description=meta["description"],
-                                model=meta.get("model", "claude-sonnet-4-6"),
-                                system_prompt=post.content,
-                                github_token=github_token,
-                                tools=selected_tools,
-                                keywords=meta.get("keywords", []),
-                            )
-                            agent_type = "folder+tools"
+                            # agent_type: codeact → CodeActSubAgent (direct execution, no ReAct)
+                            if meta.get("agent_type") == "codeact":
+                                agent = CodeActSubAgent(
+                                    name=meta["name"],
+                                    description=meta["description"],
+                                    model=meta.get("model", "gpt-4.1"),
+                                    system_prompt=post.content,
+                                    github_token=github_token,
+                                    tools=selected_tools,
+                                    keywords=meta.get("keywords", []),
+                                    max_iterations=meta.get("max_iterations", 3),
+                                )
+                                agent_type = "codeact"
+                            else:
+                                agent = ToolEnabledSubAgent(
+                                    name=meta["name"],
+                                    description=meta["description"],
+                                    model=meta.get("model", "claude-sonnet-4-6"),
+                                    system_prompt=post.content,
+                                    github_token=github_token,
+                                    tools=selected_tools,
+                                    keywords=meta.get("keywords", []),
+                                )
+                                agent_type = "folder+tools"
                         else:
                             logger.warning(
                                 "[registry] agent '%s' declares tools %s but none found in mcp_tools",

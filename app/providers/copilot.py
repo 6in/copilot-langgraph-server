@@ -308,8 +308,12 @@ requires querying the PostgreSQL database. This includes metadata queries such a
 tables, showing columns, or describing schema (use information_schema or pg_catalog). \
 Convert the user's natural language request into a valid SELECT or WITH query. \
 Only SELECT is allowed — never generate INSERT/UPDATE/DELETE.
+- execute_python: whenever the user asks to run code, compute something, analyze data, \
+create algorithms, process numbers, or any task that benefits from actual code execution. \
+Write Python code and call this tool to execute it. Always use this tool instead of \
+showing code without executing it.
 
-For pure conversation, greetings, math, translation, or summarization of already-provided text, \
+For pure conversation, greetings, translation, or summarization of already-provided text, \
 respond normally without calling a tool.\
 """
 
@@ -492,5 +496,21 @@ class BoundChatCopilot(ChatCopilot):
                         except json.JSONDecodeError:
                             pass
                         break
+
+        # Attempt 4: detect Python code block and auto-convert to execute_python tool call.
+        # Copilot models often write code in markdown instead of using the JSON tool format.
+        # If execute_python is among bound tools and response contains ```python blocks,
+        # extract the code and create a tool call automatically.
+        if any(t.name == "execute_python" for t in self._bound_tools):
+            py_match = re.search(r"```python\s*\n(.*?)```", stripped, re.DOTALL)
+            if py_match:
+                code = py_match.group(1).strip()
+                if code:
+                    logger.info("[BoundChatCopilot] Auto-converting markdown python block to execute_python tool call (%d chars)", len(code))
+                    return ToolCall(
+                        name="execute_python",
+                        args={"code": code},
+                        id=str(uuid.uuid4())[:8],
+                    )
 
         return None

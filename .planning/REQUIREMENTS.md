@@ -43,6 +43,16 @@
 - [ ] **AUQ-04**: ユーザー回答が「質問：回答」テキスト形式で POST /api/chat に送信される
 - [ ] **AUQ-05**: 全 5 アプリ（Chat / SuperChat / GemChat / CanvasChat / DebateChat）で QuestionPanel が動作する
 
+### CodeAct パターン（Python サンドボックス実行）
+
+- [ ] **EXEC-01**: `execute_python` MCP ツールが正常な Python コードを実行して stdout/stderr/exit_code を返す
+- [ ] **EXEC-02**: env サニタイズにより DATABASE_URL 等の機密環境変数がサブプロセスに渡らない
+- [ ] **EXEC-03**: 60 秒タイムアウトでプロセスが SIGTERM→SIGKILL で終了し error が返る
+- [ ] **EXEC-04**: ホワイトリスト外の import が AST チェックでブロックされる
+- [ ] **EXEC-05**: 許可モジュール（math, json 等）の import は正常に通過する
+- [ ] **EXEC-06**: `execute_python` が MCP ツールとして登録され mcp_tools.yaml カタログに含まれる
+- [ ] **EXEC-07**: CodeAct エージェントが SubAgentRegistry に自動登録され recursion_limit: 12 で動作する
+
 ---
 
 ## Future Requirements（v5.1+）
@@ -86,3 +96,10 @@
 | AUQ-03 | Phase 27 | Not started |
 | AUQ-04 | Phase 27 | Not started |
 | AUQ-05 | Phase 27 | Not started |
+| EXEC-01 | Phase 28 | Not started |
+| EXEC-02 | Phase 28 | Not started |
+| EXEC-03 | Phase 28 | Not started |
+| EXEC-04 | Phase 28 | Not started |
+| EXEC-05 | Phase 28 | Not started |
+| EXEC-06 | Phase 28 | Not started |
+| EXEC-07 | Phase 28 | Not started |

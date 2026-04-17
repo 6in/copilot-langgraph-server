@@ -1,0 +1,45 @@
+# Phase 28 (D-11): execute_python ツールで許可するトップレベルモジュール名一覧
+# 変更後はコンテナ再起動で反映される
+allowed_modules:
+  # 標準ライブラリ — 安全な計算・データ処理系
+  - math
+  - statistics
+  - itertools
+  - functools
+  - collections
+  - datetime
+  - json
+  - re
+  - string
+  - random
+  - pathlib
+  - io
+  - base64
+  - hashlib
+  - typing
+  - dataclasses
+  - enum
+  - abc
+  - decimal
+  - fractions
+  - operator
+  - textwrap
+  - csv
+  - pprint
+  - copy
+  - time
+  - calendar
+  - struct
+  - array
+  - heapq
+  - bisect
+  - unicodedata
+
+  # サードパーティ — worker コンテナにインストール済み
+  - numpy
+  - yaml
+  - pydantic
+
+  # MCP ヘルパー — サンドボックスから MCP ツールを呼び出す
+  - mcp_helper
+  - urllib

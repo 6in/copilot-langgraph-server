@@ -92,6 +92,13 @@ Claude Code CLI サブプロセス起動前に `CLAUDECODE=1` 等の危険な環
 ### Tavily JSON モード互換性
 Copilot モデルは関数呼び出し非対応のため、Tavily 検索結果を JSON スキーマとして prompt に注入し
 text 応答から parse する。
+
+### CodeAct 直接実行方式（ReAct ループ回避）
+Copilot SDK モデルがプロンプトベースのツール呼び出し JSON に安定して従わないため、
+`CodeActSubAgent` は ReAct ループを使わず、LLM にコード生成だけさせて agent が execute_python を直接呼ぶ。
+MCP ツール（web_search 等）は `mcp_helper` ラッパー経由で Python コード内から呼び出す。
+`AGENT.md` に `agent_type: codeact` で SubAgentRegistry が自動選択。
+関連 ADR: [0041](../docs/adr/0041-codeact-direct-execution-over-react.md)
 関連 ADR: [0022](../docs/adr/0022-tavily-web-search-json-tool-calling-model-compatibility.md)
 
 ---

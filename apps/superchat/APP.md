@@ -6,6 +6,7 @@ agents:
   - code-reviewer
   - sql-analyst
   - general-assistant
+  - codeact
 ---
 
 # SuperChat
@@ -17,6 +18,7 @@ agents:
 - `code-reviewer` — コードレビュー・品質チェック
 - `sql-analyst` — SQL クエリ作成・最適化
 - `general-assistant` — 汎用アシスタント
+- `codeact` — Python コード実行で問題を解決
 
 **特徴:**
 - OrchestratorGraph による自動ルーティング

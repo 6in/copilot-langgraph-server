@@ -170,7 +170,15 @@ class OrchestratorHandler(TaskHandler):
                         elif kind == "on_chain_end" and event.get("name") == "LangGraph":
                             result = event["data"].get("output")
                     if result is None:
-                        result = await graph.ainvoke(initial, config=config)
+                        # astream_events completed but on_chain_end name didn't match
+                        # (can happen with nested ReAct subgraphs like ToolEnabledSubAgent).
+                        # Read final state from checkpoint instead of re-invoking the graph,
+                        # which would process the user's message twice and duplicate messages.
+                        final_state = await graph.aget_state(config)
+                        if final_state and final_state.values:
+                            result = final_state.values
+                        else:
+                            result = await graph.ainvoke(initial, config=config)
                 finally:
                     tool_event_cb.reset(_token)
                     await job_store.clear_tool_event(job_id)

@@ -24,8 +24,8 @@ pytest.importorskip("fastmcp", reason="fastmcp not installed in root env; run `c
 from fastmcp import Client  # noqa: E402
 from server import mcp  # noqa: E402  (imports register_tools side-effect)
 
-# Phase 23 Plan 02: claude_code_stub -> claude_code
-EXPECTED_TOOLS = {"ping", "web_search", "db_query", "claude_code"}
+# Phase 28: execute_python 追加 + get_current_datetime 漏れ修正
+EXPECTED_TOOLS = {"ping", "web_search", "db_query", "claude_code", "execute_python", "get_current_datetime"}
 
 
 @pytest.mark.asyncio
@@ -83,6 +83,7 @@ async def test_stub_schemas_have_required_params():
         "web_search": "query",
         "db_query": "sql",
         "claude_code": "prompt",
+        "execute_python": "code",
     }
     for tool_name, param_name in cases.items():
         tool = by_name[tool_name]
@@ -114,7 +115,7 @@ async def test_web_search_normal():
 
 @pytest.mark.asyncio
 async def test_web_search_truncates_content():
-    """SEARCH-02: 1000 文字超の content が切り捨てられる。"""
+    """SEARCH-02: 500 文字超の content が切り捨てられる（SEARCH-02 REVISED: Copilot SDK タイムアウト対策で 500 文字）。"""
     pytest.importorskip("langchain_community", reason="langchain_community not installed in root env")
     long_content = "x" * 2000
     mock_results = [{"url": "https://example.com", "content": long_content}]
@@ -125,7 +126,7 @@ async def test_web_search_truncates_content():
         async with Client(mcp) as client:
             result = await client.call_tool("web_search", {"query": "test"})
     payload = result.data if hasattr(result, "data") else result.structured_content
-    assert len(payload["results"][0]["content"]) == 1000
+    assert len(payload["results"][0]["content"]) == 500
 
 
 @pytest.mark.asyncio
@@ -425,3 +426,137 @@ async def test_claude_code_e2e_smoke():
     payload = result.data if hasattr(result, "data") else result.structured_content
     assert isinstance(payload.get("exit_code"), int), f"exit_code must be int: {payload}"
     assert isinstance(payload.get("output"), str), f"output must be str: {payload}"
+
+
+# ─────────────────────────────────────────────
+# Phase 28: execute_python ツール ユニットテスト
+# EXEC-01〜06
+# ─────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_execute_python_returns_stdout():
+    """EXEC-01: execute_python が正常出力を返す。"""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from tools.execute_python import execute_python, _load_allowlist
+
+    # allowlist キャッシュをリセットして math を許可
+    import tools.execute_python as ep_mod
+    ep_mod._cached_allowlist = frozenset(["math", "json"])
+
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(return_value=(b"hello\n", b""))
+    mock_proc.returncode = 0
+
+    try:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            result = await execute_python(code="print('hello')")
+    finally:
+        ep_mod._cached_allowlist = None
+
+    assert result["stdout"] == "hello\n"
+    assert result["exit_code"] == 0
+    assert result["truncated"] is False
+    assert result["stderr"] == ""
+
+
+@pytest.mark.asyncio
+async def test_execute_python_env_sanitized():
+    """EXEC-02: DATABASE_URL 等がサブプロセスに渡らない。"""
+    import os
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from tools.execute_python import execute_python
+    import tools.execute_python as ep_mod
+    ep_mod._cached_allowlist = frozenset()
+
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(return_value=(b"ok", b""))
+    mock_proc.returncode = 0
+
+    try:
+        with patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql://localhost/db",
+            "SECRET_KEY": "secret123",
+            "PATH": "/usr/bin",
+            "HOME": "/root",
+        }):
+            with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+                await execute_python(code="print('ok')")
+
+        _args, kwargs = mock_exec.call_args
+        env = kwargs.get("env", {})
+        assert set(env.keys()).issubset({"PATH", "HOME", "LANG", "LC_ALL", "TERM", "PYTHONPATH"}), \
+            f"Unexpected env keys: {set(env.keys())}"
+        assert "DATABASE_URL" not in env
+        assert "SECRET_KEY" not in env
+    finally:
+        ep_mod._cached_allowlist = None
+
+
+@pytest.mark.asyncio
+async def test_execute_python_timeout():
+    """EXEC-03: タイムアウト時に error を返しプロセスを terminate する。"""
+    import asyncio as _asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from tools.execute_python import execute_python
+    import tools.execute_python as ep_mod
+    ep_mod._cached_allowlist = frozenset()
+
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(side_effect=_asyncio.TimeoutError())
+    mock_proc.wait = AsyncMock(return_value=None)
+    mock_proc.terminate = MagicMock()
+    mock_proc.kill = MagicMock()
+
+    try:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            result = await execute_python(code="print('slow')", timeout=1)
+    finally:
+        ep_mod._cached_allowlist = None
+
+    mock_proc.terminate.assert_called_once()
+    assert "Timeout" in result.get("error", "")
+    assert result["exit_code"] == -1
+
+
+@pytest.mark.asyncio
+async def test_execute_python_blocks_disallowed_import():
+    """EXEC-04: ホワイトリスト外 import がブロックされる。"""
+    from tools.execute_python import execute_python
+    import tools.execute_python as ep_mod
+    ep_mod._cached_allowlist = frozenset(["math", "json"])
+
+    try:
+        result = await execute_python(code="import subprocess\nprint('hi')")
+    finally:
+        ep_mod._cached_allowlist = None
+
+    assert result["exit_code"] == 1
+    assert "Blocked imports" in result.get("error", "")
+    assert "subprocess" in result.get("error", "")
+
+
+@pytest.mark.asyncio
+async def test_execute_python_allows_whitelisted_import():
+    """EXEC-05: 許可モジュールの import は通過する。"""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from tools.execute_python import execute_python
+    import tools.execute_python as ep_mod
+    ep_mod._cached_allowlist = frozenset(["math", "json"])
+
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(return_value=(b"3.14\n", b""))
+    mock_proc.returncode = 0
+
+    try:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            result = await execute_python(code="import math\nprint(math.pi)")
+    finally:
+        ep_mod._cached_allowlist = None
+
+    assert result["exit_code"] == 0
+    assert result["stdout"] == "3.14\n"
+    assert "error" not in result

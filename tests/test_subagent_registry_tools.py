@@ -119,3 +119,61 @@ def test_registry_creates_normal_agent_when_no_mcp_tools(tmp_path, mock_copilot_
     agent = registry.agents["test-agent"]
     assert isinstance(agent, SubAgent), f"Expected SubAgent fallback, got {type(agent).__name__}"
     assert not isinstance(agent, ToolEnabledSubAgent), "Should NOT be ToolEnabledSubAgent"
+
+
+def write_codeact_agent_md(agent_dir: Path) -> None:
+    """Write a CodeAct AGENT.md with recursion_limit for testing."""
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    content = textwrap.dedent("""\
+        ---
+        name: codeact
+        keywords:
+          - コード実行
+          - Python実行
+        description: |
+          CodeAct テストエージェント。
+          対象外: なし
+        model: gpt-4.1
+        tools:
+          - ping
+        recursion_limit: 12
+        ---
+
+        テスト用 CodeAct プロンプト。
+    """)
+    (agent_dir / "AGENT.md").write_text(content)
+
+
+def test_tool_enabled_agent_reads_recursion_limit(tmp_path, mock_copilot_cls):
+    """EXEC-07: ToolEnabledSubAgent が AGENT.md の recursion_limit を読み込む。"""
+    from app.orchestrator.tool_agent import ToolEnabledSubAgent
+
+    write_codeact_agent_md(tmp_path / "codeact")
+    mock_tools = make_mock_tools()
+
+    agent = ToolEnabledSubAgent.from_dir(
+        tmp_path / "codeact",
+        github_token="ghu_test",
+        tools=mock_tools,
+    )
+
+    assert agent.recursion_limit == 12, \
+        f"Expected recursion_limit=12, got {agent.recursion_limit}"
+    assert agent.name == "codeact"
+
+
+def test_tool_enabled_agent_default_recursion_limit(tmp_path, mock_copilot_cls):
+    """recursion_limit 未指定時はデフォルト値 25 を使用する。"""
+    from app.orchestrator.tool_agent import ToolEnabledSubAgent
+
+    write_agent_md(tmp_path / "test-agent", with_tools=True)
+    mock_tools = make_mock_tools()
+
+    agent = ToolEnabledSubAgent.from_dir(
+        tmp_path / "test-agent",
+        github_token="ghu_test",
+        tools=mock_tools,
+    )
+
+    assert agent.recursion_limit == 25, \
+        f"Expected default recursion_limit=25, got {agent.recursion_limit}"

@@ -102,9 +102,10 @@ const CodeBlock = memo(function CodeBlock({ language, value, monacoTheme }: Code
     const target = listEl ?? wrapperRef.current;
 
     const relayout = () => {
+      if (!wrapperRef.current) return;
       const available = target.clientWidth - 80; // subtract bubble padding
       if (available > 0) {
-        wrapperRef.current!.style.width = available + 'px';
+        wrapperRef.current.style.width = available + 'px';
         editorRef.current?.layout({ width: available, height: editorHeight });
       }
     };
@@ -204,17 +205,32 @@ const CodeBlock = memo(function CodeBlock({ language, value, monacoTheme }: Code
 // Starts collapsed to avoid cluttering the chat with large HTML payloads.
 const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
   value,
+  language,
+  label,
+  defaultExpanded,
   monacoTheme,
 }: {
   value: string;
+  language: string;
+  label?: string;
+  defaultExpanded?: boolean;
   monacoTheme: 'vs' | 'vs-dark';
 }) {
-  const [expanded, setExpanded] = useState(false);
   const lineCount = value.split('\n').length;
+  const [expanded, setExpanded] = useState(defaultExpanded ?? lineCount <= 10);
+  const [copied, setCopied] = useState(false);
   const editorHeight = Math.min(Math.max(lineCount, 3), 30) * 19 + 16;
   const borderColor = monacoTheme === 'vs-dark' ? '#3c3c3c' : '#e1e4e8';
   const headerBg = monacoTheme === 'vs-dark' ? '#1e1e1e' : '#f6f8fa';
   const headerColor = monacoTheme === 'vs-dark' ? '#858585' : '#57606a';
+  const displayLabel = label ?? `${language} (${lineCount}行)`;
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [value]);
 
   return (
     <div style={{ border: `1px solid ${borderColor}`, borderRadius: '6px', margin: '8px 0', overflow: 'hidden', width: '100%', minWidth: 0 }}>
@@ -234,14 +250,24 @@ const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
           color: headerColor,
         }}
       >
-        <span>{expanded ? '▼' : '▶'} HTML ({lineCount}行)</span>
-        <span>{expanded ? '折りたたむ' : '展開する'}</span>
+        <span>{expanded ? '▼' : '▶'} {displayLabel}</span>
+        <span style={{ display: 'flex', gap: '8px' }}>
+          {expanded && (
+            <span
+              onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+              style={{ cursor: 'pointer' }}
+            >
+              {copied ? '✓ Copied' : 'Copy'}
+            </span>
+          )}
+          <span>{expanded ? '折りたたむ' : '展開する'}</span>
+        </span>
       </button>
       {expanded && (
         <Editor
           height={editorHeight}
           width="100%"
-          language="html"
+          language={language}
           value={value}
           theme={monacoTheme}
           options={{
@@ -282,7 +308,12 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
 
       // canvashtml / html: collapsible, read-only HTML block
       if (language === 'canvashtml' || language === 'html') {
-        return <CollapsibleCodeBlock value={value} monacoTheme={monacoTheme} />;
+        return <CollapsibleCodeBlock value={value} language="html" label={`HTML (${value.split('\n').length}行)`} defaultExpanded={false} monacoTheme={monacoTheme} />;
+      }
+
+      // python: collapsible code block (CodeAct agent output)
+      if (language === 'python') {
+        return <CollapsibleCodeBlock value={value} language="python" monacoTheme={monacoTheme} />;
       }
 
       // mermaid: render diagram with View/Source toggle

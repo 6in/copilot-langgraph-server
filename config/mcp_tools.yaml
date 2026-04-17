@@ -18,5 +18,11 @@ tools:
     # シークレット・ADR 等を列挙・読み書き可能になる。宣言時は ToolRegistry が
     # WARNING を出す (SubAgentRegistry)。社内機密を扱うエージェントには付与しない。
     privileged: true
+  - name: execute_python
+    description: Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す
+    # privileged: 任意の Python コードをサブプロセスで実行できる。
+    # AST ホワイトリストチェックがあるが __import__() 等で迂回可能（社内ツール前提で中程度の制御）。
+    # このツールを AGENT.md の tools: に宣言すると SubAgent はコード実行可能になる。
+    privileged: true
   - name: get_current_datetime
     description: 現在の日時を JST で返す（日付・時刻・曜日）
