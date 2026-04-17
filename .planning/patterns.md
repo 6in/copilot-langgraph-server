@@ -84,6 +84,11 @@ Claude Code CLI サブプロセス起動前に `CLAUDECODE=1` 等の危険な環
 タイムアウト 60 秒 + zombie プロセス対策を含む。
 関連 ADR: [0023](../docs/adr/0023-mcp-db-query-and-claude-code-tools.md)
 
+### iframe-rpc.js ツールカタログ埋め込み + 同期スクリプト
+`config/mcp_tools.yaml` のツール情報を `static/js/iframe-rpc.js` に `AVAILABLE_TOOLS` 定数として埋め込む。
+マーカーコメント (`BEGIN/END TOOL_CATALOG`) で囲み、`scripts/sync-tool-list-to-js.py` で自動更新可能。
+関連 ADR: [0040](../docs/adr/0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md)
+
 ### Tavily JSON モード互換性
 Copilot モデルは関数呼び出し非対応のため、Tavily 検索結果を JSON スキーマとして prompt に注入し
 text 応答から parse する。
@@ -145,6 +150,17 @@ AI 応答キャンセルは Phase 1（フロントのみ: EventSource.close + �
 Phase 2（バックエンド: ジョブキャンセル API）に分離する。
 Copilot SDK の `send_and_wait` がブロッキングのため、Phase 1 だけでも十分実用的。
 関連 ADR: [0037](../docs/adr/0037-chat-ui-batch-enhancements.md)
+
+### Mermaid 画像コピー — 一時スタイル変更 + html-to-image
+View モードの Copy ボタンでダイアグラムを PNG としてクリップボードにコピーする。
+コンテナの flex レイアウトを一時的に `fit-content` に変更してキャプチャし、直後に復元する。
+`skipFonts: true` で cross-origin CSS エラーを回避、`pixelRatio: 3` で高解像度キャプチャ。
+関連 ADR: [0040](../docs/adr/0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md)
+
+### スレッドサイドバー日付グループ + 折りたたみ
+スレッド一覧を `updated_at` 基準で 5 グループ（今日/昨日/今週/先週/それ以前）に分類。
+「それ以前」はデフォルト折りたたみ。フロントエンドのみの変更で API ページネーションは不要。
+関連 ADR: [0040](../docs/adr/0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md)
 
 ### AskUserQuestion — システムプロンプト注入 + フロントエンド検出
 AI に `<ask_user_question>` XML タグで構造化質問を出力させ、フロントエンドで検出して QuestionPanel UI を表示する。

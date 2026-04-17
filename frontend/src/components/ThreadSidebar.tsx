@@ -50,9 +50,42 @@ export function ThreadSidebar({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
+  // Collapsible "それ以前" group
+  const [olderCollapsed, setOlderCollapsed] = useState(true);
+
   const filtered = filter.trim()
     ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
     : threads;
+
+  // Group threads by date
+  type DateGroup = '今日' | '昨日' | '今週' | '先週' | 'それ以前';
+  const groupOrder: DateGroup[] = ['今日', '昨日', '今週', '先週', 'それ以前'];
+
+  function getDateGroup(updatedAt?: string | null): DateGroup {
+    if (!updatedAt) return 'それ以前';
+    const now = new Date();
+    const updated = new Date(updatedAt);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffMs = todayStart.getTime() - new Date(updated.getFullYear(), updated.getMonth(), updated.getDate()).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0 || diffDays === 0) return '今日';
+    if (diffDays === 1) return '昨日';
+    if (diffDays <= 7) return '今週';
+    if (diffDays <= 14) return '先週';
+    return 'それ以前';
+  }
+
+  function groupThreads(threads: ThreadInfo[]): Map<DateGroup, ThreadInfo[]> {
+    const groups = new Map<DateGroup, ThreadInfo[]>();
+    for (const thread of threads) {
+      const group = getDateGroup(thread.updated_at);
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(thread);
+    }
+    return groups;
+  }
+
+  const grouped = groupThreads(filtered);
 
   const startEdit = (thread: ThreadInfo, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -289,117 +322,152 @@ export function ThreadSidebar({
               {threads.length === 0 ? 'No conversations yet' : 'No matches'}
             </p>
           )}
-          {filtered.map((thread) => (
-            <div
-              key={thread.thread_id}
-              className={`sidebar-thread-item${activeThreadId === thread.thread_id ? ' active' : ''}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.4rem 0.5rem',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                background: activeThreadId === thread.thread_id ? '#e8f0fe' : 'transparent',
-                fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
-              }}
-              onClick={() => {
-                if (selectMode) {
-                  toggleSelect(thread.thread_id);
-                } else if (editingId !== thread.thread_id) {
-                  onSelectThread(thread.thread_id);
-                }
-              }}
-            >
-              {/* Checkbox in select mode */}
-              {selectMode && (
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(thread.thread_id)}
-                  onChange={() => toggleSelect(thread.thread_id)}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ marginRight: '6px', flexShrink: 0, cursor: 'pointer' }}
-                />
-              )}
+          {groupOrder.map((groupLabel) => {
+            const groupThreads = grouped.get(groupLabel);
+            if (!groupThreads || groupThreads.length === 0) return null;
 
-              {editingId === thread.thread_id ? (
-                <input
-                  autoFocus
-                  value={editLabel}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  onBlur={() => commitEdit(thread.thread_id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); commitEdit(thread.thread_id); }
-                    if (e.key === 'Escape') cancelEdit();
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="sidebar-thread-edit-input"
-                  style={{
-                    flex: 1,
-                    fontSize: '0.82rem',
-                    border: '1px solid #0366d6',
-                    borderRadius: '3px',
-                    padding: '1px 4px',
-                    outline: 'none',
-                    minWidth: 0,
-                  }}
-                />
-              ) : (
+            const isOlder = groupLabel === 'それ以前';
+            const isCollapsed = isOlder && olderCollapsed;
+
+            return (
+              <div key={groupLabel}>
+                {/* Group header */}
                 <div
-                  style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
-                  onDoubleClick={(e) => !selectMode && startEdit(thread, e)}
-                  title={selectMode ? undefined : 'Double-click to rename'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 4px 4px',
+                    fontSize: '0.7rem',
+                    color: isDark ? '#808090' : '#888',
+                    ...(isOlder ? { cursor: 'pointer' } : {}),
+                  }}
+                  onClick={isOlder ? () => setOlderCollapsed((v) => !v) : undefined}
                 >
-                  <span
-                    className="sidebar-thread-label"
+                  <div style={{ flex: 1, height: '1px', background: isDark ? '#3a3a52' : '#e0e0e0' }} />
+                  <span style={{ whiteSpace: 'nowrap' }}>
+                    {isOlder
+                      ? (isCollapsed ? `▶ ${groupLabel} (${groupThreads.length}件)` : `▼ ${groupLabel}`)
+                      : groupLabel}
+                  </span>
+                  <div style={{ flex: 1, height: '1px', background: isDark ? '#3a3a52' : '#e0e0e0' }} />
+                </div>
+
+                {/* Thread items (hidden when collapsed) */}
+                {!isCollapsed && groupThreads.map((thread) => (
+                  <div
+                    key={thread.thread_id}
+                    className={`sidebar-thread-item${activeThreadId === thread.thread_id ? ' active' : ''}`}
                     style={{
-                      fontSize: '0.82rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.4rem 0.5rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: activeThreadId === thread.thread_id ? '#e8f0fe' : 'transparent',
+                      fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
+                    }}
+                    onClick={() => {
+                      if (selectMode) {
+                        toggleSelect(thread.thread_id);
+                      } else if (editingId !== thread.thread_id) {
+                        onSelectThread(thread.thread_id);
+                      }
                     }}
                   >
-                    {thread.label}
-                  </span>
-                  {thread.updated_at && (
-                    <span
-                      className="sidebar-thread-date"
-                      style={{
-                        fontSize: '0.7rem',
-                        color: '#999',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {new Date(thread.updated_at).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              )}
+                    {/* Checkbox in select mode */}
+                    {selectMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(thread.thread_id)}
+                        onChange={() => toggleSelect(thread.thread_id)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginRight: '6px', flexShrink: 0, cursor: 'pointer' }}
+                      />
+                    )}
 
-              {!selectMode && editingId !== thread.thread_id && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteTargetId(thread.thread_id);
-                  }}
-                  className="sidebar-thread-delete-btn"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#999',
-                    padding: '0 4px',
-                    fontSize: '0.9rem',
-                    flexShrink: 0,
-                  }}
-                  title="Delete thread"
-                  aria-label="Delete thread"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
+                    {editingId === thread.thread_id ? (
+                      <input
+                        autoFocus
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        onBlur={() => commitEdit(thread.thread_id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitEdit(thread.thread_id); }
+                          if (e.key === 'Escape') cancelEdit();
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="sidebar-thread-edit-input"
+                        style={{
+                          flex: 1,
+                          fontSize: '0.82rem',
+                          border: '1px solid #0366d6',
+                          borderRadius: '3px',
+                          padding: '1px 4px',
+                          outline: 'none',
+                          minWidth: 0,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
+                        onDoubleClick={(e) => !selectMode && startEdit(thread, e)}
+                        title={selectMode ? undefined : 'Double-click to rename'}
+                      >
+                        <span
+                          className="sidebar-thread-label"
+                          style={{
+                            fontSize: '0.82rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {thread.label}
+                        </span>
+                        {thread.updated_at && (
+                          <span
+                            className="sidebar-thread-date"
+                            style={{
+                              fontSize: '0.7rem',
+                              color: '#999',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {new Date(thread.updated_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {!selectMode && editingId !== thread.thread_id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTargetId(thread.thread_id);
+                        }}
+                        className="sidebar-thread-delete-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#999',
+                          padding: '0 4px',
+                          fontSize: '0.9rem',
+                          flexShrink: 0,
+                        }}
+                        title="Delete thread"
+                        aria-label="Delete thread"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 

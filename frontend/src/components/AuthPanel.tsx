@@ -15,6 +15,7 @@ export function AuthPanel() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    window.open(flowData.verification_uri, '_blank');
   };
 
   return (
@@ -91,7 +92,7 @@ export function AuthPanel() {
                 border: '1px solid #ccc',
               }}
             >
-              {copied ? 'Copied ✓' : 'Copy'}
+              {copied ? 'Copied ✓' : 'Copy & Open'}
             </button>
           </div>
 

@@ -9,6 +9,7 @@
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
+import { toPng } from 'html-to-image';
 import type { Theme } from '../contexts/ThemeContext';
 
 let mermaidId = 0;
@@ -37,9 +38,10 @@ const MermaidBlock = memo(function MermaidBlock({ value, monacoTheme, theme }: M
   const [svgHtml, setSvgHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<false | 'image' | 'text'>(false);
   // Track which source was last rendered so we know when to re-render
   const lastRenderedSource = useRef<string | null>(null);
+  const svgContainerRef = useRef<HTMLDivElement | null>(null);
   // View pane resize
   const [viewHeight, setViewHeight] = useState(500);
   const resizing = useRef(false);
@@ -61,12 +63,43 @@ const MermaidBlock = memo(function MermaidBlock({ value, monacoTheme, theme }: M
     };
   }, []);
 
-  const handleCopy = useCallback(() => {
+  const copyAsText = useCallback(() => {
     navigator.clipboard.writeText(editedSource).then(() => {
-      setCopied(true);
+      setCopied('text');
       setTimeout(() => setCopied(false), 2000);
     });
   }, [editedSource]);
+
+  const handleCopy = useCallback(() => {
+    if (mode !== 'view' || !svgContainerRef.current) {
+      copyAsText();
+      return;
+    }
+    const el = svgContainerRef.current;
+    // Temporarily shrink container to fit SVG content (remove flex stretch)
+    const saved = el.style.cssText;
+    el.style.width = 'fit-content';
+    el.style.height = 'fit-content';
+    el.style.display = 'block';
+    el.style.overflow = 'visible';
+
+    toPng(el, { skipFonts: true, pixelRatio: 3 })
+      .then((dataUrl) => fetch(dataUrl))
+      .then((res) => res.blob())
+      .then((blob) =>
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      )
+      .then(() => {
+        setCopied('image');
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        copyAsText();
+      })
+      .finally(() => {
+        el.style.cssText = saved;
+      });
+  }, [mode, copyAsText]);
 
   const renderDiagram = useCallback(async () => {
     // Already rendered for this exact source
@@ -169,7 +202,7 @@ const MermaidBlock = memo(function MermaidBlock({ value, monacoTheme, theme }: M
           </button>
         </div>
         <button onClick={handleCopy} style={tabStyle(false)} title="コードをコピー">
-          {copied ? '✓ Copied' : 'Copy'}
+          {copied === 'image' ? '✓ Copied' : copied === 'text' ? '✓ Copied (text)' : 'Copy'}
         </button>
       </div>
 
@@ -208,6 +241,7 @@ const MermaidBlock = memo(function MermaidBlock({ value, monacoTheme, theme }: M
             </div>
           ) : svgHtml ? (
             <div
+              ref={svgContainerRef}
               dangerouslySetInnerHTML={{ __html: svgHtml }}
               style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
             />
