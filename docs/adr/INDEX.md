@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 39 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 40 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -60,6 +60,7 @@
 | [0037](0037-chat-ui-batch-enhancements.md) | チャット UI 一括機能強化（レンダリング・操作・AG Grid） | 2026-04-16 |
 | [0039](0039-askuserquestion-auq-protocol.md) | AskUserQuestion — AI-UI 対話的質問プロトコル | 2026-04-18 |
 | [0040](0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md) | UI 改善バッチ — Mermaid 画像コピー・スレッド日付グループ・Device Flow UX・ツールカタログ埋め込み | 2026-04-17 |
+| [0043](0043-chat-history-content-normalization-defense-in-depth.md) | チャット履歴の BaseMessage.content 正規化と ReactMarkdown 防御ガード（defense-in-depth） | 2026-04-18 |
 
 ## Infra・Deploy
 

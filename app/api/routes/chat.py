@@ -19,13 +19,51 @@ import jwt
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from psycopg.rows import dict_row
 
 from app.api.models import ChatAsyncResponse, ChatRequest, RenameThreadRequest, ThreadInfo
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token, async_is_blocked
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+
+def _normalize_content(content) -> str:
+    """Normalize BaseMessage.content to a string for UI rendering.
+
+    Copilot SDK usually returns str, but structured content (list[dict])
+    appears when tool_use blocks or CodeAct results are included in the
+    AIMessage. ReactMarkdown requires a string children prop — passing
+    an object crashes the entire chat UI (assertion error).
+
+    - str                  -> return as-is
+    - list[dict] (LC v2)   -> concatenate "text" blocks, skip non-text blocks
+    - anything else        -> json.dumps fallback (never return non-str)
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                # LangChain structured content: {"type": "text", "text": "..."}
+                if block.get("type") == "text" and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+                # tool_use / tool_result / image_url などは履歴 UI には出さない
+            elif isinstance(block, str):
+                parts.append(block)
+        if parts:
+            return "\n".join(parts)
+        # 構造化ブロックがあるが text が無い場合は JSON ダンプで可視化
+        try:
+            return json.dumps(content, ensure_ascii=False)
+        except Exception:
+            return str(content)
+    # dict / その他型 — JSON ダンプ
+    try:
+        return json.dumps(content, ensure_ascii=False)
+    except Exception:
+        return str(content)
 
 
 async def get_jwt_payload(request: Request) -> dict:
@@ -402,10 +440,11 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
     def _messages_to_response(raw_messages: list) -> list[dict]:
         messages = []
         for msg in raw_messages:
-            if isinstance(msg, SystemMessage):
+            # System prompts and internal tool results are not shown in chat history UI
+            if isinstance(msg, (SystemMessage, ToolMessage)):
                 continue
             role = "user" if isinstance(msg, HumanMessage) else "ai"
-            entry: dict = {"role": role, "content": msg.content}
+            entry: dict = {"role": role, "content": _normalize_content(msg.content)}
             sender = getattr(msg, "name", None)
             if sender:
                 entry["senderName"] = sender
@@ -492,14 +531,7 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
 
             if debate_state and debate_state.values:
                 debate_msgs = debate_state.values.get("messages", [])
-                messages = []
-                for msg in debate_msgs:
-                    role = "user" if isinstance(msg, HumanMessage) else "ai"
-                    entry: dict = {"role": role, "content": msg.content}
-                    sender = getattr(msg, "name", None)
-                    if sender:
-                        entry["senderName"] = sender
-                    messages.append(entry)
+                messages = _messages_to_response(debate_msgs)
                 return {"messages": messages, "thread_id": thread_id}
     except Exception:
         pass

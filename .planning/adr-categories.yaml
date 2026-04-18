@@ -51,6 +51,7 @@ adr_categories:
   "0040": { primary: "Frontend・UI", secondary: "MCP・Tools" }
   "0041": { primary: "MCP・Tools", secondary: "LangGraph・Graph" }
   "0042": { primary: "LangGraph・Graph", secondary: "Frontend・UI" }
+  "0043": { primary: "Frontend・UI", secondary: "LangGraph・Graph" }
 
 missing:
   - "0015"

@@ -293,6 +293,19 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
   const theme = useCurrentTheme();
   const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
 
+  // Defense-in-depth: ReactMarkdown requires a string children prop. Old threads in DB
+  // (pre-260418 fix) may have structured content (list[dict]) persisted in checkpoints;
+  // stringify defensively so the entire chat UI never blanks out.
+  const safeContent = typeof content === 'string'
+    ? content
+    : (() => {
+        try {
+          return JSON.stringify(content, null, 2);
+        } catch {
+          return String(content);
+        }
+      })();
+
   const components = useMemo(() => ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     pre({ children, node }: { children?: React.ReactNode; node?: any }) {
@@ -395,7 +408,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content }: Markdo
   return (
     <div style={{ maxWidth: '100%' }}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {content}
+        {safeContent}
       </ReactMarkdown>
     </div>
   );

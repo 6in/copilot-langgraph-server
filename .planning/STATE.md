@@ -231,14 +231,14 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- 今回の仕組みの説明資料をPowerPointで作成する — docs
 - インストールされているスキルを活用してコードレビューを実施する — general
-- Integrate LangGraph tool calling with async worker execution — api
-- Investigate Agent-Skills integration mechanism — general
 - Cache GEM data in Redis in OrchestratorHandler — api
-- Migrate frontend from Node.js/npm to Bun — ui
-- 本番モード Docker Compose 整備 — tooling
-- CanvasChat デプロイ時にチャットエリアへメッセージポスト — ui
+- AI が操作しやすい画面構成を考える（data-ai-role 属性の導入） — ui
+- claude_code MCP ツールに spirit-room 方式の認証バインドとセキュリティ改善を適用 — general
+- Mermaid View デフォルト時の OS ハング問題を調査・修正 — ui
+- チャット入力欄からファイルアップロード + Worker 生成ファイルのダウンロード — ui
+- MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
+- MCP ツールの利用と影響範囲を把握できる仕組みを考える — api
 
 ### Quick Tasks Completed
 
@@ -272,6 +272,7 @@ Recent decisions affecting current work:
 | 260414-hwa | Canvas iframe_rpc_handler の DB アクセスを MCP db_query ツール経由に移行する | 2026-04-14 | 402bfa7 | [260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer](.planning/quick/260414-hwa-canvas-iframe-rpc-handler-db-mcp-db-quer/) |
 | 260415-lnq | db_pools.yaml に接続プールのチューニングパラメータを追加する | 2026-04-15 | 859bae7 | [260415-lnq-db-pools-yaml](.planning/quick/260415-lnq-db-pools-yaml/) |
 | 260415-mbc | Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する | 2026-04-15 | 3185a82 | [260415-mbc-canvas-ai](.planning/quick/260415-mbc-canvas-ai/) |
+| 260418-f7w | チャット履歴クリック時に白画面 — ReactMarkdown に object が渡される不具合を修正 | 2026-04-18 | 250b234 | [260418-f7w-reactmarkdown-object](.planning/quick/260418-f7w-reactmarkdown-object/) |
 
 ### Blockers/Concerns
 
@@ -280,7 +281,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-15 - Completed quick task 260415-mbc: Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する
+Last activity: 2026-04-18 - Completed quick task 260418-f7w: チャット履歴クリック時に白画面 — ReactMarkdown に object が渡される不具合を修正
 Last session: 2026-04-17T23:42:25.480Z
 Stopped at: Completed 29-01-PLAN.md
 Resume file: None

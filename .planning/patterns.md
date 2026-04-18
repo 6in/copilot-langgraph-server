@@ -182,6 +182,12 @@ SuperChat 経由の応答は `orchestrator_result` JSON でラップされるた
 履歴ロード時のタグ除去はデータ取得層（`client.ts`）で行い、レンダリング層（`MarkdownMessage`）では行わない。
 関連 ADR: [0039](../docs/adr/0039-askuserquestion-auq-protocol.md)
 
+### BaseMessage.content 正規化 + ReactMarkdown 防御ガード（defense-in-depth）
+LangGraph チェックポイントから復元される `AIMessage.content` は tool_use / CodeAct 応答で `list[dict]` になり、ReactMarkdown の string children 制約に違反して UI 全体が白画面になる。
+バックエンド `_normalize_content` で text ブロックを抽出して string 化し、ToolMessage は履歴から除外（根本治療）。フロントの `MarkdownMessage` / `CopyAllButton` は typeof + JSON.stringify で非 string をガード（既存 DB データに対する後方互換）。
+型定義 `ChatMessage.content: string` は変更せず、ガードは「出るべきでない」例外処理として位置づける。
+関連 ADR: [0043](../docs/adr/0043-chat-history-content-normalization-defense-in-depth.md)
+
 ---
 
 ## Infra・Deploy

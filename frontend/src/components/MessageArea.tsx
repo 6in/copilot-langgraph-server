@@ -71,7 +71,12 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
     const header = '| Role | Message |\n|------|---------|';
     const rows = messages.map((m) => {
       const role = m.role === 'user' ? 'User' : (m.senderName ?? 'Assistant');
-      const content = m.content.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+      // Defense-in-depth: m.content is typed as string but old DB threads may
+      // yield non-string values; stringify defensively so .replace() never throws.
+      const rawContent = typeof m.content === 'string'
+        ? m.content
+        : (() => { try { return JSON.stringify(m.content); } catch { return String(m.content); } })();
+      const content = rawContent.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
       return `| ${role} | ${content} |`;
     });
     await navigator.clipboard.writeText([header, ...rows].join('\n'));
