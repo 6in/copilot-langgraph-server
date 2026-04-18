@@ -42,4 +42,5 @@ allowed_modules:
 
   # MCP ヘルパー — サンドボックスから MCP ツールを呼び出す
   - mcp_helper
+  - mcp_helper_utils
   - urllib

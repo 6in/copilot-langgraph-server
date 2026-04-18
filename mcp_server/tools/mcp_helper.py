@@ -1,67 +1,27 @@
+# DO NOT EDIT — auto-generated from config/mcp_tools.yaml by scripts/generate_mcp_artifacts.py
+# To regenerate: python3 scripts/generate_mcp_artifacts.py --target helper
 """mcp_helper — サンドボックス Python コードから MCP ツールを呼び出すヘルパー。
 
-execute_python サンドボックス内の Python コードから import して使う:
-
-    from mcp_helper import search, query_db, get_datetime
-
-内部的には MCP サーバーの /internal/call_tool エンドポイントに HTTP リクエストを送る。
-urllib.request のみ使用（外部依存なし、sandbox allowlist に urllib 追加が必要）。
+このファイルは config/mcp_tools.yaml の python_wrapper ブロックから自動生成されます。
+手書きヘルパー (_call_tool / _clean_content / _INTERNAL_URL / _TIMEOUT) は
+mcp_helper_utils.py に分離されています。新規ツール追加時は YAML を編集して
+`python3 scripts/generate_mcp_artifacts.py --target all` を実行してください。
 """
-
-import json
-import urllib.request
-
-_INTERNAL_URL = "http://localhost:8001/internal/call_tool"
-_TIMEOUT = 55  # execute_python の 60 秒タイムアウトより短く
+from mcp_helper_utils import _call_tool, _clean_content  # noqa: F401
 
 
-def _call_tool(name: str, args: dict | None = None) -> dict:
-    """MCP ツールを呼び出して結果を dict で返す。
+def ping() -> dict:
+    """MCP サーバーの疎通確認。呼び出しごとに現在時刻を返す。
 
-    エラー時は {"error": "..."} を返す（例外は投げない）。
+    Returns:
+        {"status": "ok", "timestamp": "..."}
+
+    Example:
+        from mcp_helper import ping
+        r = ping()
+        print(r["status"])
     """
-    payload = json.dumps({"tool": name, "args": args or {}}).encode("utf-8")
-    req = urllib.request.Request(
-        _INTERNAL_URL,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-            return body.get("result", body)
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="replace")
-        return {"error": f"HTTP {e.code}: {error_body}"}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _clean_content(text: str, max_lines: int = 15) -> str:
-    """Web ページのテキストからナビ・フッター・空行を除去して要約する。"""
-    if not text:
-        return ""
-    lines = text.split("\n")
-    cleaned = []
-    skip_patterns = [
-        "cookie", "copyright", "©", "all rights reserved",
-        "プライバシー", "利用規約", "個人情報", "広告",
-        "twitter", "facebook", "instagram", "youtube", "line",
-        "ログイン", "新規登録", "会員登録",
-    ]
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if len(stripped) < 3:
-            continue
-        lower = stripped.lower()
-        if any(p in lower for p in skip_patterns):
-            continue
-        cleaned.append(stripped)
-        if len(cleaned) >= max_lines:
-            break
-    return "\n".join(cleaned)
+    return _call_tool("ping")
 
 
 def search(query: str) -> list[dict]:
@@ -87,7 +47,6 @@ def search(query: str) -> list[dict]:
         if "error" in result:
             return [{"error": result["error"]}]
         raw_results = result.get("results", [result])
-        # content を前処理して返す
         for r in raw_results:
             if "content" in r:
                 r["content"] = _clean_content(r["content"])
@@ -132,12 +91,3 @@ def get_datetime() -> dict:
         print(f"今日は {dt['date']} ({dt['weekday']})")
     """
     return _call_tool("get_current_datetime")
-
-
-def ping() -> dict:
-    """MCP サーバーの疎通確認。
-
-    Returns:
-        {"status": "ok", "timestamp": "..."}
-    """
-    return _call_tool("ping")

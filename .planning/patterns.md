@@ -91,10 +91,19 @@ Claude Code CLI サブプロセス起動前に `CLAUDECODE=1` 等の危険な環
 タイムアウト 60 秒 + zombie プロセス対策を含む。
 関連 ADR: [0023](../docs/adr/0023-mcp-db-query-and-claude-code-tools.md)
 
-### iframe-rpc.js ツールカタログ埋め込み + 同期スクリプト
-`config/mcp_tools.yaml` のツール情報を `static/js/iframe-rpc.js` に `AVAILABLE_TOOLS` 定数として埋め込む。
-マーカーコメント (`BEGIN/END TOOL_CATALOG`) で囲み、`scripts/sync-tool-list-to-js.py` で自動更新可能。
-関連 ADR: [0040](../docs/adr/0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md)
+### iframe-rpc.js ツールカタログは独立 ES module 参照
+`static/js/iframe-rpc.js` の `AVAILABLE_TOOLS` 埋め込みは Phase 30 で廃止。`static/js/tool-catalog-generated.js` に分離し、`iframe-rpc.js` は `export { AVAILABLE_TOOLS } from './tool-catalog-generated.js'` で re-export するのみ。
+旧 `scripts/sync-tool-list-to-js.py` は削除され、`scripts/generate_mcp_artifacts.py --target js` に責務が統合された。
+関連 ADR: [0040](../docs/adr/0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md), [0044](../docs/adr/0044-mcp-tool-catalog-single-source-of-truth.md)
+
+### MCP ツール single-source-of-truth 化
+`config/mcp_tools.yaml` を MCP ツールカタログの唯一の宣言源とし、以下 3 ファイルは全て `scripts/generate_mcp_artifacts.py` から決定論的に自動生成する:
+- `mcp_server/tools/mcp_helper.py`（sandbox 用 Python ラッパー）
+- `static/js/tool-catalog-generated.js`（iframe-rpc が import する JS カタログ）
+- `docs/mcp-tools.md`（人間向けドキュメント）
+
+手書き基盤 (`_call_tool` / `_clean_content`) は `mcp_server/tools/mcp_helper_utils.py` に分離。生成ファイルの手動編集は pre-commit hook (`scripts/install-hooks.sh`) の `--check` モードで drift 検知・commit ブロックされる。
+関連 ADR: [0044](../docs/adr/0044-mcp-tool-catalog-single-source-of-truth.md)
 
 ### Tavily JSON モード互換性
 Copilot モデルは関数呼び出し非対応のため、Tavily 検索結果を JSON スキーマとして prompt に注入し

@@ -199,6 +199,7 @@ Plans:
 | 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
 | 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
 | 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
+| 30. MCP ツールカタログ single-source-of-truth | v5.0 | 3/6 | In Progress|  |
 
 ### Phase 25: React Router v7 による URL ベースルーティング導入
 
@@ -265,3 +266,19 @@ Plans:
 Plans:
 
 - [x] 29-01-PLAN.md — model_override 伝播（orchestrator_handler + agent.py + テスト）
+
+### Phase 30: MCP ツールカタログ single-source-of-truth 化 + 追加マニュアル整備
+
+**Goal:** `config/mcp_tools.yaml` を MCP ツールカタログの single source of truth とし、`mcp_helper.py` / `tool-catalog-generated.js` / `docs/mcp-tools.md` を決定論的スクリプトで完全自動生成する。手書きファイルと自動生成ファイルを物理的に分離し、pre-commit で drift 検知を強制する。新規ツール追加は `.claude/commands/add-mcp-tool.md` スラッシュコマンド + 手順マニュアル `docs/mcp-tool-add-manual.md` で標準化する。既存 6 ツールを新スキーマに一括移行する。
+**Requirements**: TBD
+**Depends on:** Phase 29
+**Plans:** 6/6 plans executed
+**Status:** ✅ COMPLETE (2026-04-18) — VERIFICATION.md PASS (7/7)
+
+Plans:
+- [x] 30-01-PLAN.md — 拡張 YAML スキーマ設計 + 既存 6 ツール一括移行 + ToolRegistry 回帰テスト
+- [x] 30-02-PLAN.md — scripts/generate_mcp_artifacts.py ジェネレータ本体 (helper/js/docs/all/--check) + pytest
+- [x] 30-03-PLAN.md — mcp_helper_utils.py 手書き分離 + mcp_helper.py 自動生成切替 + 挙動回帰テスト + sandbox allowlist 更新
+- [x] 30-04-PLAN.md — static/js/tool-catalog-generated.js 新設 + iframe-rpc.js を import 化 + 旧 sync-tool-list-to-js.py 削除
+- [x] 30-05-PLAN.md — scripts/install-hooks.sh 拡張 (ADR INDEX + MCP drift 検知) + pytest 統合テスト
+- [x] 30-06-PLAN.md — docs/mcp-tools.md 生成 + docs/mcp-tool-add-manual.md 手書き + /add-mcp-tool スラッシュコマンド + CLAUDE.md 運用ルール追記

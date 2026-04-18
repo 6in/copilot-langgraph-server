@@ -2,8 +2,12 @@
 # scripts/install-hooks.sh — リポジトリローカル git hook を .git/hooks/ にインストールする
 #
 # 用途: 新規クローン後に 1 回実行する。CLAUDE.md の運用ルールでも呼ばれる。
-# 何をするか: docs/adr/*.md の変更を検知したら scripts/generate_adr_index.py を
-# 実行し、生成された INDEX.md をステージングに追加する pre-commit hook を作成。
+# 何をするか:
+#   1. docs/adr/*.md の変更を検知したら scripts/generate_adr_index.py を実行し
+#      生成された INDEX.md をステージングに追加する（Phase 26）
+#   2. config/mcp_tools.yaml または MCP 生成対象ファイルの変更を検知したら
+#      scripts/generate_mcp_artifacts.py --check で drift を検知し、差分があれば
+#      commit をブロックする（Phase 30）
 
 set -euo pipefail
 
@@ -16,12 +20,39 @@ cat > "$HOOK_PATH" <<'HOOK_EOF'
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+STAGED_FILES="$(git diff --cached --name-only)"
 
-# docs/adr/ 配下の ADR が変更された場合のみ INDEX.md を再生成する
-if git diff --cached --name-only | grep -qE '^docs/adr/[0-9]{4}-.*\.md$'; then
+# ─────────────────────────────────────────────
+# Phase 26: ADR INDEX 自動再生成
+# ─────────────────────────────────────────────
+if echo "$STAGED_FILES" | grep -qE '^docs/adr/[0-9]{4}-.*\.md$'; then
   echo "[pre-commit] docs/adr/ 変更を検知 → INDEX.md を再生成"
   python3 "$REPO_ROOT/scripts/generate_adr_index.py"
   git add "$REPO_ROOT/docs/adr/INDEX.md"
+fi
+
+# ─────────────────────────────────────────────
+# Phase 30: MCP ツールカタログ drift 検知
+# ─────────────────────────────────────────────
+MCP_PATHS_REGEX='^(config/mcp_tools\.yaml|mcp_server/tools/mcp_helper\.py|static/js/tool-catalog-generated\.js|docs/mcp-tools\.md)$'
+if echo "$STAGED_FILES" | grep -qE "$MCP_PATHS_REGEX"; then
+  echo "[pre-commit] MCP ツールカタログ関連ファイルの変更を検知 → drift 検査"
+  if ! (cd "$REPO_ROOT" && python3 scripts/generate_mcp_artifacts.py --check); then
+    cat >&2 <<ERR_EOF
+
+[pre-commit] MCP artifacts drift detected.
+
+config/mcp_tools.yaml と生成ファイル (mcp_helper.py / tool-catalog-generated.js /
+docs/mcp-tools.md) が不整合です。以下を実行して再生成・再ステージしてから commit してください:
+
+    python3 scripts/generate_mcp_artifacts.py --target all
+    git add mcp_server/tools/mcp_helper.py static/js/tool-catalog-generated.js docs/mcp-tools.md
+    git commit
+
+詳細は docs/mcp-tool-add-manual.md を参照してください。
+ERR_EOF
+    exit 1
+  fi
 fi
 HOOK_EOF
 

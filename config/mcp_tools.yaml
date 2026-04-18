@@ -1,28 +1,158 @@
-# Phase 24 (MCP-03): MCP ツールカタログ
-# worker 起動時に ToolRegistry が読み込み、MCP サーバーの実ツールリストと
-# 完全一致を検証する。不一致は RuntimeError で worker 起動失敗。
+# Phase 30: MCP ツールカタログ single source of truth。
+# このファイルが MCP ツールの宣言の唯一のソース。
+# scripts/generate_mcp_artifacts.py (Plan 02) がこの YAML だけから以下を生成する:
+#   - mcp_server/tools/mcp_helper.py        （sandbox から MCP を呼ぶ Python ラッパー）
+#   - static/js/tool-catalog-generated.js   （iframe-rpc.js が import する JS カタログ）
+#   - docs/mcp-tools.md                     （人間向けツール仕様ドキュメント）
 #
-# 注意: ここはツールの「カタログ」であり、エージェント別アクセス制限ではない。
-# エージェントごとのツール選択は agents/<name>/AGENT.md の `tools:` フィールドで管理する (D-02)。
+# ToolRegistry (app/orchestrator/tool_registry.py, ADR 0024) 互換性:
+#   - `name` (str) 必須   → frozenset(expected_tool_names)
+#   - `privileged` (bool) オプショナル → frozenset(privileged_tool_names)
+#   追加フィールド (python_wrapper / sandbox_exposed) は ToolRegistry から参照されないため
+#   既存 validate() の動作に影響しない。
+#
+# スキーマフィールド:
+#   name:            ツール名（MCP サーバーの @mcp.tool 関数名と完全一致）
+#   description:     短文説明（JS カタログ・docs の両方で表示）
+#   privileged:      true の場合 SubAgentRegistry が WARNING を出す（広範な権限を持つ証）
+#   sandbox_exposed: （false の場合）mcp_helper.py に wrapper 関数を生成しない
+#                    （デフォルトは true と見なす。ただし python_wrapper が無ければ生成不可）
+#   python_wrapper:  sandbox から呼び出す Python 関数の生成指示
+#     function_name: mcp_helper.py 内の関数名（search / query_db / get_datetime / ping 等）
+#     args:          [{name, type, default?, description}]
+#     return_type:   Python 型注釈文字列（例: "list[dict]", "dict"）
+#     docstring:     関数 docstring（日本語 + Example コードブロック）
+#     mcp_args_mapping:  Python 関数引数 → MCP tool args への対応
+#                         例: {query: query}, {sql: sql, pool: "pool_name"}, {} (引数なし)
+#     result_transform:
+#       mode: passthrough | extract_key | web_search_results
+#       key:  extract_key の場合に取り出すキー名（例: "rows"）
+#       後方互換のため既存 mcp_helper.py の挙動を忠実に再現するための分類軸。
+
 tools:
   - name: ping
-    description: MCP サーバーのヘルスチェック
+    description: MCP サーバーのヘルスチェック（疎通確認・タイムスタンプ取得）
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: ping
+      args: []
+      return_type: dict
+      docstring: |
+        MCP サーバーの疎通確認。呼び出しごとに現在時刻を返す。
+
+        Returns:
+            {"status": "ok", "timestamp": "..."}
+
+        Example:
+            from mcp_helper import ping
+            r = ping()
+            print(r["status"])
+      mcp_args_mapping: {}
+      result_transform:
+        mode: passthrough
+
   - name: web_search
-    description: Tavily 経由でリアルタイム Web 検索を実行
+    description: Tavily 経由でリアルタイム Web 検索を実行（コンテキスト削減のため content は前処理済み）
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: search
+      args:
+        - name: query
+          type: str
+          description: 検索クエリ
+      return_type: list[dict]
+      docstring: |
+        Web 検索を実行する。
+
+        Args:
+            query: 検索クエリ
+
+        Returns:
+            [{"title": "...", "url": "...", "content": "..."}, ...]
+            content は前処理済み（ナビ・フッター除去、最大15行）。
+            エラー時は [{"error": "..."}]
+
+        Example:
+            from mcp_helper import search
+            results = search("Python 3.12 新機能")
+            for r in results:
+                print(f"- {r['title']}: {r['url']}")
+                print(r['content'])
+      mcp_args_mapping:
+        query: query
+      result_transform:
+        mode: web_search_results   # dict → results[] を取り出し、各 item の content に _clean_content() を適用
+
   - name: db_query
-    description: PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き）
+    description: PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き、db_pools.yaml のプール名を指定可能）
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: query_db
+      args:
+        - name: sql
+          type: str
+          description: "SELECT 文（SELECT/WITH のみ許可）"
+        - name: pool
+          type: str
+          default: '"default"'
+          description: "プール名（db_pools.yaml で定義、デフォルト: default）"
+      return_type: list[dict]
+      docstring: |
+        PostgreSQL に SELECT クエリを実行する。
+
+        Args:
+            sql: SELECT 文（SELECT/WITH のみ許可）
+            pool: プール名（デフォルト: "default"）
+
+        Returns:
+            [{"col1": val1, "col2": val2}, ...]
+            エラー時は [{"error": "..."}]
+
+        Example:
+            from mcp_helper import query_db
+            rows = query_db("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+            for r in rows:
+                print(r['table_name'])
+      mcp_args_mapping:
+        sql: sql
+        pool: pool_name   # Python 側は pool、MCP 側は pool_name
+      result_transform:
+        mode: extract_key
+        key: rows
+
   - name: claude_code
-    description: Claude Code CLI をサブプロセスとして実行
-    # privileged: Claude CLI は worker コンテナの FS 全域へのアクセス権を持つ。
-    # このツールを AGENT.md の `tools:` に宣言すると SubAgent はリポジトリ・
-    # シークレット・ADR 等を列挙・読み書き可能になる。宣言時は ToolRegistry が
-    # WARNING を出す (SubAgentRegistry)。社内機密を扱うエージェントには付与しない。
+    description: Claude Code CLI をサブプロセスとして実行（env サニタイズ + 60 秒タイムアウト + 4000 文字切り詰め）
     privileged: true
+    sandbox_exposed: false
+    # privileged かつ sandbox 非公開:
+    #   - SubAgent が `tools:` に宣言した際は SubAgentRegistry が WARNING を出す
+    #   - mcp_helper.py に wrapper を生成しない（CodeAct サンドボックスから claude CLI は呼ばない）
+
   - name: execute_python
-    description: Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す
-    # privileged: 任意の Python コードをサブプロセスで実行できる。
-    # AST ホワイトリストチェックがあるが __import__() 等で迂回可能（社内ツール前提で中程度の制御）。
-    # このツールを AGENT.md の tools: に宣言すると SubAgent はコード実行可能になる。
+    description: Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す（AST allowlist + 512MB + 60 秒タイムアウト）
     privileged: true
+    sandbox_exposed: false
+    # privileged かつ sandbox 非公開:
+    #   - sandbox 自身を sandbox から呼ぶことはないので wrapper 不要
+    #   - privileged フラグは AGENT.md 宣言時に SubAgentRegistry に WARNING を出させる目的
+
   - name: get_current_datetime
-    description: 現在の日時を JST で返す（日付・時刻・曜日）
+    description: 現在の日時を JST で返す（日付・時刻・曜日・タイムゾーン情報を含む dict）
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: get_datetime
+      args: []
+      return_type: dict
+      docstring: |
+        現在の日時を JST で取得する。
+
+        Returns:
+            {"date": "2026-04-18", "time": "10:30:00", "weekday": "金曜日", ...}
+
+        Example:
+            from mcp_helper import get_datetime
+            dt = get_datetime()
+            print(f"今日は {dt['date']} ({dt['weekday']})")
+      mcp_args_mapping: {}
+      result_transform:
+        mode: passthrough

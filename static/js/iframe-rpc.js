@@ -17,27 +17,9 @@
  *             result === false means the call failed; error field contains the message.
  */
 
-// --- BEGIN TOOL_CATALOG ---
-/**
- * Available MCP tools (auto-generated from config/mcp_tools.yaml).
- * Use `call(toolName, params)` to invoke.
- *
- * | Tool                 | Description                                      |
- * | -------------------- | ------------------------------------------------ |
- * | ping                 | MCP サーバーのヘルスチェック                                 |
- * | web_search           | Tavily 経由でリアルタイム Web 検索を実行                       |
- * | db_query             | PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き） |
- * | claude_code          | Claude Code CLI をサブプロセスとして実行 [privileged]        |
- * | get_current_datetime | 現在の日時を JST で返す（日付・時刻・曜日）                         |
- */
-export const AVAILABLE_TOOLS = [
-  { name: "ping", description: "MCP サーバーのヘルスチェック" },
-  { name: "web_search", description: "Tavily 経由でリアルタイム Web 検索を実行" },
-  { name: "db_query", description: "PostgreSQL に対して SELECT クエリを実行（SELECT-only ガード付き）" },
-  { name: "claude_code", description: "Claude Code CLI をサブプロセスとして実行", privileged: true },
-  { name: "get_current_datetime", description: "現在の日時を JST で返す（日付・時刻・曜日）" },
-];
-// --- END TOOL_CATALOG ---
+// AVAILABLE_TOOLS は config/mcp_tools.yaml から自動生成される別ファイルを参照する (Phase 30)。
+// Canvas iframe などの既存コンシューマとの後方互換のため、ここで re-export する。
+export { AVAILABLE_TOOLS } from './tool-catalog-generated.js';
 
 /** @type {Map<string, {resolve: Function, reject: Function, timer: ReturnType<typeof setTimeout>}>} */
 const pending = new Map();

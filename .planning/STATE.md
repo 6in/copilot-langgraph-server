@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: verifying
-stopped_at: Completed 29-01-PLAN.md
-last_updated: "2026-04-18T05:23:03.801Z"
-last_activity: 2026-04-18
+status: phase_complete
+stopped_at: Completed Phase 30 (6/6 plans, VERIFICATION PASS 7/7)
+last_updated: "2026-04-18T10:45:00Z"
+last_activity: 2026-04-18 -- Phase 30 COMPLETE (MCP tool catalog single-source-of-truth 化、全 6 plans + 検証完了)
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 19
-  completed_plans: 19
+  total_phases: 11
+  completed_phases: 11
+  total_plans: 26
+  completed_plans: 26
   percent: 100
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
+Phase: 30 — COMPLETE
+Plan: 6/6 complete (01-06), VERIFICATION PASS (7/7)
 Milestone: v5.0 Agent Tool Platform
-Status: Phase complete — ready for verification
-Last activity: 2026-04-18
+Status: Phase complete
+Last activity: 2026-04-18 -- Phase 30 COMPLETE (MCP tool catalog single-source-of-truth 化、全 6 plans + 検証完了)
 
 Progress: [██░░░░░░░░] 20% (1/5 phases)
 
@@ -92,6 +92,9 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 | Phase 26 P02 | 3min | 2 tasks | 1 files |
 | Phase 26 P03 | 6m | 3 tasks | 3 files |
 | Phase 29 P01 | 5min | 1 tasks | 3 files |
+| Phase 30 P01 | 2min | 2 tasks | 2 files |
+| Phase 30 P02 | 10min | 2 tasks | 2 files |
+| Phase 30 P03 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -208,6 +211,16 @@ Recent decisions affecting current work:
 - [Phase 26]: patterns.md は手動更新運用（D-15）— /create-adr にリマインダ追加
 - [Phase 29]: model_override 伝播: Handler → Registry → SubAgent/from_dir の 3 層で or フォールバック。空文字は or None で正規化。code-type agent は対象外
 - [Phase 29]: GemSubAgent は Registry 経由ではなく OrchestratorHandler で直接生成されるため、DEFAULT_MODEL を gem_agent.py から import して明示的に model=model_override or DEFAULT_MODEL を渡す
+- [Phase 30-01]: sandbox_exposed フラグをスキーマに追加 — privileged ツールを sandbox から呼ばない判断を宣言的に表現（デフォルトは true、false の場合は mcp_helper.py に wrapper 非生成）
+- [Phase 30-01]: web_search の result_transform.mode=web_search_results で _clean_content() 呼び出しを分類軸化 — 既存 mcp_helper.py L85-94 の挙動を Plan 02 ジェネレータが 1:1 再現可能
+- [Phase 30-01]: mcp_args_mapping で db_query の pool (Python) → pool_name (MCP) の命名差を YAML に吸収
+- [Phase 30-02]: build_* 戻り値は末尾 `\n` 1 文字で終端（rstrip("\n") + "\n" 正規化）— drift 検知のバイト完全一致比較を安定させるための契約、test_trailing_newline で担保
+- [Phase 30-02]: result_transform.mode を 3 分岐（passthrough / extract_key / web_search_results）で処理 — 既存 mcp_helper.py の 4 関数を 1:1 再現するジェネレータの中核ロジック
+- [Phase 30-02]: mcp_helper.py / iframe-rpc.js の実ファイル置き換えは Plan 03/04/06 に委譲 — Plan 02 は「ジェネレータ本体 + テスト」だけを導入し既存挙動に影響を与えない
+- [Phase 30-02]: check_all のパス整形に _rel_or_abs ヘルパーを導入（Rule 1 auto-fix）— tmp_path で monkeypatch した場合も ValueError を起こさず drift を報告できる
+- [Phase 30-03]: 手書き基盤 (_call_tool / _clean_content / _INTERNAL_URL / _TIMEOUT) を mcp_server/tools/mcp_helper_utils.py に分離し、mcp_helper.py は scripts/generate_mcp_artifacts.py --target helper の出力で完全上書き — D-02 の物理分離完了
+- [Phase 30-03]: `from A import x` 形式で bind されるシンボルは呼び出し側モジュールに固定されるため、テストは patch.object(mcp_helper, ...) で差し替える — mcp_helper_utils 側を patch しても反映されない
+- [Phase 30-03]: Plan 03 の drift 保証は helper 単体に限定 — scripts/generate_mcp_artifacts.py --check の全体 exit 0 は Plan 04 (js) + Plan 06 (docs) 完了時に達成される設計
 
 ### Roadmap Evolution
 
@@ -228,6 +241,7 @@ Recent decisions affecting current work:
 - Phase 26 added: ADR 整理 + patterns.md 作成 + GSD プランニング統合 — 33本のADRから再利用可能パターンを抽出し docs/patterns.md として圧縮、重複ADR統合、CLAUDE.md から参照させて /gsd-plan-phase で暗黙参照させる
 - Phase 27 added: AskUserQuestion の実装 — AI エージェントがユーザーに選択肢・確認を提示する対話的インタラクションパターンをチャット UI + バックエンドに組み込む
 - Phase 28 added: CodeAct パターンの実装 — LLM がコードを生成・サンドボックス実行し結果を観察する推論ループ
+- Phase 30 added: MCP ツールカタログ single-source-of-truth 化 + 追加マニュアル整備 — config/mcp_tools.yaml を唯一のソースとし、mcp_helper.py / tool-catalog-generated.js / docs/mcp-tools.md を決定論的スクリプトで自動生成、/add-mcp-tool スラッシュコマンドと docs/mcp-tool-add-manual.md で標準化
 
 ### Pending Todos
 
@@ -281,7 +295,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-18 - Completed quick task 260418-f7w: チャット履歴クリック時に白画面 — ReactMarkdown に object が渡される不具合を修正
-Last session: 2026-04-17T23:42:25.480Z
-Stopped at: Completed 29-01-PLAN.md
+Last activity: 2026-04-18 - Completed 30-03-PLAN.md: mcp_helper.py を自動生成化 (from mcp_helper_utils import _call_tool, _clean_content) + 回帰テスト 11/11 pass + drift helper 単体 none
+Last session: 2026-04-18T09:58:44Z
+Stopped at: Completed 30-03-PLAN.md
 Resume file: None

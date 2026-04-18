@@ -298,6 +298,34 @@ bash scripts/install-hooks.sh
 
 これにより `docs/adr/NNNN-*.md` がコミットに含まれる際、hook が自動で `INDEX.md` を再生成・ステージングする。
 カテゴリマッピングは `.planning/adr-categories.yaml` で管理する。新規 ADR を追加したら YAML にも番号とカテゴリを追記すること。
+
+## MCP Tool Catalog (Phase 30)
+
+MCP ツールカタログは `config/mcp_tools.yaml` を single source of truth とし、以下 3 ファイルが自動生成される:
+
+- `mcp_server/tools/mcp_helper.py` — sandbox 用 Python ラッパー
+- `static/js/tool-catalog-generated.js` — iframe-rpc.js が import する JS カタログ
+- `docs/mcp-tools.md` — 人間向けカタログ
+
+### 新規ツール追加
+
+推奨: `/add-mcp-tool <name>` スラッシュコマンドを使う。
+手動手順・YAML スキーマ詳細は `docs/mcp-tool-add-manual.md` を参照。
+
+### 手書きと自動生成の境界
+
+- **手書き**: `config/mcp_tools.yaml`、`mcp_server/tools/<name>.py`、`mcp_server/tools/mcp_helper_utils.py`、`static/js/iframe-rpc.js`（RPC 本体）、`docs/mcp-tool-add-manual.md`
+- **自動生成**（DO NOT EDIT ヘッダー付）: `mcp_server/tools/mcp_helper.py`、`static/js/tool-catalog-generated.js`、`docs/mcp-tools.md`
+
+自動生成ファイルを手動編集すると `scripts/install-hooks.sh` でインストールされる pre-commit hook が `python3 scripts/generate_mcp_artifacts.py --check` で drift を検知し commit をブロックする。修正は `python3 scripts/generate_mcp_artifacts.py --target all` を実行して再ステージすること。
+
+### 新規クローン直後の 1 回限り実行
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+このコマンドは Phase 26 の ADR INDEX 自動生成と Phase 30 の MCP drift 検知の両方を同じ pre-commit hook に組み込む。
 <!-- GSD:workflow-end -->
 
 

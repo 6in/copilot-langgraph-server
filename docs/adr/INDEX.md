@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 40 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 41 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -34,6 +34,7 @@
 | [0024](0024-mcp-tool-catalog-validation.md) | MCP ツールカタログ検証（ToolRegistry）と関連バグ修正 | 2026-04-13 |
 | [0030](0030-canvas-db-access-via-mcp-db-query.md) | Canvas DB アクセスを MCP db_query ツール経由に移行 | 2026-04-14 |
 | [0041](0041-codeact-direct-execution-over-react.md) | CodeAct は ReAct ループではなく直接実行方式を採用する | 2026-04-18 |
+| [0044](0044-mcp-tool-catalog-single-source-of-truth.md) | MCP ツールカタログ single-source-of-truth 化（YAML + 決定論ジェネレータ + drift 検知） | 2026-04-18 |
 
 ## Worker・Jobs
 
