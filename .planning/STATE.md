@@ -254,6 +254,8 @@ Recent decisions affecting current work:
 - MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
 - MCP ツールの利用と影響範囲を把握できる仕組みを考える — api
 
+<!-- 8/8 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30) -->
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
