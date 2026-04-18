@@ -289,6 +289,7 @@ Recent decisions affecting current work:
 | 260415-lnq | db_pools.yaml に接続プールのチューニングパラメータを追加する | 2026-04-15 | 859bae7 | [260415-lnq-db-pools-yaml](.planning/quick/260415-lnq-db-pools-yaml/) |
 | 260415-mbc | Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する | 2026-04-15 | 3185a82 | [260415-mbc-canvas-ai](.planning/quick/260415-mbc-canvas-ai/) |
 | 260418-f7w | チャット履歴クリック時に白画面 — ReactMarkdown に object が渡される不具合を修正 | 2026-04-18 | 250b234 | [260418-f7w-reactmarkdown-object](.planning/quick/260418-f7w-reactmarkdown-object/) |
+| 260418-tin | docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加 | 2026-04-18 | a079372 | [260418-tin-docker-compose-yml-max-size-max-file](.planning/quick/260418-tin-docker-compose-yml-max-size-max-file/) |
 
 ### Blockers/Concerns
 
@@ -297,7 +298,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-18 - Completed 30-03-PLAN.md: mcp_helper.py を自動生成化 (from mcp_helper_utils import _call_tool, _clean_content) + 回帰テスト 11/11 pass + drift helper 単体 none
+Last activity: 2026-04-18 - Completed quick task 260418-tin: docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加
 Last session: 2026-04-18T09:58:44Z
 Stopped at: Completed 30-03-PLAN.md
 Resume file: None

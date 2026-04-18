@@ -15,11 +15,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   redis:
     image: redis:7-alpine
     volumes:
       - redis-data-prod:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   mcp-server:
     build:
@@ -43,6 +55,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   api:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -64,6 +82,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
 
   worker:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -88,6 +112,12 @@ services:
         condition: service_started
       mcp-server:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
 
   frontend:
     build:
@@ -98,6 +128,12 @@ services:
         VITE_APP_BASE: /orochi
     depends_on:
       - api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   nginx:
     image: nginx:1.27-alpine
@@ -108,6 +144,12 @@ services:
     depends_on:
       - frontend
       - api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
 volumes:
   redis-data-prod:
