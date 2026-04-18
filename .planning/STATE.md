@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: executing
-stopped_at: Phase 28 context gathered
-last_updated: "2026-04-17T13:50:11.782Z"
-last_activity: 2026-04-17 -- Phase 28 execution started
+status: verifying
+stopped_at: Completed 29-01-PLAN.md
+last_updated: "2026-04-18T00:13:40.163Z"
+last_activity: 2026-04-18
 progress:
-  total_phases: 9
-  completed_phases: 8
-  total_plans: 18
-  completed_plans: 16
-  percent: 89
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 19
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 28 — codeact-llm
+**Current focus:** Phase 29 — user-model-override
 
 ## Current Position
 
-Phase: 28 (codeact-llm) — EXECUTING
-Plan: 1 of 2
+Phase: 29
+Plan: Not started
 Milestone: v5.0 Agent Tool Platform
-Status: Executing Phase 28
-Last activity: 2026-04-17 -- Phase 28 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-04-18
 
 Progress: [██░░░░░░░░] 20% (1/5 phases)
 
@@ -37,7 +37,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 
 **Velocity:**
 
-- Total plans completed: 2 (v5.0)
+- Total plans completed: 3 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -46,6 +46,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 27 | 2 | - | - |
+| 29 | 1 | - | - |
 
 **Recent Trend:**
 
@@ -90,6 +91,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 | Phase 26 P01 | 4min | 3 tasks | 5 files |
 | Phase 26 P02 | 3min | 2 tasks | 1 files |
 | Phase 26 P03 | 6m | 3 tasks | 3 files |
+| Phase 29 P01 | 5min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -204,6 +206,8 @@ Recent decisions affecting current work:
 - [Phase 26]: Plan 02: INDEX.md 再生成は Plan 01 の生成結果と完全一致のため追加コミット不要。patterns.md は 21 エントリ 7 カテゴリで新規作成
 - [Phase 26]: CLAUDE.md に canonical_refs 必須追加ルールを明記（@import しない — D-12 準拠）
 - [Phase 26]: patterns.md は手動更新運用（D-15）— /create-adr にリマインダ追加
+- [Phase 29]: model_override 伝播: Handler → Registry → SubAgent/from_dir の 3 層で or フォールバック。空文字は or None で正規化。code-type agent は対象外
+- [Phase 29]: GemSubAgent は Registry 経由ではなく OrchestratorHandler で直接生成されるため、DEFAULT_MODEL を gem_agent.py から import して明示的に model=model_override or DEFAULT_MODEL を渡す
 
 ### Roadmap Evolution
 
@@ -277,6 +281,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-15 - Completed quick task 260415-mbc: Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する
-Last session: 2026-04-17T10:49:12.486Z
-Stopped at: Phase 28 context gathered
-Resume file: .planning/phases/28-codeact-llm/28-CONTEXT.md
+Last session: 2026-04-17T23:42:25.480Z
+Stopped at: Completed 29-01-PLAN.md
+Resume file: None

@@ -27,7 +27,9 @@ class OrchestratorHandler(TaskHandler):
         thread_id: str = job["thread_id"]
         prompt: str = job["prompt"]
         github_token: str = job["github_token"]
-        # model is intentionally unused in super mode; each agent's AGENT.md defines its own model
+        # model_override: フロントで選択したモデル（未選択/空文字時は None → AGENT.md の model を使用）
+        # Python の `or None` で空文字 ("") と None をまとめて None に正規化する
+        model_override: str | None = job.get("model") or None
         reply_to: dict = job["reply_to"]
 
         job_store = ctx["job_store"]
@@ -44,6 +46,7 @@ class OrchestratorHandler(TaskHandler):
             github_token,
             mcp_tools=mcp_tools or None,
             privileged_tool_names=privileged_names,
+            model_override=model_override,
         )
         agents_filter: list[str] | None = job.get("agents")
         try:
@@ -58,7 +61,7 @@ class OrchestratorHandler(TaskHandler):
             # gem_ids がある場合は各 GemSubAgent を registry に追加してマルチエージェントに参加させる
             if gem_ids:
                 try:
-                    from app.orchestrator.gem_agent import GemSubAgent
+                    from app.orchestrator.gem_agent import GemSubAgent, DEFAULT_MODEL
                     import psycopg
 
                     github_login_for_gem: str = job.get("github_login", "unknown")
@@ -79,6 +82,7 @@ class OrchestratorHandler(TaskHandler):
                             name=gem_name,
                             system_prompt=gem_system_prompt or "",
                             github_token=github_token,
+                            model=model_override or DEFAULT_MODEL,
                         )
                         registry.agents[gem_name] = gem_agent
                         if agents_filter is None:

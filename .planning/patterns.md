@@ -60,6 +60,13 @@ Copilot SDK ストリームを worker → SSE → frontend の 3 層で中継す
 notifier.py でチャンクをキューイングし SSE エンドポイントが消費する。
 関連 ADR: [0031](../docs/adr/0031-copilot-sdk-token-streaming-three-layer-plumbing.md)
 
+### model_override 3 段フォールバック伝播
+SuperChat UI 選択モデルを Handler → Registry → SubAgent の 3 層に伝播させる。
+`override or AGENT.md meta or ハードコード既定` の 3 段フォールバックで統一。
+空文字送信は `job.get("model") or None` で falsy 正規化（`dict.get(k, None)` では空文字が素通しする罠）。
+folder / folder+tools / codeact / gem の 4 種別 SubAgent で同一パターン、code-type は対象外。
+関連 ADR: [0042](../docs/adr/0042-user-model-override-propagation-to-subagents.md)
+
 ---
 
 ## MCP・Tools

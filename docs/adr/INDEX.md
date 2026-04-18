@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 38 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 39 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -22,6 +22,7 @@
 | [0025](0025-datetime-and-user-context-injection-into-agent-prompts.md) | 全エージェントへの現在日時・ログインユーザー自動注入 | 2026-04-13 |
 | [0031](0031-copilot-sdk-token-streaming-three-layer-plumbing.md) | Copilot SDK トークンストリーミング実装 — 3 層配管の発見と修正 | 2026-04-15 |
 | [0038](0038-superchat-context-messages-and-agent-name-persistence.md) | SuperChat 過去メッセージコンテキスト注入とエージェント名永続化 | 2026-04-16 |
+| [0042](0042-user-model-override-propagation-to-subagents.md) | SuperChat ユーザー選択モデルを SubAgent デフォルトより優先する `model_override` 伝播 | 2026-04-18 |
 
 ## MCP・Tools
 

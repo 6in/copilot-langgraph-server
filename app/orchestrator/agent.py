@@ -99,13 +99,27 @@ class SubAgent:
         self._system_prompt = system_prompt
 
     @classmethod
-    def from_dir(cls, agent_dir: Path, github_token: str) -> "SubAgent":
+    def from_dir(
+        cls,
+        agent_dir: Path,
+        github_token: str,
+        model_override: str | None = None,
+    ) -> "SubAgent":
+        """Load a folder-type SubAgent from AGENT.md.
+
+        Args:
+            agent_dir: Directory containing AGENT.md.
+            github_token: OAuth token forwarded to ChatCopilot.
+            model_override: Optional model name (e.g. from UI selection).
+                When provided (truthy), overrides the `model` field in AGENT.md.
+                Empty string and None fall back to AGENT.md's model.
+        """
         post = frontmatter.load(agent_dir / "AGENT.md")
         meta = post.metadata
         return cls(
             name=meta["name"],
             description=meta["description"],
-            model=meta.get("model", "claude-sonnet-4-6"),
+            model=model_override or meta.get("model", "claude-sonnet-4-6"),
             system_prompt=post.content,
             github_token=github_token,
             keywords=meta.get("keywords", []),
@@ -152,15 +166,33 @@ class SubAgentRegistry:
         github_token: str,
         mcp_tools: list | None = None,
         privileged_tool_names: frozenset[str] | set[str] | None = None,
+        model_override: str | None = None,
     ):
+        """Discover and instantiate SubAgents from ``agent_dir``.
+
+        Args:
+            agent_dir: Directory containing one subdirectory per agent (with AGENT.md).
+            github_token: OAuth token forwarded to each ChatCopilot instance.
+            mcp_tools: List of MCP tools available for ``tools:``-declaring agents.
+            privileged_tool_names: Tools requiring privileged access (warn when used).
+            model_override: Optional model name (e.g. from SuperChat UI selection).
+                When truthy, overrides each agent's ``model`` field from AGENT.md
+                for folder / folder+tools / codeact agent types. Empty string is
+                treated as None (falls back to AGENT.md's value). code-type agents
+                (loaded via ``_load_code_agent``) are NOT affected — their custom
+                ``from_dir`` signature does not accept model_override.
+        """
         self.agents: dict[str, SubAgent] = {}
         self.health: dict[str, AgentHealth] = {}
         self._github_token = github_token
         self._privileged: frozenset[str] = frozenset(privileged_tool_names or ())
+        self._model_override: str | None = model_override or None
         for path in Path(agent_dir).glob("*/AGENT.md"):
             agent_name = path.parent.name  # fallback name from directory
             try:
                 if (path.parent / "agent.py").exists():
+                    # code-type agents: model_override not supported
+                    # (requires custom from_dir signature per-agent-class)
                     agent = _load_code_agent(path.parent, github_token)
                     agent_type = "code"
                 else:
@@ -187,7 +219,7 @@ class SubAgentRegistry:
                                 agent = CodeActSubAgent(
                                     name=meta["name"],
                                     description=meta["description"],
-                                    model=meta.get("model", "gpt-4.1"),
+                                    model=model_override or meta.get("model", "gpt-4.1"),
                                     system_prompt=post.content,
                                     github_token=github_token,
                                     tools=selected_tools,
@@ -199,7 +231,7 @@ class SubAgentRegistry:
                                 agent = ToolEnabledSubAgent(
                                     name=meta["name"],
                                     description=meta["description"],
-                                    model=meta.get("model", "claude-sonnet-4-6"),
+                                    model=model_override or meta.get("model", "claude-sonnet-4-6"),
                                     system_prompt=post.content,
                                     github_token=github_token,
                                     tools=selected_tools,
@@ -211,10 +243,10 @@ class SubAgentRegistry:
                                 "[registry] agent '%s' declares tools %s but none found in mcp_tools",
                                 meta["name"], tools_list,
                             )
-                            agent = SubAgent.from_dir(path.parent, github_token)
+                            agent = SubAgent.from_dir(path.parent, github_token, model_override=model_override)
                             agent_type = "folder"
                     else:
-                        agent = SubAgent.from_dir(path.parent, github_token)
+                        agent = SubAgent.from_dir(path.parent, github_token, model_override=model_override)
                         agent_type = "folder"
                 self.agents[agent.name] = agent
                 self.health[agent.name] = AgentHealth(

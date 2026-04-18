@@ -81,7 +81,7 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 - [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限 (completed 2026-04-13)
 - [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト） (completed 2026-04-13)
 - [x] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml に MCP ツールカタログを宣言、ToolRegistry クラスが worker 起動時に YAML と MCP 実ツールの完全一致を検証 (completed 2026-04-13)
-- [ ] **Phase 29: ユーザー選択モデルのエージェントデフォルト優先** — フロントエンド選択モデルを AGENT.md デフォルトより優先し、SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent 全種別で model_override を伝搬
+- [x] **Phase 29: ユーザー選択モデルのエージェントデフォルト優先** — フロントエンド選択モデルを AGENT.md デフォルトより優先し、SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent 全種別で model_override を伝搬 (completed 2026-04-17)
 
 ## Phase Details
 
@@ -198,7 +198,7 @@ Plans:
 | 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
 | 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
 | 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
-| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 0/0 | Planned | — |
+| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
 
 ### Phase 25: React Router v7 による URL ベースルーティング導入
 
@@ -260,4 +260,8 @@ Plans:
   3. SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent の全エージェント種別で model_override が機能する
   4. 通常 Chat モードの動作に影響がない（既存の model パラメータがそのまま使われる）
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+
+- [x] 29-01-PLAN.md — model_override 伝播（orchestrator_handler + agent.py + テスト）
