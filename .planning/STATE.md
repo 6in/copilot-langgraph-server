@@ -242,6 +242,7 @@ Recent decisions affecting current work:
 - Phase 27 added: AskUserQuestion の実装 — AI エージェントがユーザーに選択肢・確認を提示する対話的インタラクションパターンをチャット UI + バックエンドに組み込む
 - Phase 28 added: CodeAct パターンの実装 — LLM がコードを生成・サンドボックス実行し結果を観察する推論ループ
 - Phase 30 added: MCP ツールカタログ single-source-of-truth 化 + 追加マニュアル整備 — config/mcp_tools.yaml を唯一のソースとし、mcp_helper.py / tool-catalog-generated.js / docs/mcp-tools.md を決定論的スクリプトで自動生成、/add-mcp-tool スラッシュコマンドと docs/mcp-tool-add-manual.md で標準化
+- Phase 31 added: エージェント実行・MCP ツール利用の observability 基盤 — 軸 A: routing/ReAct/LLM 思考の構造化トレース、軸 B: 3 経路 (ToolEnabledSubAgent/CodeAct/iframe RPC) の audit_log 統一、共通: docker logs 永続化。todo 2026-04-18-mcp-tool-usage-impact-visibility.md から phase 化
 
 ### Pending Todos
 

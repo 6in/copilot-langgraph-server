@@ -5,11 +5,11 @@ milestone_name: milestone
 status: unknown
 last_updated: "2026-04-17T14:28:39.965Z"
 progress:
-  total_phases: 30
-  completed_phases: 29
+  total_phases: 31
+  completed_phases: 30
   total_plans: 81
   completed_plans: 85
-  percent: 100
+  percent: 97
 ---
 
 # Roadmap: Copilot LangGraph Chat
@@ -282,3 +282,18 @@ Plans:
 - [x] 30-04-PLAN.md — static/js/tool-catalog-generated.js 新設 + iframe-rpc.js を import 化 + 旧 sync-tool-list-to-js.py 削除
 - [x] 30-05-PLAN.md — scripts/install-hooks.sh 拡張 (ADR INDEX + MCP drift 検知) + pytest 統合テスト
 - [x] 30-06-PLAN.md — docs/mcp-tools.md 生成 + docs/mcp-tool-add-manual.md 手書き + /add-mcp-tool スラッシュコマンド + CLAUDE.md 運用ルール追記
+
+### Phase 31: エージェント実行・MCP ツール利用の observability 基盤
+
+**Goal:** エージェント実行トレース（軸 A: routing / ReAct / LLM 思考）と MCP ツール呼び出し（軸 B: ToolEnabledSubAgent / CodeAct / iframe RPC の 3 経路）を統一的に記録・閲覧できる observability 基盤を構築する。thread_id + correlation_id をキーに構造化トレースを永続化し、誰が・いつ・どのツールを・どう使ったかを把握できるようにする。docker logs のみに依存した現状から脱却し、運用時のトラブルシュート・監査・統計分析を可能にする。
+**Requirements**: TBD
+**Depends on:** Phase 30
+**Plans:** TBD
+
+**論点（discuss フェーズで解消）:**
+1. OpenTelemetry 導入の是非（200 名規模で OTEL Collector + Tempo/Jaeger を入れるか、PostgreSQL audit_log で十分か）
+2. トレース粒度（ReAct の各 turn まで記録するか、SubAgent レベルで切るか）
+3. LLM reasoning tokens（Copilot SDK の thinking token 露出の余地）
+4. トレース閲覧 UI（既存 React チャット UI に載せるか、admin 別画面か）
+5. PII / 機密情報の redact ポリシー（ツール args / メッセージ本文）
+6. docker logs 永続化方式（Loki / OpenSearch / file log rotation）
