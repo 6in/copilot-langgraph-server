@@ -240,6 +240,15 @@ unit test 60/60 green の後で初めて捕捉した経験則から、全 phase 
 観察結果は `docs/phase-XX-integration-check.md` として他 phase からも参照可能な形で残す。
 関連 ADR: [0046](../docs/adr/0046-integration-check-surfaced-silent-failures.md)
 
+### Milestone cleanup phase — decimal phase で帳簿整合 bookkeeping を分離
+`/gsd-complete-milestone` 直前に `gsd-integration-checker` が functional PASS / 帳簿 drift を切り分けたとき、
+decimal phase (例: `31.1`) を立てて bookkeeping 作業だけを集約する。
+ROADMAP / REQUIREMENTS の drift は setup commit (phase 作成時) で一括修正、
+VALIDATION.md backfill や新規 artifact 作成のように atomic commit が効く作業だけ plan → execute に載せる。
+VALIDATION.md の遡及 `status: validated` 更新は「VERIFICATION.md が PASS 済み + Approval 行に backfill 経路明記 + `created:` 保持 / `validated:` を更新日」の 3 点セットで正当化する。
+Audit レポート本体は不変（時点スナップショット）、解消は target artifact 側のみで表現。
+関連 ADR: [0047](../docs/adr/0047-milestone-cleanup-phase-pattern.md)
+
 ---
 
 ## Data・Persistence

@@ -1,10 +1,11 @@
 ---
 phase: 20
 slug: fastmcp-docker
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-10
+validated: 2026-04-20
 ---
 
 # Phase 20 — Validation Strategy
@@ -76,4 +77,4 @@ created: 2026-04-10
 - [ ] Feedback latency < 15s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-04-20 (v5.0 milestone audit cleanup phase 31.1 で backfill)

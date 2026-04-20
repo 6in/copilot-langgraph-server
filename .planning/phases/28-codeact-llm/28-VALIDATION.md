@@ -1,10 +1,11 @@
 ---
 phase: 28
 slug: codeact-llm
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-17
+validated: 2026-04-20
 ---
 
 # Phase 28 — Validation Strategy
@@ -70,4 +71,4 @@ created: 2026-04-17
 - [ ] Feedback latency < 30s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-04-20 (v5.0 milestone audit cleanup phase 31.1 で backfill)

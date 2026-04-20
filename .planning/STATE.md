@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: executing
-stopped_at: Phase 31 context gathered
-last_updated: "2026-04-20T07:38:38.226Z"
+status: shipped
+stopped_at: Phase 31.1 complete — v5.0 milestone ready to archive via /gsd-complete-milestone
+last_updated: "2026-04-20T09:35:00.000Z"
 last_activity: 2026-04-20
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 33
-  completed_plans: 33
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 35
+  completed_plans: 35
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 31 — agent-mcp-observability
+**Current focus:** v5.0 milestone shipped — ready to archive via /gsd-complete-milestone
 
 ## Current Position
 
-Phase: 31
-Plan: Not started
-Milestone: v5.0 Agent Tool Platform
-Status: Executing Phase 31
+Phase: 31.1 (complete)
+Plan: All plans complete
+Milestone: v5.0 Agent Tool Platform (shipped 2026-04-20, 帳簿 100% 整合)
+Status: Ready to archive — run /gsd-complete-milestone v5.0
 Last activity: 2026-04-20
 
-Progress: [██░░░░░░░░] 20% (1/5 phases)
+Progress: [██████████] 100% (35/35 plans)
 
 ## Performance Metrics
 
@@ -301,7 +301,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-18 - Completed quick task 260418-tin: docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加
-Last session: 2026-04-18T13:05:29.770Z
-Stopped at: Phase 31 context gathered
-Resume file: .planning/phases/31-agent-mcp-observability/31-CONTEXT.md
+Last activity: 2026-04-20 - Phase 31.1 complete (5 commits / 9 phase backfill + Phase 30 VALIDATION.md 新規作成 / gsd-verifier 6/6 PASS)
+Last session: 2026-04-20T09:35:00.000Z
+Stopped at: v5.0 milestone shipped, ready to archive
+Resume file: .planning/phases/31.1-v5-milestone-cleanup/31.1-VERIFICATION.md (next step: /gsd-complete-milestone v5.0)

@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v5.0
-milestone_name: milestone
-status: unknown
-last_updated: "2026-04-17T14:28:39.965Z"
+milestone_name: Agent Tool Platform
+status: shipped
+last_updated: "2026-04-20T09:30:00.000Z"
 progress:
-  total_phases: 31
-  completed_phases: 30
-  total_plans: 81
-  completed_plans: 85
-  percent: 97
+  total_phases: 32
+  completed_phases: 32
+  total_plans: 91
+  completed_plans: 91
+  percent: 100
 ---
 
 # Roadmap: Copilot LangGraph Chat
@@ -20,7 +20,7 @@ progress:
 - ✅ **v2.0 SuperChat** — Phases 7–10 (shipped 2026-04-04)
 - ✅ **v3.0 Agent Platform** — Phases 11–17 (shipped 2026-04-07) — [Archive](milestones/v3.0-ROADMAP.md)
 - ✅ **v4.0 Canvas API Bridge** — Phases 18–19 (shipped 2026-04-09) — [Archive](milestones/v4.0-ROADMAP.md)
-- 📋 **v5.0 Agent Tool Platform** — Phases 20–24 (active)
+- ✅ **v5.0 Agent Tool Platform** — Phases 20–31 (shipped 2026-04-20)
 
 ## Phases
 
@@ -168,40 +168,6 @@ Plans:
 
 - [x] 24-01-PLAN.md — ToolRegistry クラス + mcp_tools.yaml + worker startup バリデーション統合
 
-## Progress
-
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 1. Auth + Provider Foundation | v1.0 | 3/3 | Complete | 2026-03-31 |
-| 2. Graph Layer | v1.0 | 2/2 | Complete | 2026-03-31 |
-| 3. Web + Chat UI | v1.0 | 4/4 | Complete | 2026-04-01 |
-| 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
-| 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
-| 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
-| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
-| 8. Super Agent Sample | v2.0 | 3/3 | Complete | 2026-04-03 |
-| 9. SuperChat メインアプリ統合 | v2.0 | 4/4 | Complete | 2026-04-04 |
-| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete | 2026-04-04 |
-| 11. RPCContext Integration | v3.0 | 4/4 | Complete | 2026-04-04 |
-| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete | 2026-04-04 |
-| 13. Scalable Routing | v3.0 | 2/2 | Complete | 2026-04-04 |
-| 14. Application Packages + Menu | v3.0 | 2/2 | Complete | 2026-04-05 |
-| 15. Gem + Canvas | v3.0 | 4/4 | Complete | 2026-04-05 |
-| 15.1. Gem UX 強化 | v3.0 | 3/3 | Complete | 2026-04-06 |
-| 16. Canvas App | v3.0 | 4/4 | Complete | 2026-04-07 |
-| 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
-| 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
-| 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
-| 20. FastMCP Docker サービス基盤 | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
-| 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
-| 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
-| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
-| 30. MCP ツールカタログ single-source-of-truth | v5.0 | 3/6 | In Progress|  |
-| 31. エージェント実行・MCP ツール利用の observability 基盤 | v5.0 | 8/8 | Complete    | 2026-04-20 |
-
 ### Phase 25: React Router v7 による URL ベースルーティング導入
 
 **Goal:** BrowserRouter + Routes でアプリ種別・thread_id を URL に反映し、スレッド共有リンクとブラウザ履歴ナビゲーションを実現する
@@ -302,6 +268,18 @@ Plans:
 - [x] 31-07-PLAN.md — audit_log DDL 削除 + ADR-0045 作成 + patterns.md 追記 + 手動 DROP 手順
 - [x] 31-08-PLAN.md — 4 経路 docker compose integration 検証 + must_haves 確認
 
+### Phase 31.1: v5.0 milestone cleanup（Nyquist VALIDATION backfill）
+
+**Goal:** v5.0 milestone を `/gsd-complete-milestone` で archive 可能な「帳簿 100% 整合」状態にする。ROADMAP/REQUIREMENTS の drift はこの phase の setup 時にあらかじめ修正済み（コミット f7dfdb6）。残る Nyquist drift — 9 phase の VALIDATION.md が `draft` ステータスのまま + Phase 30 だけ VALIDATION.md が欠損 — を解消する。機能変更なし、artifact frontmatter 書き換え + 新規 VALIDATION.md 1 本の作成のみ。
+**Requirements**: none（bookkeeping phase）
+**Depends on:** Phase 31
+**Plans:** 2 plans
+
+Plans:
+
+- [x] 31.1-01-PLAN.md — 9 phase（20/21/22/23/24/25/27/28/29）の VALIDATION.md frontmatter を `status: validated` + `nyquist_compliant: true` + `wave_0_complete: true` に backfill
+- [x] 31.1-02-PLAN.md — Phase 30 VALIDATION.md 新規作成（Phase 31 の format に合わせ、既存 VERIFICATION.md PASS を根拠に `status: validated` で登録）
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -334,4 +312,5 @@ Plans:
 | 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
 | 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
 | 30. MCP ツールカタログ single-source-of-truth | v5.0 | 6/6 | Complete | 2026-04-18 |
-| 31. Observability 基盤 | v5.0 | 0/8 | Planned |  |
+| 31. Observability 基盤 | v5.0 | 8/8 | Complete | 2026-04-20 |
+| 31.1. v5.0 milestone cleanup | v5.0 | 2/2 | Complete | 2026-04-20 |

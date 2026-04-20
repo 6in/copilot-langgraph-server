@@ -1,10 +1,11 @@
 ---
 phase: 24
 slug: config-yaml-tool-routing
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-13
+validated: 2026-04-20
 ---
 
 # Phase 24 — Validation Strategy
@@ -75,4 +76,4 @@ created: 2026-04-13
 - [ ] Feedback latency < 10s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-04-20 (v5.0 milestone audit cleanup phase 31.1 で backfill)

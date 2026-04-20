@@ -2,6 +2,7 @@
 
 **Milestone:** v5.0 Agent Tool Platform
 **Created:** 2026-04-10
+**Coverage:** 25 / 25 satisfied (100%)
 
 ---
 
@@ -9,49 +10,49 @@
 
 ### MCP サーバー基盤
 
-- [ ] **MCP-01**: mcp-server が Docker サービスとして起動し、worker コンテナから HTTP 接続できる
-- [ ] **MCP-02**: `@mcp.tool` でツールを定義し、スタブが正常に呼び出し・応答できる
-- [ ] **MCP-03**: `config/mcp_tools.yaml` でツール名 → MCP メソッドのマッピングを管理できる
+- [x] **MCP-01**: mcp-server が Docker サービスとして起動し、worker コンテナから HTTP 接続できる
+- [x] **MCP-02**: `@mcp.tool` でツールを定義し、スタブが正常に呼び出し・応答できる
+- [x] **MCP-03**: `config/mcp_tools.yaml` でツール名 → MCP メソッドのマッピングを管理できる
 
 ### LangGraph bind_tools 統合
 
-- [ ] **TOOL-01**: OrchestratorGraph の SubAgent が `bind_tools` + `ToolNode` でツールを呼び出せる
-- [ ] **TOOL-02**: tool_calls ループが最大 10 ステップで自動停止する
-- [ ] **TOOL-03**: ツール呼び出し結果が `ToolMessage` として会話履歴に記録される
+- [x] **TOOL-01**: OrchestratorGraph の SubAgent が `bind_tools` + `ToolNode` でツールを呼び出せる
+- [x] **TOOL-02**: tool_calls ループが最大 10 ステップで自動停止する
+- [x] **TOOL-03**: ツール呼び出し結果が `ToolMessage` として会話履歴に記録される
 
 ### Web 検索ツール
 
-- [ ] **SEARCH-01**: エージェントが Web 検索を呼び出してリアルタイム情報を取得できる
-- [ ] **SEARCH-02**: 検索結果が LLM が消化できるサイズに制限される
+- [x] **SEARCH-01**: エージェントが Web 検索を呼び出してリアルタイム情報を取得できる
+- [x] **SEARCH-02**: 検索結果が LLM が消化できるサイズに制限される
 
 ### DB クエリツール
 
-- [ ] **DB-01**: エージェントが SELECT クエリで PostgreSQL のデータを取得できる
-- [ ] **DB-02**: SELECT 以外のクエリ（INSERT/UPDATE/DELETE）はブロックされる
+- [x] **DB-01**: エージェントが SELECT クエリで PostgreSQL のデータを取得できる
+- [x] **DB-02**: SELECT 以外のクエリ（INSERT/UPDATE/DELETE）はブロックされる
 
 ### Claude Code 実行ツール
 
-- [ ] **CODE-01**: エージェントが Claude Code CLI をサブプロセスとして実行し結果を取得できる
-- [ ] **CODE-02**: `CLAUDECODE=1` 等の危険な環境変数が引き継がれない
-- [ ] **CODE-03**: タイムアウト（60秒）と zombie プロセス対策が実装される
+- [x] **CODE-01**: エージェントが Claude Code CLI をサブプロセスとして実行し結果を取得できる
+- [x] **CODE-02**: `CLAUDECODE=1` 等の危険な環境変数が引き継がれない
+- [x] **CODE-03**: タイムアウト（60秒）と zombie プロセス対策が実装される
 
 ### AskUserQuestion 対話パターン
 
-- [ ] **AUQ-01**: LangGraph 経路の system prompt に AUQ プロトコルが注入され、AI が `<ask_user_question>` タグを生成できる
-- [ ] **AUQ-02**: Orchestrator 経路の system prompt に AUQ プロトコルが注入され、全 SubAgent が質問可能
-- [ ] **AUQ-03**: フロントエンドの parseJobResult が `<ask_user_question>` タグを検出し pendingQuestion 状態を管理する
-- [ ] **AUQ-04**: ユーザー回答が「質問：回答」テキスト形式で POST /api/chat に送信される
-- [ ] **AUQ-05**: 全 5 アプリ（Chat / SuperChat / GemChat / CanvasChat / DebateChat）で QuestionPanel が動作する
+- [x] **AUQ-01**: LangGraph 経路の system prompt に AUQ プロトコルが注入され、AI が `<ask_user_question>` タグを生成できる
+- [x] **AUQ-02**: Orchestrator 経路の system prompt に AUQ プロトコルが注入され、全 SubAgent が質問可能
+- [x] **AUQ-03**: フロントエンドの parseJobResult が `<ask_user_question>` タグを検出し pendingQuestion 状態を管理する
+- [x] **AUQ-04**: ユーザー回答が「質問：回答」テキスト形式で POST /api/chat に送信される
+- [x] **AUQ-05**: 全 5 アプリ（Chat / SuperChat / GemChat / CanvasChat / DebateChat）で QuestionPanel が動作する
 
 ### CodeAct パターン（Python サンドボックス実行）
 
-- [ ] **EXEC-01**: `execute_python` MCP ツールが正常な Python コードを実行して stdout/stderr/exit_code を返す
-- [ ] **EXEC-02**: env サニタイズにより DATABASE_URL 等の機密環境変数がサブプロセスに渡らない
-- [ ] **EXEC-03**: 60 秒タイムアウトでプロセスが SIGTERM→SIGKILL で終了し error が返る
-- [ ] **EXEC-04**: ホワイトリスト外の import が AST チェックでブロックされる
-- [ ] **EXEC-05**: 許可モジュール（math, json 等）の import は正常に通過する
-- [ ] **EXEC-06**: `execute_python` が MCP ツールとして登録され mcp_tools.yaml カタログに含まれる
-- [ ] **EXEC-07**: CodeAct エージェントが SubAgentRegistry に自動登録され recursion_limit: 12 で動作する
+- [x] **EXEC-01**: `execute_python` MCP ツールが正常な Python コードを実行して stdout/stderr/exit_code を返す
+- [x] **EXEC-02**: env サニタイズにより DATABASE_URL 等の機密環境変数がサブプロセスに渡らない
+- [x] **EXEC-03**: 60 秒タイムアウトでプロセスが SIGTERM→SIGKILL で終了し error が返る
+- [x] **EXEC-04**: ホワイトリスト外の import が AST チェックでブロックされる
+- [x] **EXEC-05**: 許可モジュール（math, json 等）の import は正常に通過する
+- [x] **EXEC-06**: `execute_python` が MCP ツールとして登録され mcp_tools.yaml カタログに含まれる
+- [x] **EXEC-07**: CodeAct エージェントが SubAgentRegistry に自動登録され recursion_limit: 12 で動作する
 
 ---
 
@@ -78,28 +79,28 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| MCP-01 | Phase 20 | Not started |
-| MCP-02 | Phase 20 | Not started |
-| MCP-03 | Phase 24 | Not started |
-| TOOL-01 | Phase 21 | Not started |
-| TOOL-02 | Phase 21 | Not started |
-| TOOL-03 | Phase 21 | Not started |
-| SEARCH-01 | Phase 22 | Not started |
-| SEARCH-02 | Phase 22 | Not started |
-| DB-01 | Phase 23 | Not started |
-| DB-02 | Phase 23 | Not started |
-| CODE-01 | Phase 23 | Not started |
-| CODE-02 | Phase 23 | Not started |
-| CODE-03 | Phase 23 | Not started |
-| AUQ-01 | Phase 27 | Not started |
-| AUQ-02 | Phase 27 | Not started |
-| AUQ-03 | Phase 27 | Not started |
-| AUQ-04 | Phase 27 | Not started |
-| AUQ-05 | Phase 27 | Not started |
-| EXEC-01 | Phase 28 | Not started |
-| EXEC-02 | Phase 28 | Not started |
-| EXEC-03 | Phase 28 | Not started |
-| EXEC-04 | Phase 28 | Not started |
-| EXEC-05 | Phase 28 | Not started |
-| EXEC-06 | Phase 28 | Not started |
-| EXEC-07 | Phase 28 | Not started |
+| MCP-01 | Phase 20 | Complete |
+| MCP-02 | Phase 20 | Complete |
+| MCP-03 | Phase 24 | Complete |
+| TOOL-01 | Phase 21 | Complete |
+| TOOL-02 | Phase 21 | Complete |
+| TOOL-03 | Phase 21 | Complete |
+| SEARCH-01 | Phase 22 | Complete |
+| SEARCH-02 | Phase 22 | Complete |
+| DB-01 | Phase 23 | Complete |
+| DB-02 | Phase 23 | Complete |
+| CODE-01 | Phase 23 | Complete |
+| CODE-02 | Phase 23 | Complete |
+| CODE-03 | Phase 23 | Complete |
+| AUQ-01 | Phase 27 | Complete |
+| AUQ-02 | Phase 27 | Complete |
+| AUQ-03 | Phase 27 | Complete |
+| AUQ-04 | Phase 27 | Complete |
+| AUQ-05 | Phase 27 | Complete |
+| EXEC-01 | Phase 28 | Complete |
+| EXEC-02 | Phase 28 | Complete |
+| EXEC-03 | Phase 28 | Complete |
+| EXEC-04 | Phase 28 | Complete |
+| EXEC-05 | Phase 28 | Complete |
+| EXEC-06 | Phase 28 | Complete |
+| EXEC-07 | Phase 28 | Complete |

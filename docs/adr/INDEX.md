@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 43 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 44 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -71,6 +71,7 @@
 | [0001](0001-nginx-prefix-strip-for-url-routing.md) | nginx prefix-strip approach for URL routing | 2026-04-03 |
 | [0034](0034-adr-catalog-patterns-md-gsd-integration.md) | ADR カタログ化と patterns.md による GSD プランニング統合 | 2026-04-15 |
 | [0035](0035-architecture-slides-generated-by-python-pptx.md) | アーキテクチャ説明資料を python-pptx で生成する | 2026-04-15 |
+| [0047](0047-milestone-cleanup-phase-pattern.md) | Milestone cleanup phase — 帳簿整合 bookkeeping を独立 decimal phase に分離 | 2026-04-20 |
 
 ## Data・Persistence
 
