@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
 status: shipped
-last_updated: "2026-04-20T09:30:00.000Z"
+last_updated: "2026-04-21T00:00:00.000Z"
 progress:
   total_phases: 32
   completed_phases: 32
@@ -20,7 +20,8 @@ progress:
 - ✅ **v2.0 SuperChat** — Phases 7–10 (shipped 2026-04-04)
 - ✅ **v3.0 Agent Platform** — Phases 11–17 (shipped 2026-04-07) — [Archive](milestones/v3.0-ROADMAP.md)
 - ✅ **v4.0 Canvas API Bridge** — Phases 18–19 (shipped 2026-04-09) — [Archive](milestones/v4.0-ROADMAP.md)
-- ✅ **v5.0 Agent Tool Platform** — Phases 20–31 (shipped 2026-04-20)
+- ✅ **v5.0 Agent Tool Platform** — Phases 20–31 + 31.1 (shipped 2026-04-20) — [Archive](milestones/v5.0-ROADMAP.md)
+- 📋 **v6.0** — (planning — run `/gsd-new-milestone`)
 
 ## Phases
 
@@ -74,211 +75,38 @@ See [v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md) for full phase details.
 
 </details>
 
-### v5.0 Agent Tool Platform (Phases 20–24)
+<details>
+<summary>✅ v5.0 Agent Tool Platform (Phases 20–31 + 31.1) — SHIPPED 2026-04-20</summary>
 
-- [x] **Phase 20: FastMCP Docker サービス基盤** — mcp-server Docker サービスが起動し、worker コンテナから streamable-http で接続でき、スタブツールが LangChain BaseTool として取得できる (completed 2026-04-13)
-- [x] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() 実装、SubAgent ReAct ループ、ToolMessage 履歴記録、最大 10 ステップ自動停止 (completed 2026-04-10)
-- [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール本番動作、Tavily API 連携、レスポンスサイズ制限 (completed 2026-04-13)
-- [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query MCP ツール（SELECT-only ガード）、claude_code MCP ツール（env sanitization + タイムアウト） (completed 2026-04-13)
-- [x] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml に MCP ツールカタログを宣言、ToolRegistry クラスが worker 起動時に YAML と MCP 実ツールの完全一致を検証 (completed 2026-04-13)
-- [x] **Phase 29: ユーザー選択モデルのエージェントデフォルト優先** — フロントエンド選択モデルを AGENT.md デフォルトより優先し、SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent 全種別で model_override を伝搬 (completed 2026-04-17)
+- [x] **Phase 20: FastMCP Docker サービス基盤** — mcp-server healthy 起動、worker から streamable-http 接続、LangChain BaseTool 取得 (completed 2026-04-13)
+- [x] **Phase 21: LangGraph bind_tools + ToolNode 統合** — ChatCopilot.bind_tools() プロンプト方式、ToolEnabledSubAgent mini ReAct グラフ、10 ステップ自動停止 (completed 2026-04-10)
+- [x] **Phase 22: Web 検索ツール（Tavily）** — web_search MCP ツール、レスポンスサイズ制限 (completed 2026-04-13)
+- [x] **Phase 23: DB クエリ + Claude Code 実行ツール** — db_query (SELECT-only) + claude_code (env sanitization + 60s timeout) (completed 2026-04-13)
+- [x] **Phase 24: config.yaml ツールルーティング** — mcp_tools.yaml + ToolRegistry 双方向検証 (completed 2026-04-13)
+- [x] **Phase 25: React Router v7 URL ルーティング** — BrowserRouter + アプリ種別/thread_id URL 化 (completed 2026-04-14)
+- [x] **Phase 26: ADR 整理 + patterns.md + GSD 統合** — docs/adr/INDEX.md 自動生成 + patterns.md + canonical_refs 運用 (completed 2026-04-07)
+- [x] **Phase 27: AskUserQuestion AI-UI 対話** — 構造化質問 + QuestionPanel + 全 5 アプリ伝播 (completed 2026-04-17)
+- [x] **Phase 28: CodeAct パターン** — execute_python MCP ツール (AST allowlist + sandbox) + CodeAct SubAgent (completed 2026-04-17)
+- [x] **Phase 29: ユーザー選択モデル伝播** — SuperChat 選択モデルを AGENT.md デフォルトより優先、4 種 SubAgent model_override (completed 2026-04-18)
+- [x] **Phase 30: MCP ツールカタログ single-source-of-truth** — 自動生成スクリプト + pre-commit drift 検知 (completed 2026-04-18)
+- [x] **Phase 31: Observability 基盤** — stdout JSONL 1 行 1 span、3 経路統合、scripts/trace_query.py CLI (completed 2026-04-20)
+- [x] **Phase 31.1: v5.0 milestone cleanup** — 9 phase VALIDATION.md backfill + Phase 30 VALIDATION.md 遡及作成 (completed 2026-04-20)
 
-## Phase Details
+See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 
-### Phase 20: FastMCP Docker サービス基盤
+</details>
 
-**Goal**: エージェントがツールを呼び出すための MCP サービス基盤が稼働し、worker コンテナから接続確認できる
-**Depends on**: Phase 19 (v4.0 complete)
-**Requirements**: MCP-01, MCP-02
-**Success Criteria** (what must be TRUE):
+### 📋 v6.0 (Planning)
 
-  1. `docker compose up` で mcp-server コンテナが healthy 状態で起動する
-  2. worker コンテナから `MultiServerMCPClient.get_tools()` を呼ぶと LangChain BaseTool リストが返る
-  3. スタブ `ping` ツールを呼び出すと正常なレスポンスが返り、通信ログに記録される
-  4. `/health` エンドポイントが 200 OK を返す（ヘルスチェック用）
+次期 milestone は `/gsd-new-milestone` で計画。現時点の候補 (PROJECT.md Active v6.0 セクション):
 
-**Plans**: 2 plans
-
-- [x] 20-01-PLAN.md — mcp_server/ 独立 uv プロジェクト + FastMCP サーバー + 4 スタブツール + /health + pytest
-- [x] 20-02-PLAN.md — docker-compose.yml に mcp-server 追加 + worker 依存配線 + langchain-mcp-adapters + 実機スモーク
-
-### Phase 21: LangGraph bind_tools + ToolNode 統合
-
-**Goal**: SubAgent が bind_tools + ToolNode の ReAct ループでツールを呼び出し、結果が会話履歴に残る
-**Depends on**: Phase 20
-**Requirements**: TOOL-01, TOOL-02, TOOL-03
-**Success Criteria** (what must be TRUE):
-
-  1. `llm.bind_tools([...])` を呼んでも NotImplementedError が発生しない（ChatCopilot.bind_tools() 実装済み）
-  2. tool-enabled SubAgent が Web 検索プロンプトに対してツール呼び出しを発火させ、end-to-end で結果を返す
-  3. ToolMessage が PostgreSQL チェックポイントに会話履歴として記録され、スレッド再開後も参照できる
-  4. tool_calls ループが 10 ステップを超えると自動停止し、部分結果を返す
-
-**Plans**: 3 plans
-Plans:
-
-- [x] 21-01-PLAN.md — bind_tools スパイク + BoundChatCopilot 実装
-- [x] 21-02-PLAN.md — ToolEnabledSubAgent + SubAgentRegistry 拡張
-- [x] 21-03-PLAN.md — Worker MCP Singleton + e2e テスト
-
-### Phase 22: Web 検索ツール（Tavily）
-
-**Goal**: エージェントが Tavily API 経由でリアルタイム情報を取得して回答に反映できる
-**Depends on**: Phase 21
-**Requirements**: SEARCH-01, SEARCH-02
-**Success Criteria** (what must be TRUE):
-
-  1. エージェントに「最新の〇〇を教えて」と聞くと web_search ツールが呼ばれ、Tavily から取得した情報が回答に含まれる
-  2. 検索結果のサイズが制限（max_results=3, max_tokens=3000 相当）に収まり、コンテキスト超過エラーが発生しない
-
-**Plans**: 2 plans
-Plans:
-
-- [x] 22-01-PLAN.md — web_search ツール実装 + stubs 差し替え + テスト
-- [x] 22-02-PLAN.md — UAT ギャップクローズ: ツールプロンプト強化 + general-assistant ガイダンス追記
-
-### Phase 23: DB クエリ + Claude Code 実行ツール
-
-**Goal**: エージェントが PostgreSQL データを安全に参照でき、Claude Code CLI をサブプロセスとして実行できる
-**Depends on**: Phase 22
-**Requirements**: DB-01, DB-02, CODE-01, CODE-02, CODE-03
-**Success Criteria** (what must be TRUE):
-
-  1. エージェントが SELECT クエリを呼び出すと PostgreSQL のデータが返る（is_select_only ガード通過）
-  2. INSERT/UPDATE/DELETE クエリはブロックされ、エラーメッセージが返る（セキュリティガード動作確認）
-  3. エージェントが claude_code ツールを呼び出すと Claude Code CLI が実行され、出力が返る
-  4. CLAUDECODE=1 等の危険な環境変数が子プロセスに継承されない（env sanitization 確認）
-  5. 60 秒タイムアウトが機能し、zombie プロセスが残らない
-
-**Plans**: TBD
-
-### Phase 24: config.yaml ツールルーティング
-
-**Goal**: MCP ツールカタログを YAML で宣言し、worker 起動時に MCP サーバーの実ツールリストとの完全一致を検証することで、デプロイ後の無言不整合を防止する
-**Depends on**: Phase 23
-**Requirements**: MCP-03
-**Success Criteria** (what must be TRUE):
-
-  1. `config/mcp_tools.yaml` に 4 ツール（ping/web_search/db_query/claude_code）が宣言されており、ToolRegistry が yaml.safe_load() で読み込み frozenset で管理する
-  2. ToolRegistry.validate() が YAML と MCP 実ツールリストの双方向不一致を検出し RuntimeError を raise する
-  3. worker startup() が MCP 接続成功後（try/except の外）で validate() を呼び、不一致時に RuntimeError を伝播させて worker 起動を失敗させる
-  4. YAML 変更後にコンテナを再起動すると新しいカタログ設定が反映される（ホットリロード不要）
-  *(注: エージェント別 allowlist は CONTEXT.md D-02 / Deferred セクションで明示的に defer済み — 将来フェーズで対応)*
-**Plans**: 1 plan
-
-- [x] 24-01-PLAN.md — ToolRegistry クラス + mcp_tools.yaml + worker startup バリデーション統合
-
-### Phase 25: React Router v7 による URL ベースルーティング導入
-
-**Goal:** BrowserRouter + Routes でアプリ種別・thread_id を URL に反映し、スレッド共有リンクとブラウザ履歴ナビゲーションを実現する
-**Requirements**: URL-01
-**Depends on:** Phase 24
-**Plans:** 1 plan
-
-Plans:
-
-- [x] 25-01-PLAN.md — BrowserRouter 導入 + Routes 置換 + 各 ChatApp URL 同期 + nginx SPA fallback
-
-### Phase 26: ADR 整理 + patterns.md 作成 + GSD プランニング統合
-
-**Goal:** 30 件の ADR から再利用可能パターンを `.planning/patterns.md` として抽出・カタログ化し、`docs/adr/INDEX.md`（pre-commit hook 自動生成）と合わせて CLAUDE.md 経由で GSD の discuss/plan フェーズが canonical_refs 経由で自動参照できる状態を作る。ADR 本文の変更・Status 付与・欠番補完は対象外（D-03/D-04/D-05）。
-**Requirements**: none (整備フェーズのため REQ-ID なし)
-**Depends on:** Phase 25
-**Plans:** 3/3 plans complete
-
-Plans:
-
-- [x] 26-01-PLAN.md — adr-categories.yaml + generate_adr_index.py + pre-commit hook + pytest
-- [x] 26-02-PLAN.md — docs/adr/INDEX.md 生成 + .planning/patterns.md 新規作成
-- [x] 26-03-PLAN.md — CLAUDE.md 運用ルール追記 + /create-adr リマインダ + ROADMAP 更新
-
-### Phase 27: AskUserQuestion の実装 — AI エージェントがユーザーに選択肢・確認を提示する対話的インタラクションパターンをチャット UI + バックエンドに組み込む
-
-**Goal:** AI エージェントが `<ask_user_question>` タグで構造化質問（single/multi/text）をユーザーに提示し、QuestionPanel UI で回答を受け取り、テキスト化して既存チャットフローに送信する対話パターンを全アプリで動作させる
-**Requirements**: AUQ-01, AUQ-02, AUQ-03, AUQ-04, AUQ-05
-**Depends on:** Phase 26
-**Plans:** 2/2 plans complete
-
-Plans:
-
-- [x] 27-01-PLAN.md — AUQ_PROTOCOL system prompt 注入（両経路）+ AUQ 型定義 + QuestionPanel.tsx 作成
-- [x] 27-02-PLAN.md — useChat AUQ 検出 + MessageArea 入力置換 + 全 5 アプリ伝播 + ブラウザ確認
-
-### Phase 28: CodeAct パターンの実装 — LLM がコードを生成・サンドボックス実行し結果を観察する推論ループ
-
-**Goal:** execute_python MCP ツール（AST インポートホワイトリスト + メモリ制限 + タイムアウト付きサンドボックス）と CodeAct 専用エージェント（recursion_limit: 12）を実装し、LLM が Python コードを生成・実行・結果観察する推論ループを既存 ReAct 基盤上で動作させる
-**Requirements**: EXEC-01, EXEC-02, EXEC-03, EXEC-04, EXEC-05, EXEC-06, EXEC-07
-**Depends on:** Phase 27
-**Plans:** 2 plans
-
-Plans:
-
-- [ ] 28-01-PLAN.md — execute_python MCP ツール実装 + sandbox_allowlist.yaml + サーバー登録 + テスト
-- [ ] 28-02-PLAN.md — CodeAct エージェント定義 + ToolEnabledSubAgent recursion_limit 拡張 + テスト
-
-### Phase 29: ユーザー選択モデルのエージェントデフォルト優先
-
-**Goal:** フロントエンドで選択したモデルが SuperChat モードのエージェントデフォルト（AGENT.md `model` フィールド）より優先され、ユーザーの意図通りのモデルで推論が実行される
-**Requirements**: none (UX 改善フェーズのため REQ-ID なし)
-**Depends on:** Phase 28
-**Success Criteria** (what must be TRUE):
-
-  1. SuperChat で gpt-4.1 を選択した状態でメッセージを送ると、AGENT.md に claude-sonnet-4-6 と書かれたエージェントでも gpt-4.1 で推論される
-  2. モデル未選択（デフォルト）の場合は従来通り AGENT.md の `model` フィールドが使われる
-  3. SubAgent / ToolEnabledSubAgent / CodeActSubAgent / GemSubAgent の全エージェント種別で model_override が機能する
-  4. 通常 Chat モードの動作に影響がない（既存の model パラメータがそのまま使われる）
-
-**Plans**: 1 plan
-
-Plans:
-
-- [x] 29-01-PLAN.md — model_override 伝播（orchestrator_handler + agent.py + テスト）
-
-### Phase 30: MCP ツールカタログ single-source-of-truth 化 + 追加マニュアル整備
-
-**Goal:** `config/mcp_tools.yaml` を MCP ツールカタログの single source of truth とし、`mcp_helper.py` / `tool-catalog-generated.js` / `docs/mcp-tools.md` を決定論的スクリプトで完全自動生成する。手書きファイルと自動生成ファイルを物理的に分離し、pre-commit で drift 検知を強制する。新規ツール追加は `.claude/commands/add-mcp-tool.md` スラッシュコマンド + 手順マニュアル `docs/mcp-tool-add-manual.md` で標準化する。既存 6 ツールを新スキーマに一括移行する。
-**Requirements**: TBD
-**Depends on:** Phase 29
-**Plans:** 6/6 plans executed
-**Status:** ✅ COMPLETE (2026-04-18) — VERIFICATION.md PASS (7/7)
-
-Plans:
-- [x] 30-01-PLAN.md — 拡張 YAML スキーマ設計 + 既存 6 ツール一括移行 + ToolRegistry 回帰テスト
-- [x] 30-02-PLAN.md — scripts/generate_mcp_artifacts.py ジェネレータ本体 (helper/js/docs/all/--check) + pytest
-- [x] 30-03-PLAN.md — mcp_helper_utils.py 手書き分離 + mcp_helper.py 自動生成切替 + 挙動回帰テスト + sandbox allowlist 更新
-- [x] 30-04-PLAN.md — static/js/tool-catalog-generated.js 新設 + iframe-rpc.js を import 化 + 旧 sync-tool-list-to-js.py 削除
-- [x] 30-05-PLAN.md — scripts/install-hooks.sh 拡張 (ADR INDEX + MCP drift 検知) + pytest 統合テスト
-- [x] 30-06-PLAN.md — docs/mcp-tools.md 生成 + docs/mcp-tool-add-manual.md 手書き + /add-mcp-tool スラッシュコマンド + CLAUDE.md 運用ルール追記
-
-### Phase 31: エージェント実行・MCP ツール利用の observability 基盤
-
-**Goal:** エージェント実行トレース（軸 A: routing / ReAct / LLM 思考）と MCP ツール呼び出し（軸 B: ToolEnabledSubAgent / CodeAct / iframe RPC の 3 経路）を統一的に記録・閲覧できる observability 基盤を構築する。docker logs stdout に OTEL span-like JSONL を 1 行 1 span で emit し、writer 抽象 (`app/observability/trace.py`) + TracedTool wrapper + 3 経路統合 + scripts/trace_query.py CLI + jq レシピ集で完結させる。新規 infra 依存ゼロ。既存 `audit_log` テーブルは Phase 31 で退役。
-**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18 (CONTEXT.md 18 決定を requirement 相当として扱う)
-**Depends on:** Phase 30
-**Plans:** 8/8 plans complete
-
-Plans:
-
-- [x] 31-01-PLAN.md — Copilot SDK reasoning/thinking token spike (D-15、Wave 0、最初に実施)
-- [x] 31-02-PLAN.md — Writer 抽象 (app/observability/trace.py + config.py + Wave 0 unit tests + conftest fixture)
-- [x] 31-03-PLAN.md — TracedTool wrapper (BaseTool wrap で tool_call span 自動 emit、軸 B 経路 1 準備)
-- [x] 31-04-PLAN.md — 軸 A 3 層 span 統合 (graph.py 置換 + SubAgent/ToolEnabled/CodeAct/Gem span + 3 handler request span + RPCContext 追加)
-- [x] 31-05-PLAN.md — 軸 B 経路 3: iframe_rpc_handler 統合 (route に correlation_id 追加 + handler に request/tool_call span)
-- [x] 31-06-PLAN.md — scripts/trace_query.py CLI + docs/trace-query-recipes.md (8+ レシピ) + unit test
-- [x] 31-07-PLAN.md — audit_log DDL 削除 + ADR-0045 作成 + patterns.md 追記 + 手動 DROP 手順
-- [x] 31-08-PLAN.md — 4 経路 docker compose integration 検証 + must_haves 確認
-
-### Phase 31.1: v5.0 milestone cleanup（Nyquist VALIDATION backfill）
-
-**Goal:** v5.0 milestone を `/gsd-complete-milestone` で archive 可能な「帳簿 100% 整合」状態にする。ROADMAP/REQUIREMENTS の drift はこの phase の setup 時にあらかじめ修正済み（コミット f7dfdb6）。残る Nyquist drift — 9 phase の VALIDATION.md が `draft` ステータスのまま + Phase 30 だけ VALIDATION.md が欠損 — を解消する。機能変更なし、artifact frontmatter 書き換え + 新規 VALIDATION.md 1 本の作成のみ。
-**Requirements**: none（bookkeeping phase）
-**Depends on:** Phase 31
-**Plans:** 2 plans
-
-Plans:
-
-- [x] 31.1-01-PLAN.md — 9 phase（20/21/22/23/24/25/27/28/29）の VALIDATION.md frontmatter を `status: validated` + `nyquist_compliant: true` + `wave_0_complete: true` に backfill
-- [x] 31.1-02-PLAN.md — Phase 30 VALIDATION.md 新規作成（Phase 31 の format に合わせ、既存 VERIFICATION.md PASS を根拠に `status: validated` で登録）
+- エージェント別 ツール allowlist (Phase 24 D-02 で defer)
+- MCP サーバーゲートウェイ機能 (別 MCP サーバーのツール中継)
+- チャット入力ファイルアップロード + worker 生成ファイルダウンロード
+- claude_code MCP ツール認証バインド (spirit-room 方式)
+- Mermaid View ハング調査
+- AI 操作しやすい UI (data-ai-role 属性)
+- インストール済み code review skill の運用フロー組込み
 
 ## Progress
 
@@ -304,13 +132,16 @@ Plans:
 | 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
 | 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
 | 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
-| 20. FastMCP Docker サービス基盤 | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
-| 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
-| 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
-| 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
-| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
+| 20. FastMCP Docker サービス基盤 | v5.0 | 2/2 | Complete | 2026-04-13 |
+| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete | 2026-04-10 |
+| 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete | 2026-04-13 |
+| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete | 2026-04-13 |
+| 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete | 2026-04-13 |
+| 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete | 2026-04-14 |
+| 26. ADR 整理 + patterns.md + GSD 統合 | v5.0 | 3/3 | Complete | 2026-04-07 |
+| 27. AskUserQuestion AI-UI 対話 | v5.0 | 2/2 | Complete | 2026-04-17 |
+| 28. CodeAct パターン | v5.0 | 2/2 | Complete | 2026-04-17 |
+| 29. ユーザー選択モデル伝播 | v5.0 | 1/1 | Complete | 2026-04-18 |
 | 30. MCP ツールカタログ single-source-of-truth | v5.0 | 6/6 | Complete | 2026-04-18 |
 | 31. Observability 基盤 | v5.0 | 8/8 | Complete | 2026-04-20 |
 | 31.1. v5.0 milestone cleanup | v5.0 | 2/2 | Complete | 2026-04-20 |

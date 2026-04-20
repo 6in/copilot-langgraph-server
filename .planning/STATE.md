@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: shipped
-stopped_at: Phase 31.1 complete — v5.0 milestone ready to archive via /gsd-complete-milestone
-last_updated: "2026-04-20T09:35:00.000Z"
-last_activity: 2026-04-20
+status: archived
+stopped_at: v5.0 archived 2026-04-21 — ready for /gsd-new-milestone
+last_updated: "2026-04-21T00:00:00.000Z"
+last_activity: 2026-04-21
 progress:
   total_phases: 13
   completed_phases: 13
@@ -18,20 +18,20 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
+See: .planning/PROJECT.md (updated 2026-04-21 after v5.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v5.0 milestone shipped — ready to archive via /gsd-complete-milestone
+**Current focus:** v5.0 archived — planning next milestone (v6.0 via /gsd-new-milestone)
 
 ## Current Position
 
-Phase: 31.1 (complete)
-Plan: All plans complete
-Milestone: v5.0 Agent Tool Platform (shipped 2026-04-20, 帳簿 100% 整合)
-Status: Ready to archive — run /gsd-complete-milestone v5.0
-Last activity: 2026-04-20
+Phase: v5.0 archived
+Plan: none (between milestones)
+Milestone: v5.0 Agent Tool Platform (archived 2026-04-21)
+Status: Ready for next milestone — run /gsd-new-milestone
+Last activity: 2026-04-21
 
-Progress: [██████████] 100% (35/35 plans)
+Progress: [██████████] v5.0 = 35/35 plans complete (archived)
 
 ## Performance Metrics
 
@@ -301,7 +301,74 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-20 - Phase 31.1 complete (5 commits / 9 phase backfill + Phase 30 VALIDATION.md 新規作成 / gsd-verifier 6/6 PASS)
-Last session: 2026-04-20T09:35:00.000Z
-Stopped at: v5.0 milestone shipped, ready to archive
-Resume file: .planning/phases/31.1-v5-milestone-cleanup/31.1-VERIFICATION.md (next step: /gsd-complete-milestone v5.0)
+Last activity: 2026-04-21 - v5.0 Agent Tool Platform archived via /gsd-complete-milestone (13 phases, 35 plans, git tag v5.0, 64 historical drift items acknowledged as deferred)
+Last session: 2026-04-21T00:00:00.000Z
+Stopped at: v5.0 archived, ready for next milestone
+Resume file: none — run /gsd-new-milestone
+
+## Deferred Items
+
+64 items acknowledged and deferred at v5.0 milestone close on 2026-04-21.
+Scope: **historical drift accumulated across v1.0–v5.0** (not specific to v5.0).
+Review rationale: machine-generated audit artifacts (SUMMARY.md stubs, UAT status markers)
+and pending future-milestone items that do not block v5.0 functional completeness.
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| debug_sessions | 1 | knowledge-base (status: unknown) — archived spike |
+| quick_tasks | 35 | SUMMARY.md ファイル未生成だが commit 履歴は完結済 (STATE.md Quick Tasks Completed 表参照) |
+| uat_gaps | 11 | v1.0-v3.0 phases の UAT 規約確立前分と pending scenarios 混在 |
+| verification_gaps | 11 | `human_needed` が 7 件 (人手 UAT 未実施)、`gaps_found` が 4 件 |
+| todos | 5 | 次期 milestone バックログ候補 |
+| context_questions | 1 | Phase 21 の planner 委任メモ (phase 完了済) |
+
+### Detailed lists
+
+**Debug Sessions (1):**
+
+- knowledge-base [unknown]
+
+**UAT Gaps (11):**
+
+- 01 [closed]
+- 05 [partial]
+- 07 [unknown]
+- 09 [closed]
+- 10 [resolved]
+- 11 [closed]
+- 16 [unknown]
+- 20 [unknown]
+- 27 [partial]
+- 28 [resolved]
+- 29 [resolved]
+
+**Verification Gaps (11):**
+
+- 04 [gaps_found]
+- 05 [human_needed]
+- 08 [gaps_found]
+- 09 [human_needed]
+- 10 [human_needed]
+- 11 [human_needed]
+- 16 [human_needed]
+- 24 [gaps_found]
+- 27 [human_needed]
+- 28 [human_needed]
+- 29 [human_needed]
+
+**Pending Todos (6):**
+
+- 2026-04-02-conduct-code-review-using-installed-skills.md [general]
+- 2026-04-07-cache-gem-data-in-redis-in-orchestratorhandler.md [api]
+- 2026-04-14-design-ai-friendly-ui-with-data-ai-role-attributes.md [ui]
+- 2026-04-16-improve-claude-code-mcp-tool-with-spirit-room-auth-binding.md [general]
+- 2026-04-16-mermaid-view-os.md [ui]
+- item []
+
+**CONTEXT Open Questions (1):**
+
+- 21 []
+
+**Quick Tasks (35):** SUMMARY.md ファイル未生成の quick タスク。commit は STATE.md Quick Tasks Completed 表に網羅済み。
+
+Full JSON snapshot at v5.0 close: see `.planning/milestones/v5.0-MILESTONE-AUDIT.md` + STATE.md Session Continuity.

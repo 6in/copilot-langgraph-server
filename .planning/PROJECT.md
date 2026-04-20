@@ -53,22 +53,39 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ Canvas iframe postMessage JSON-RPC ブリッジ — iframe 内 JS から POST /api/iframe-rpc 経由で DB クエリ（SELECT）と AI（Copilot ワンショット）を呼び出せる仕組み — v4.0
 - ✓ Canvas アプリ独立ホスティング — GET /apps/{app_id} で Canvas アプリをスタンドアロン URL で公開、parent-bridge.js 共通リレー — v4.0
 
-### Active (v5.0)
+### Validated (v5.0)
 
-- [ ] FastMCP サーバー基盤 — Docker サービスとして FastMCP を立て、config.yaml でツール名 → MCP メソッドをマッピング
-- [ ] LangGraph bind_tools 統合 — OrchestratorGraph 拡張、ToolNode + MCP クライアント、スタブ → MCP ルーティング
-- [ ] Web 検索ツール — Tavily API を MCP メソッドとして実装（リアルタイム情報取得）
-- [ ] DB クエリツール — PostgreSQL SELECT を MCP メソッドとして実装（is_select_only ガード流用）
-- [ ] Claude Code 実行ツール — Claude Code CLI をサブプロセスとして MCP メソッドから実行
+- ✓ FastMCP Docker サービス基盤 — mcp-server コンテナ healthy 起動、worker から streamable-http 接続、LangChain BaseTool 取得 — v5.0
+- ✓ LangGraph bind_tools + ToolNode 統合 — ChatCopilot.bind_tools() プロンプト方式で JSON 解析、ToolEnabledSubAgent の mini ReAct グラフ、10 ステップ自動停止 — v5.0
+- ✓ Web 検索ツール (Tavily) — web_search MCP ツール + レスポンスサイズ制限 — v5.0
+- ✓ DB クエリ + Claude Code 実行ツール — db_query (SELECT-only) + claude_code (env sanitization + 60s timeout) — v5.0
+- ✓ config.yaml ツールルーティング — config/mcp_tools.yaml で 6 ツール宣言、ToolRegistry が YAML/MCP 双方向検証 — v5.0
+- ✓ URL ルーティング (React Router v7) — BrowserRouter でアプリ種別 + thread_id を URL 化、スレッド共有リンク対応 — v5.0
+- ✓ ADR カタログ化 + patterns.md + GSD 統合 — docs/adr/INDEX.md (pre-commit 自動生成) + .planning/patterns.md で GSD plan-phase から canonical_refs 経由で自動参照 — v5.0
+- ✓ AskUserQuestion 対話パターン — `<ask_user_question>` タグで構造化質問、QuestionPanel UI、全 5 アプリ伝播 — v5.0
+- ✓ CodeAct パターン (Python サンドボックス) — execute_python MCP ツール (AST allowlist + メモリ制限 + timeout)、CodeAct 専用 SubAgent — v5.0
+- ✓ ユーザー選択モデル伝播 — SuperChat 選択モデルを AGENT.md デフォルトより優先、4 種 SubAgent 全てで model_override — v5.0
+- ✓ MCP ツールカタログ single-source-of-truth — config/mcp_tools.yaml を唯一のソースとし、scripts/generate_mcp_artifacts.py が helper/js/docs を自動生成、pre-commit drift 検知 — v5.0
+- ✓ Observability 基盤 — stdout JSONL 1 行 1 span (OTEL span-like)、trace_id = RPCContext.correlation_id、3 経路統合、scripts/trace_query.py CLI — v5.0
+- ✓ v5.0 milestone cleanup — 9 phase VALIDATION.md を status: validated に backfill + Phase 30 VALIDATION.md 遡及作成 — v5.0 (Phase 31.1)
 
-### Deferred (v5.1+)
+### Active (v6.0 candidates)
+
+- [ ] エージェント別 ツール allowlist — Phase 24 D-02 で defer、エージェントごとに呼び出し可能なツールを制限
+- [ ] MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継し単一 worker から集約アクセス
+- [ ] チャット入力ファイルアップロード + worker 生成ファイルダウンロード — チャット UX 拡張
+- [ ] claude_code MCP ツール認証バインド — spirit-room 方式でユーザー別トークン注入
+- [ ] Mermaid View ハング調査 — OS レベル hang の再現手順と回避策
+- [ ] AI が操作しやすい UI — data-ai-role 属性導入、AI 向け操作性向上
+- [ ] code review skill 活用運用フロー — インストール済みスキル群のルーチン組み込み
+
+### Deferred (v6.1+ 以降)
 
 - [ ] RAG / ナレッジ検索 — pgvector を活用した Gem knowledge の埋め込み検索
-- [ ] 監査ログ DB 永続化 — correlation_id を PostgreSQL に記録してクエリで追跡
 - [ ] エージェント管理 UI — エージェントの追加・編集・削除を GUI で操作
 - [ ] RETRY / 回復メカニズム — DEGRADED エージェントを再起動なしに HEALTHY に回復（retry_ready()）
 - [ ] 本番モード Docker Compose 整備 — Vite dev server なしで React ビルド済み静的ファイルを FastAPI から配信
-- [ ] Canvas アプリから MCP ツール呼び出し — FastAPI ブリッジ経由（v5.0 の MCP サーバーを活用）
+- [ ] Canvas アプリから MCP ツール呼び出し — FastAPI ブリッジ経由
 - [ ] 汎用 HTTP ツール（GitHub API, Slack API 等）
 
 ### Out of Scope
@@ -80,32 +97,28 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - モバイル対応 — PC ブラウザのみ対象
 - ストリーミング応答（逐次トークン） — Copilot SDK Technical Preview では未対応
 
-## Current Milestone: v5.0 Agent Tool Platform
+## Current Milestone: (planning next)
 
-**Goal:** FastMCP で MCP サーバーを Docker サービスとして立て、LangGraph bind_tools + ToolNode 経由でエージェントが Web 検索・DB クエリ・Claude Code 実行を呼び出せるツール実行フレームワークを構築する
+v5.0 は 2026-04-20 に shipped。次期 milestone (v6.0) は `/gsd-new-milestone` で計画。
+Active セクションの候補 (エージェント別 ツール allowlist / MCP ゲートウェイ / ファイル UX 等) から選抜予定。
 
-**Target features:**
-- FastMCP サーバー基盤（Docker サービス、config.yaml ルーティング）
-- LangGraph bind_tools 統合（OrchestratorGraph 拡張、MCP クライアント）
-- Web 検索ツール（Tavily API）
-- DB クエリツール（PostgreSQL SELECT、is_select_only ガード）
-- Claude Code 実行ツール（CLI サブプロセス）
+## Previous State: v5.0 COMPLETE
 
-## Previous State: v4.0 COMPLETE
+**v5.0 shipped 2026-04-20** — 13 フェーズ（20–31 + 31.1）、35 プラン、118 コミット、10 日間
 
-**v4.0 shipped 2026-04-09** — 2 フェーズ（18–19）、5 プラン、118 コミット、2 日間
+### What Shipped in v5.0
 
-### What Shipped in v4.0
-
-- **Canvas iframe JSON-RPC ブリッジ**: iframe 内 JS から postMessage 経由で DB クエリ・AI 呼び出しを安全に実行
-- **arq worker 拡張**: frame_app_api ジョブタイプ追加、psycopg3 DB プール（psycopg_pool）、config 設定
-- **Canvas アプリ独立ホスティング**: GET /apps/{app_id} 動的シェル、srcdoc エスケープ、sandbox 制限
-- **parent-bridge.js 共通化**: Shell HTML と CanvasPane.tsx が同一リレーロジックを共有
-- **JWT Cookie 認証**: /api/iframe-rpc を JWT Cookie で保護（サーバー共有トークン方式を廃止）
+- **MCP ツールエコシステム (Phase 20/23/24/30)**: FastMCP Docker 基盤 + 6 ツール (ping/web_search/db_query/claude_code/execute_python/get_current_datetime) + config/mcp_tools.yaml single source of truth + 自動生成スクリプト + pre-commit drift 検知
+- **LangGraph bind_tools + ReAct 統合 (Phase 21/22)**: Copilot SDK が native tool-calling 未対応のため「プロンプト方式 + JSON 解析」で bind_tools() 実装、ToolEnabledSubAgent の mini ReAct グラフ、Tavily Web 検索
+- **高度対話パターン (Phase 27/28)**: AskUserQuestion で AI が構造化選択肢を提示、CodeAct で Python コード生成 + sandbox 実行ループ
+- **observability 基盤 (Phase 31)**: stdout JSONL 1 行 1 span、3 経路 (ToolEnabled/CodeAct/iframe RPC) 統合、scripts/trace_query.py CLI、audit_log テーブル退役
+- **UX 底上げ (Phase 25/29)**: React Router v7 URL ルーティング、ユーザーモデル伝播
+- **設計知識の再利用可能化 (Phase 26)**: 30+ ADR を INDEX.md + patterns.md に分離、GSD plan-phase が canonical_refs 経由で自動参照。v5.0 期間中に ADR-0020〜0047 の 27 本追加
+- **milestone cleanup (Phase 31.1)**: 9 phase VALIDATION.md backfill + Phase 30 VALIDATION.md 遡及作成、帳簿 100% 整合で archive
 
 ### Next
 
-`/gsd-new-milestone` で v5.0 計画へ
+`/gsd-new-milestone` で v6.0 計画へ
 
 ## Context
 
@@ -113,8 +126,9 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 **v2.0 shipped 2026-04-04** — 4 phases (7–10), React UI + OrchestratorGraph + SuperChat
 **v3.0 shipped 2026-04-07** — 8 phases (11–17+15.1), Agent Platform, Gem, Canvas, DebateChat
 **v4.0 shipped 2026-04-09** — 2 phases (18–19), Canvas API Bridge, iframe JSON-RPC, Hosting Shell
-**Codebase:** ~12,000+ Python + TypeScript LOC · 173+ ファイル変更
-**Stack:** Python 3.12 · FastAPI · LangGraph · arq · Redis · PostgreSQL (pgvector) · React 19 + TypeScript + Vite
+**v5.0 shipped 2026-04-20** — 13 phases (20–31+31.1), Agent Tool Platform, MCP 6 tools, CodeAct, observability
+**Codebase:** Python 7,040 LOC + TypeScript 8,460 LOC · 47 ADRs · 6 MCP tools
+**Stack:** Python 3.12 · FastAPI · LangGraph · LangChain + MCP · arq · Redis · PostgreSQL (pgvector) · React 19 + TypeScript + Vite · FastMCP (Docker サービス)
 
 - Copilot SDK (`github-copilot-sdk==0.2.0`) は JSON-RPC で Copilot CLI と通信。`BaseChatModel` カスタム実装が必須。
 - SDK は **Technical Preview** — `app/providers/copilot.py` の薄いラッパーで変更を隔離
@@ -156,6 +170,13 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 | parent-bridge.js を新規作成して共通化 | Shell HTML と CanvasPane.tsx の両方が同じリレーロジックを使う — iframe RPC 実装の重複を排除 | ✓ `static/js/parent-bridge.js` |
 | /api/iframe-rpc JWT Cookie 認証を維持 | auth_manager.load_token()（サーバー共有トークン）は不適切。呼び出し元ユーザーの JWT Cookie から github_token を取得 | ✓ `app/api/routes/iframe_rpc.py` |
 | hosted_apps.router を StaticFiles より前に登録 | FastAPI のルート優先順位: 動的ルートが StaticFiles より先にマッチする必要がある | ✓ `app/api/main.py` |
+| bind_tools はプロンプトエンジニアリング方式 (v5.0) | Copilot SDK 0.2.0 は native tool-calling 未対応 — system prompt にスキーマ注入 + JSON 解析で妥協 | ✓ `app/providers/copilot.py::BoundChatCopilot`、ADR-0021 |
+| MCP transport = streamable-http 固定 (v5.0) | stdio は Docker 間不可、sse はセッションアフィニティ問題あり | ✓ `mcp-server` service、ADR-0020 |
+| CodeAct = 直接実行 (v5.0) | ReAct ループを経由せず、コード生成 → sandbox 実行 → 結果観察を `execute_python` ツール 1 本で完結 | ✓ ADR-0041 |
+| observability = stdout JSONL、外部集約基盤なし (v5.0) | 社内 200 名規模には OTEL Collector / Loki / Tempo 等は過剰、docker logs + CLI で十分 | ✓ `app/observability/trace.py`、ADR-0045 |
+| MCP single-source-of-truth (v5.0) | YAML 宣言 → 自動生成スクリプトで Python helper / JS カタログ / docs を全生成、手書きファイルと物理分離 + pre-commit drift 検知 | ✓ `scripts/generate_mcp_artifacts.py`、ADR-0044 |
+| Integration check gate を phase 必須化 (v5.0) | Phase 31 Wave 6 で unit test 60/60 green の後に 3 件 silent failure を捕捉した経験則。Python logging root level / LangGraph state 復元 / route→worker シグネチャ不整合 | ✓ ADR-0046、CLAUDE.md |
+| Decimal phase for milestone cleanup (v5.0) | Milestone archive 直前の帳簿整合作業を独立 decimal phase (例: 31.1) に集約。主 phase 番号を汚さず GSD 規律を保つ | ✓ ADR-0047 |
 
 ## Evolution
 
@@ -168,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 — Phase 27 complete: AskUserQuestion AI-UI integration (構造化質問パネル + 全アプリ伝播)*
+*Last updated: 2026-04-21 after v5.0 milestone — Agent Tool Platform shipped (MCP 6 tools + bind_tools + CodeAct + AUQ + observability + ADR catalog)*

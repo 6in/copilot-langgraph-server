@@ -1,5 +1,28 @@
 # Milestones
 
+## v5.0 Agent Tool Platform (Shipped: 2026-04-20)
+
+**Phases completed:** 13 phases (20–31 + 31.1), 35 plans
+**Timeline:** 2026-04-10 → 2026-04-20 (10 days)
+**Commits:** 118 / Files changed: 408 (+182,470 / -9,629 incl. lockfiles)
+**LOC (cumulative):** 7,040 Python / 8,460 TypeScript
+**ADRs added:** 27 (ADR-0020 through ADR-0047)
+
+**Delivered:** MCP ツールエコシステム (6 tools) + LangGraph bind_tools 統合 + CodeAct/AskUserQuestion の高度対話パターン + stdout JSONL observability 基盤を備えたエージェントプラットフォームを完成。`config/mcp_tools.yaml` single source of truth から Python helper / JS カタログ / docs を決定論的に自動生成し、pre-commit hook で drift 検知まで統合。
+
+**Key accomplishments:**
+
+- **MCP ツールエコシステム確立** — FastMCP Docker 基盤 + 6 ツール (ping / web_search / db_query / claude_code / execute_python / get_current_datetime)、`config/mcp_tools.yaml` single source of truth + `scripts/generate_mcp_artifacts.py` 決定論的自動生成 + pre-commit drift 検知 (Phase 20/23/24/30、ADR-0020/0023/0044)
+- **LangGraph ↔ Copilot を bind_tools + ReAct で統合** — Copilot SDK native tool-calling 未対応のためプロンプト方式 + JSON 解析で `ChatCopilot.bind_tools()` 実装、ToolEnabledSubAgent mini ReAct グラフ、Tavily Web 検索で e2e 動作 (Phase 21/22、ADR-0021/0022)
+- **CodeAct + AskUserQuestion の高度対話パターン** — LLM が Python コードを生成 → AST allowlist + sandbox 実行 → 結果観察する CodeAct ループ、AI が構造化選択肢を提示する AUQ プロトコルを 5 アプリ全てに展開 (Phase 27/28、ADR-0039/0041)
+- **observability 基盤 — 新規 infra ゼロで実行可視化** — stdout JSONL 1 行 1 span (OTEL span-like、10 フィールド)、`trace_id = RPCContext.correlation_id`、3 経路 (ToolEnabled/CodeAct/iframe RPC) 統合、`scripts/trace_query.py` CLI + jq レシピで運用完結。既存 `audit_log` テーブル退役 (Phase 31、ADR-0045/0046)
+- **UX 底上げ + 設計知識の再利用可能化** — React Router v7 URL ルーティング、ユーザー選択モデル伝播 (4 種 SubAgent 全て)、30+ ADR を `docs/adr/INDEX.md` (pre-commit 自動生成) と `.planning/patterns.md` に分離して GSD plan-phase が canonical_refs で自動参照 (Phase 25/26/29、ADR-0042)
+- **milestone close 帳簿整合** — Phase 31.1 で 9 phase の VALIDATION.md backfill + Phase 30 VALIDATION.md 遡及作成、帳簿 100% 整合で archive。Decimal phase を milestone cleanup に流用する運用パターンを確立 (Phase 31.1、ADR-0047)
+
+**Known deferred items at close:** 64 (historical drift across v1.0–v5.0、STATE.md `## Deferred Items` 参照) — machine-generated audit artifacts と次期 milestone 候補の混在、functional には影響なし
+
+---
+
 ## v4.0 Canvas API Bridge (Shipped: 2026-04-09)
 
 **Phases completed:** 2 phases, 5 plans, 7 tasks

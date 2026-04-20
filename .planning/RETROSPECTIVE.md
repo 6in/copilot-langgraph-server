@@ -159,6 +159,66 @@
 
 ---
 
+## Milestone: v5.0 — Agent Tool Platform
+
+**Shipped:** 2026-04-20
+**Phases:** 13 (20–31 + 31.1) | **Plans:** 35 | **Commits:** 118 | **Duration:** 10 days (2026-04-10 → 2026-04-20)
+**ADRs added:** 27 (ADR-0020 → 0047)
+
+### What Was Built
+
+- **MCP ツールエコシステム** (Phase 20/23/24/30) — FastMCP Docker + 6 ツール + config/mcp_tools.yaml single source of truth + 決定論的自動生成スクリプト + pre-commit drift 検知
+- **LangGraph bind_tools + ReAct 統合** (Phase 21/22) — Copilot SDK 向けプロンプト方式 bind_tools、ToolEnabledSubAgent mini ReAct、Tavily Web 検索
+- **高度対話パターン** (Phase 27/28) — AskUserQuestion (構造化選択肢)、CodeAct (Python sandbox 実行ループ)
+- **observability 基盤** (Phase 31) — stdout JSONL 1 行 1 span、3 経路統合、scripts/trace_query.py CLI、audit_log 退役
+- **UX 底上げ + 設計知識の再利用可能化** (Phase 25/26/29) — React Router v7、model_override 伝播、ADR カタログ化
+- **milestone cleanup** (Phase 31.1) — 9 VALIDATION.md backfill + Phase 30 VALIDATION.md 遡及作成
+
+### What Worked
+
+- **audit_log の早期退役判断** (Phase 31) — Phase 10 以降読み書きゼロで dead 化していた DDL を棚卸しで発見、observability 基盤構築と同じ phase でまとめて退役。機能と帳簿を同時整合
+- **Integration check gate の phase 必須化** (ADR-0046) — Phase 31 Wave 6 で unit test 60/60 green の後に 3 件の silent failure (Python logging root / LangGraph state 復元 / route→worker シグネチャ) を docker compose 実環境で初めて捕捉した経験を規律化
+- **config/mcp_tools.yaml の single-source-of-truth 設計** (Phase 30) — 手書き境界と自動生成境界を物理分離し、pre-commit drift 検知で退行を即ブロック。新規ツール追加手順が `/add-mcp-tool` 1 コマンドに収束
+- **decimal phase を milestone cleanup に流用** (Phase 31.1、ADR-0047) — 主 phase 番号を汚さず GSD 規律を通して帳簿整合できる運用パターンを確立
+- **ADR カタログ化 + canonical_refs 運用** (Phase 26) — plan-phase が過去の設計判断を自動参照する仕組みが走り始め、Phase 27 以降は ADR を見ながら plan を書く運用が自然発生
+
+### What Was Inefficient
+
+- **Copilot SDK bind_tools スパイク** (Phase 21) — SDK が native tool-calling 未対応という事実が確定するまでに試行錯誤。結果的にプロンプト方式で妥協したが、Phase 20 着手前に SDK 仕様を詰めておけば Phase 21 のスパイクは不要だった
+- **VALIDATION.md の `status: validated` 自動遷移漏れ** — Phase 26 以降に導入した validation artifact で verify-phase 完了時に status を flip する運用が無かったため、9 phase 分の draft が累積 → Phase 31.1 で backfill を要した。`/gsd-complete-milestone` 側に pre-archive チェックが欲しい
+- **Phase 20/21/22/25 の VERIFICATION.md 欠損** — VERIFICATION.md 規約が Phase 23 で初導入されたため過去 phase で欠番。downstream phase の integration-check で間接的に検証された形だが、監査レポートで regime 外として明記するまでは一見 drift に見える
+- **Phase 31.1 bookkeeping phase が ceremony 過剰** — 実作業 ~700 行 YAML 書き換え + 97 行新規 md に対して plan → planner → checker → executor × 2 → verifier の 5 agent spawn。純 mechanical な作業は `/gsd-quick` で 10 分だった。ただし ADR 化することで将来の再発時に判断材料が残る形にはなった
+- **STATE.md と ROADMAP.md の progress scope 不整合** — STATE.md = milestone scope / ROADMAP.md = project scope という曖昧な分業が v5.0 close 時点でも未解消
+
+### Patterns Established
+
+- **Milestone cleanup phase as decimal phase** — ROADMAP/REQUIREMENTS drift は setup commit、artifact 書き換えは plan→execute に載せる 2 層分離 (ADR-0047)
+- **Integration check gate** — phase 完了前に docker compose 実環境で 1 経路以上の E2E 観察を必須化、結果を `docs/phase-XX-integration-check.md` に残す (ADR-0046)
+- **Self-bootstrap 基盤モジュール** — logger/emitter/tracer 等の lifespan 未経由 import path でも silent failure しないよう module import 時に自己設定 (ADR-0046)
+- **YAML 宣言 + 決定論的自動生成 + pre-commit drift 検知** — 手書き境界を物理分離、自動生成ファイルには `DO NOT EDIT` ヘッダ、`--check` exit 1 で retrofit を強制 (ADR-0044)
+- **Stdout JSONL による observability 永続化** — OTEL span-like を `logger.info(json.dumps(...))` で emit、docker logging rotation をそのまま永続層として使う。社内 200 名規模の運用向け (ADR-0045)
+- **VALIDATION.md 遡及更新 3 点セット** — VERIFICATION.md PASS + Approval 行に backfill 経路明記 + `created:` 保持 / `validated:` 更新日、で履歴改ざんではなく正当な補填と位置付ける (ADR-0047)
+- **CodeAct 直接実行方式** — ReAct ループを経由せず execute_python ツール 1 本で完結 (ADR-0041)
+- **bind_tools プロンプトエンジニアリング方式** — native 未対応 LLM への tool-calling は system prompt + JSON 解析で妥協可能 (ADR-0021)
+
+### Key Lessons
+
+1. **監査レポートは時点スナップショット、解消は target artifact 側で表現する。** `v5.0-MILESTONE-AUDIT.md` を書き換えずに VALIDATION.md 側で `status: validated` + Approval 行で示すことで、後から読んだ人が「監査時点では drift があった」という歴史と「現在は解消」という事実を両方読み取れる。
+2. **Integration check gate は unit test の代替ではなく補完。** 60/60 green でも 3 件の silent failure が発生する事象は普遍的。Python logging の root level、LangGraph checkpointer の state 復元、route→worker 間のシグネチャ不整合など、環境境界でしか露呈しない問題が存在する前提で運用する。
+3. **機能と帳簿を同じ phase で整合させる。** Phase 31 で observability 基盤構築と同時に `audit_log` 退役を行ったように、機能追加時に関連する dead code / 旧 artifact の棚卸しも同 phase でやると、後から独立 cleanup phase を立てる必要が減る。
+4. **Bookkeeping phase を routine 化すると規律が緩む副作用あり。** Phase 31.1 の存在を前提にすると、各 phase の verify-phase で `status: validated` を flip する規律が後回しになる。cleanup phase は例外、日常は各 phase 完了時に整合させるのが本筋。
+5. **Decimal phase の活用範囲を明示する。** `X.1` は従来「実機能の後処理」だったが Phase 31.1 で「帳簿整合 bookkeeping」にも拡張した。主 phase 番号を汚さずに GSD 規律を通せる運用として有用。
+6. **Copilot SDK の Technical Preview 制約は隔離層で吸収する。** bind_tools や reasoning token のような non-standard 挙動を `BoundChatCopilot` / `TracedTool` の wrap 層で吸収することで、上流コード (LangGraph / SubAgent) は SDK 世代更新の影響を受けない。
+
+### Cost Observations
+
+- Model mix: Sonnet 4.6 primary + Opus 4.7 (1M context) for planner/verifier/researcher
+- Sessions: 10 日にわたる連続したセッション群、phase 1 本あたり 1–3 セッション
+- Notable: Phase 31 は 8 plan / 10 session 超過した最大規模。Wave 6 integration check で silent failure を捕捉してから追加 2 session 投入。その後の Phase 31.1 bookkeeping phase は約 45 分で完了
+- Observable: `/gsd-plan-phase` → `/gsd-execute-phase` の chain で subagent spawning コストが累積、特に bookkeeping phase では `/gsd-quick` のほうが効率的
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Duration | Tests at Ship | Tech Debt Items |
@@ -166,5 +226,6 @@
 | v1.0 | 6 | 17 | 2 days | 71 | ~10 (1 CI blocker, rest minor) |
 | v3.0 | 8 (+15.1) | 41 | 4 days | 100+ | 3 (sse test, dead code, バルーン幅) |
 | v4.0 | 2 | 5 | 2 days | 100+ | 2 (static/apps 残留ファイル, PLAN 検証コード不一致) |
+| v5.0 | 13 (+31.1) | 35 | 10 days | 150+ | 3 持ち越し (STATE/ROADMAP scope 不整合 / 旧 draft VALIDATION / historical audit drift 64 items) |
 
 *v2.0 レトロスペクティブは未記録。*
