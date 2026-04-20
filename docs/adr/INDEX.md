@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 41 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 43 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -23,6 +23,7 @@
 | [0031](0031-copilot-sdk-token-streaming-three-layer-plumbing.md) | Copilot SDK トークンストリーミング実装 — 3 層配管の発見と修正 | 2026-04-15 |
 | [0038](0038-superchat-context-messages-and-agent-name-persistence.md) | SuperChat 過去メッセージコンテキスト注入とエージェント名永続化 | 2026-04-16 |
 | [0042](0042-user-model-override-propagation-to-subagents.md) | SuperChat ユーザー選択モデルを SubAgent デフォルトより優先する `model_override` 伝播 | 2026-04-18 |
+| [0046](0046-integration-check-surfaced-silent-failures.md) | Phase 31 Integration Check retrospective — unit-test green でも surface しなかった silent failure 3 件 | 2026-04-20 |
 
 ## MCP・Tools
 
@@ -78,6 +79,7 @@
 | [0010](0010-gem-public-sharing-is-public-flag.md) | Gem 公開共有機能 — is_public フラグと Shared Gems セクション | 2026-04-06 |
 | [0026](0026-thread-deletion-also-removes-threads-table-row.md) | スレッド削除時に threads テーブルの行も削除する | 2026-04-14 |
 | [0032](0032-db-pools-yaml-driven-tuning-params.md) | db_pools.yaml 駆動の接続プールチューニングパラメータ | 2026-04-15 |
+| [0045](0045-phase-31-observability-jsonl.md) | Phase 31 — エージェント実行・MCP ツール利用の observability 基盤 (stdout JSONL + OTEL span-like schema) | 2026-04-18 |
 
 ## 欠番
 

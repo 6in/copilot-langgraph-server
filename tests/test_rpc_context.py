@@ -56,11 +56,23 @@ class TestRPCContextFactories:
 
 
 class TestKeepFirst:
-    def test_keep_first_preserves_existing(self):
-        """_keep_first(ctx_a, ctx_b) returns ctx_a."""
+    def test_keep_first_prefers_new_value(self):
+        """_keep_first(ctx_a, ctx_b) returns ctx_b — fresh request context wins.
+
+        Fix 2026-04-20 (Phase 31 Wave 6): the previous "first wins" semantic froze
+        ``correlation_id`` / trace_id at the first request's UUID for the same
+        thread_id, so downstream spans carried a stale trace_id across subsequent
+        chats. The reducer now prefers the caller-provided fresh context.
+        """
         ctx_a = RPCContext(user_id="alice")
         ctx_b = RPCContext(user_id="bob")
         result = _keep_first(ctx_a, ctx_b)
+        assert result is ctx_b
+
+    def test_keep_first_none_second_arg_preserves_existing(self):
+        """_keep_first(ctx_a, None) returns ctx_a — guard against accidental None wipe."""
+        ctx_a = RPCContext(user_id="alice")
+        result = _keep_first(ctx_a, None)
         assert result is ctx_a
 
     def test_keep_first_none_first_arg(self):

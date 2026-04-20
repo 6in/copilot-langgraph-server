@@ -141,6 +141,8 @@ async def process_chat(
     # Phase 18: iframe JSON-RPC bridge
     rpc_method: str | None = None,
     rpc_params: dict | None = None,
+    # Phase 31: iframe_rpc route generates correlation_id; handler uses it as trace_id
+    correlation_id: str | None = None,
 ) -> dict:
     """arq job function: route to the appropriate handler by task_type.
 
@@ -179,6 +181,9 @@ async def process_chat(
         # Phase 18
         "rpc_method": rpc_method,
         "rpc_params": rpc_params,
+        # Phase 31: trace_id source for iframe_rpc_handler (other handlers build
+        # their own RPCContext and ignore this field).
+        "correlation_id": correlation_id,
     }
     return await handler.handle(ctx, job)
 

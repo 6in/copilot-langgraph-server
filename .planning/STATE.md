@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Agent Tool Platform
-status: phase_complete
-stopped_at: Completed Phase 30 (6/6 plans, VERIFICATION PASS 7/7)
-last_updated: "2026-04-18T10:45:00Z"
-last_activity: 2026-04-18 -- Phase 30 COMPLETE (MCP tool catalog single-source-of-truth 化、全 6 plans + 検証完了)
+status: executing
+stopped_at: Phase 31 context gathered
+last_updated: "2026-04-20T07:38:38.226Z"
+last_activity: 2026-04-20
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 26
-  completed_plans: 26
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 33
+  completed_plans: 33
   percent: 100
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09 after v4.0 milestone)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 29 — user-model-override
+**Current focus:** Phase 31 — agent-mcp-observability
 
 ## Current Position
 
-Phase: 30 — COMPLETE
-Plan: 6/6 complete (01-06), VERIFICATION PASS (7/7)
+Phase: 31
+Plan: Not started
 Milestone: v5.0 Agent Tool Platform
-Status: Phase complete
-Last activity: 2026-04-18 -- Phase 30 COMPLETE (MCP tool catalog single-source-of-truth 化、全 6 plans + 検証完了)
+Status: Executing Phase 31
+Last activity: 2026-04-20
 
 Progress: [██░░░░░░░░] 20% (1/5 phases)
 
@@ -37,7 +37,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 
 **Velocity:**
 
-- Total plans completed: 3 (v5.0)
+- Total plans completed: 11 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -47,6 +47,7 @@ Progress: [██░░░░░░░░] 20% (1/5 phases)
 |-------|-------|-------|----------|
 | 27 | 2 | - | - |
 | 29 | 1 | - | - |
+| 31 | 8 | - | - |
 
 **Recent Trend:**
 
@@ -254,8 +255,9 @@ Recent decisions affecting current work:
 - チャット入力欄からファイルアップロード + Worker 生成ファイルのダウンロード — ui
 - MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
 - エージェント実行・MCP ツール利用の observability 基盤 — api
+- Docker 外部から trace ログを検索できるラッパースクリプトを整備 — tooling
 
-<!-- 8/8 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30) -->
+<!-- 9/9 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30; 2026-04-20: Phase 31 振り返りで host-side trace wrapper を追加) -->
 
 ### Quick Tasks Completed
 
@@ -300,6 +302,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-18 - Completed quick task 260418-tin: docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加
-Last session: 2026-04-18T09:58:44Z
-Stopped at: Completed 30-03-PLAN.md
-Resume file: None
+Last session: 2026-04-18T13:05:29.770Z
+Stopped at: Phase 31 context gathered
+Resume file: .planning/phases/31-agent-mcp-observability/31-CONTEXT.md

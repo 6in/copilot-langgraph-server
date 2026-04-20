@@ -9,6 +9,8 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.graph.builder import build_canvas_graph, build_graph
 from app.jobs.handlers.base import TaskHandler
+from app.observability.trace import trace_span
+from app.orchestrator.context import RPCContext
 from app.utils.datetime_utils import get_datetime_context
 from app.utils.system_prompt import AUQ_PROTOCOL
 from app.jobs.notifier import build_notifier
@@ -54,17 +56,65 @@ class LangGraphHandler(TaskHandler):
         github_token: str = job["github_token"]
         reply_to: dict = job["reply_to"]
 
+        # Phase 31 Plan 04: build RPCContext at handler entry and wrap the full
+        # job lifecycle in a `request` span so trace_id = correlation_id flows
+        # into the LangGraph callbacks and any child spans.
+        github_login: str = job.get("github_login", "unknown")
+        app_id: str = job.get("app_id", "chat")
+        context = RPCContext.from_http(
+            user_id=github_login,
+            app_id=app_id,
+            thread_id=thread_id,
+        )
+
         job_store = ctx["job_store"]
         notifier = build_notifier(reply_to, job_store)
         llm = ChatCopilot(github_token=github_token, model=model)
 
+        async with trace_span(
+            "request",
+            trace_id=context.correlation_id,
+            attributes={
+                "user_id": context.user_id,
+                "app_id": context.app_id,
+                "thread_id": context.thread_id,
+                "handler": "langgraph",
+                "agent_type": "chatbot",
+                "model_name": model,
+            },
+        ):
+            return await self._handle_inner(
+                ctx, job, job_store, notifier, llm, context,
+                job_id=job_id,
+                thread_id=thread_id,
+                prompt=prompt,
+                model=model,
+                github_login=github_login,
+            )
+
+    async def _handle_inner(
+        self,
+        ctx: dict,
+        job: dict,
+        job_store,
+        notifier,
+        llm: ChatCopilot,
+        context: RPCContext,
+        *,
+        job_id: str,
+        thread_id: str,
+        prompt: str,
+        model: str,
+        github_login: str,
+    ) -> dict:
+        """Original handler body, unchanged — just wrapped by the request span."""
         try:
             # Gem 情報を先に取得してグラフ種別を決定する
             gem_id, gem_type, gem_name, system_prompt, knowledge = await _get_gem_info(thread_id, DB_URI)
 
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 graph = build_canvas_graph(llm, checkpointer) if gem_type == "canvas" else build_graph(llm, checkpointer)
-                github_login = job.get("github_login", "unknown")
+                # github_login is already extracted at handler entry (request span).
                 # knowledge が空でなければ system_prompt に結合（Todo 7）
                 if system_prompt and knowledge:
                     system_prompt = system_prompt + "\n\n## 知識\n" + knowledge

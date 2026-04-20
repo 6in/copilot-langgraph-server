@@ -107,10 +107,13 @@ async def test_orchestrator_handler_injects_context():
 
 @pytest.mark.asyncio
 async def test_correlation_id_in_routing_log(caplog):
-    """The correlation_id in RPCContext appears in the RouterNode structured routing log.
+    """The correlation_id in RPCContext becomes the routing span's trace_id.
 
-    Verifies CONTEXT-04: structured application log entries contain correlation_id.
-    Simulates OrchestratorHandler constructing RPCContext and passing it to RouterNode.
+    Phase 31: the legacy ``event: routing`` JSON line was replaced by the
+    OTEL span-like writer (logger name "trace"). Instead of grepping for
+    ``event == 'routing'`` on ``app.orchestrator.graph``, we now look for a
+    span with ``operation_name == 'routing'`` on ``trace`` whose
+    ``trace_id`` matches ``RPCContext.correlation_id`` (D-08).
     """
     from app.orchestrator.context import RPCContext
     from app.orchestrator.graph import RouterNode
@@ -149,28 +152,30 @@ async def test_correlation_id_in_routing_log(caplog):
     mock_response.content = "general-assistant"
     node._llm.ainvoke = AsyncMock(return_value=mock_response)
 
-    with caplog.at_level(logging.INFO, logger="app.orchestrator.graph"):
+    with caplog.at_level(logging.INFO, logger="trace"):
         result = await node(state)
 
-    # Find the routing JSON log entry
-    routing_log = None
+    # Find the routing span on the "trace" logger.
+    routing_span = None
     for record in caplog.records:
+        if record.name != "trace":
+            continue
         try:
             entry = json.loads(record.getMessage())
-            if entry.get("event") == "routing":
-                routing_log = entry
+            if entry.get("operation_name") == "routing":
+                routing_span = entry
                 break
         except (json.JSONDecodeError, AttributeError):
             continue
 
-    assert routing_log is not None, \
-        "RouterNode must emit a JSON log entry with event='routing'"
-    assert routing_log.get("correlation_id") == known_corr_id, (
-        f"routing log correlation_id must match RPCContext.correlation_id={known_corr_id!r}, "
-        f"got {routing_log.get('correlation_id')!r}"
+    assert routing_span is not None, \
+        "RouterNode must emit an OTEL span with operation_name='routing' on logger 'trace'"
+    assert routing_span.get("trace_id") == known_corr_id, (
+        f"routing span trace_id must match RPCContext.correlation_id={known_corr_id!r}, "
+        f"got {routing_span.get('trace_id')!r}"
     )
-    assert routing_log.get("thread_id") == "integration-thread-002", \
-        "routing log thread_id must match RPCContext.thread_id"
+    assert routing_span["attributes"].get("thread_id") == "integration-thread-002", \
+        "routing span attributes.thread_id must match RPCContext.thread_id"
 
     # Sanity check: routing chose the right agent
     assert result["next"] == "general-assistant"

@@ -49,7 +49,8 @@ async def lifespan(app: FastAPI):
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         await checkpointer.setup()
         # Schema migration: replace thread_labels with normalized schema
-        # (applications, threads, audit_log).
+        # (applications, threads). Phase 31: legacy event-table DDL removed —
+        # trace is emitted as OTEL span-like JSONL to stdout (see app/observability/trace.py).
         async with await psycopg.AsyncConnection.connect(DB_URI) as conn:
             # 1. Drop legacy table
             await conn.execute("DROP TABLE IF EXISTS thread_labels")
@@ -100,27 +101,6 @@ async def lifespan(app: FastAPI):
                        created_at   TIMESTAMPTZ DEFAULT now(),
                        updated_at   TIMESTAMPTZ DEFAULT now()
                    )"""
-            )
-
-            # 5. Audit log (schema only — no write logic added here)
-            await conn.execute(
-                """CREATE TABLE IF NOT EXISTS audit_log (
-                       id           BIGSERIAL PRIMARY KEY,
-                       github_login TEXT NOT NULL,
-                       app_id       TEXT REFERENCES applications(app_id),
-                       thread_id    TEXT,
-                       action       TEXT NOT NULL,
-                       metadata     JSONB,
-                       created_at   TIMESTAMPTZ DEFAULT now()
-                   )"""
-            )
-
-            # 6. Indexes on audit_log
-            await conn.execute(
-                "CREATE INDEX IF NOT EXISTS audit_log_github_login_idx ON audit_log(github_login)"
-            )
-            await conn.execute(
-                "CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at)"
             )
 
             # --- Phase 15: Gem + Canvas tables ---

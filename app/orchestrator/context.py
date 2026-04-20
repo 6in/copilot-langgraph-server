@@ -5,16 +5,30 @@ import uuid
 
 
 def _keep_first(a, b):
-    """Keeps the first-set context value; discards node overwrites.
+    """Reducer for the context field: prefer fresh request context, fall back to existing.
 
-    LangGraph calls this reducer as _keep_first(current_value, new_value) when
-    a node returns a new value for the context field. Returning the existing value
-    unconditionally preserves the context set at request intake.
+    LangGraph calls this reducer as `_keep_first(checkpointed_value, new_value)` on
+    every invocation where the handler passes an initial `context`. Internal graph
+    nodes never return `context` in their state updates (verified 2026-04-20 during
+    Phase 31 Wave 6 integration check), so the only callers are:
 
-    Handles the unset checkpoint case: when a new thread starts, LangGraph may
-    pass None as the first argument (no prior checkpoint). In that case, return b.
+        (a) Initial invocation on a new thread:
+            a = None (no checkpoint), b = fresh RPCContext -> returns b
+        (b) Re-invocation on an existing thread:
+            a = stale checkpointed RPCContext (old correlation_id),
+            b = fresh RPCContext (new correlation_id for this request) -> returns b
+
+    The previous semantics ("keep the first-set value") caused Phase 31's
+    `correlation_id` / trace_id to stay frozen at the first request's UUID,
+    breaking trace isolation across subsequent chats on the same thread_id.
+    Child spans (routing / sub_agent / tool_call) read `state.context.correlation_id`
+    and inherited the stale trace_id even though the handler's `request` span used
+    the fresh correlation_id.
+
+    The None guard preserves the original "don't let an accidental None wipe
+    context" behavior from the previous implementation.
     """
-    return a if a is not None else b
+    return b if b is not None else a
 
 
 @dataclass(frozen=True)

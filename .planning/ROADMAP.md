@@ -200,6 +200,7 @@ Plans:
 | 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
 | 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
 | 30. MCP ツールカタログ single-source-of-truth | v5.0 | 3/6 | In Progress|  |
+| 31. エージェント実行・MCP ツール利用の observability 基盤 | v5.0 | 8/8 | Complete    | 2026-04-20 |
 
 ### Phase 25: React Router v7 による URL ベースルーティング導入
 
@@ -285,15 +286,52 @@ Plans:
 
 ### Phase 31: エージェント実行・MCP ツール利用の observability 基盤
 
-**Goal:** エージェント実行トレース（軸 A: routing / ReAct / LLM 思考）と MCP ツール呼び出し（軸 B: ToolEnabledSubAgent / CodeAct / iframe RPC の 3 経路）を統一的に記録・閲覧できる observability 基盤を構築する。thread_id + correlation_id をキーに構造化トレースを永続化し、誰が・いつ・どのツールを・どう使ったかを把握できるようにする。docker logs のみに依存した現状から脱却し、運用時のトラブルシュート・監査・統計分析を可能にする。
-**Requirements**: TBD
+**Goal:** エージェント実行トレース（軸 A: routing / ReAct / LLM 思考）と MCP ツール呼び出し（軸 B: ToolEnabledSubAgent / CodeAct / iframe RPC の 3 経路）を統一的に記録・閲覧できる observability 基盤を構築する。docker logs stdout に OTEL span-like JSONL を 1 行 1 span で emit し、writer 抽象 (`app/observability/trace.py`) + TracedTool wrapper + 3 経路統合 + scripts/trace_query.py CLI + jq レシピ集で完結させる。新規 infra 依存ゼロ。既存 `audit_log` テーブルは Phase 31 で退役。
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18 (CONTEXT.md 18 決定を requirement 相当として扱う)
 **Depends on:** Phase 30
-**Plans:** TBD
+**Plans:** 8/8 plans complete
 
-**論点（discuss フェーズで解消）:**
-1. OpenTelemetry 導入の是非（200 名規模で OTEL Collector + Tempo/Jaeger を入れるか、PostgreSQL audit_log で十分か）
-2. トレース粒度（ReAct の各 turn まで記録するか、SubAgent レベルで切るか）
-3. LLM reasoning tokens（Copilot SDK の thinking token 露出の余地）
-4. トレース閲覧 UI（既存 React チャット UI に載せるか、admin 別画面か）
-5. PII / 機密情報の redact ポリシー（ツール args / メッセージ本文）
-6. docker logs 永続化方式（Loki / OpenSearch / file log rotation）
+Plans:
+
+- [x] 31-01-PLAN.md — Copilot SDK reasoning/thinking token spike (D-15、Wave 0、最初に実施)
+- [x] 31-02-PLAN.md — Writer 抽象 (app/observability/trace.py + config.py + Wave 0 unit tests + conftest fixture)
+- [x] 31-03-PLAN.md — TracedTool wrapper (BaseTool wrap で tool_call span 自動 emit、軸 B 経路 1 準備)
+- [x] 31-04-PLAN.md — 軸 A 3 層 span 統合 (graph.py 置換 + SubAgent/ToolEnabled/CodeAct/Gem span + 3 handler request span + RPCContext 追加)
+- [x] 31-05-PLAN.md — 軸 B 経路 3: iframe_rpc_handler 統合 (route に correlation_id 追加 + handler に request/tool_call span)
+- [x] 31-06-PLAN.md — scripts/trace_query.py CLI + docs/trace-query-recipes.md (8+ レシピ) + unit test
+- [x] 31-07-PLAN.md — audit_log DDL 削除 + ADR-0045 作成 + patterns.md 追記 + 手動 DROP 手順
+- [x] 31-08-PLAN.md — 4 経路 docker compose integration 検証 + must_haves 確認
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Auth + Provider Foundation | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 2. Graph Layer | v1.0 | 2/2 | Complete | 2026-03-31 |
+| 3. Web + Chat UI | v1.0 | 4/4 | Complete | 2026-04-01 |
+| 4. Async Job Queue + SSE | v1.0 | 4/4 | Complete | 2026-04-01 |
+| 5. GitHub User Info + Header UI | v1.0 | 2/2 | Complete | 2026-04-01 |
+| 6. SQLite → PostgreSQL Checkpointer | v1.0 | 2/2 | Complete | 2026-04-02 |
+| 7. React Chat UI (chatscope + Vite + Bun) | v2.0 | 4/4 | Complete | 2026-04-02 |
+| 8. Super Agent Sample | v2.0 | 3/3 | Complete | 2026-04-03 |
+| 9. SuperChat メインアプリ統合 | v2.0 | 4/4 | Complete | 2026-04-04 |
+| 10. SuperChat 履歴保存とモード別スレッド分離 | v2.0 | 6/6 | Complete | 2026-04-04 |
+| 11. RPCContext Integration | v3.0 | 4/4 | Complete | 2026-04-04 |
+| 12. Hybrid SubAgentRegistry + Tool Quality | v3.0 | 3/3 | Complete | 2026-04-04 |
+| 13. Scalable Routing | v3.0 | 2/2 | Complete | 2026-04-04 |
+| 14. Application Packages + Menu | v3.0 | 2/2 | Complete | 2026-04-05 |
+| 15. Gem + Canvas | v3.0 | 4/4 | Complete | 2026-04-05 |
+| 15.1. Gem UX 強化 | v3.0 | 3/3 | Complete | 2026-04-06 |
+| 16. Canvas App | v3.0 | 4/4 | Complete | 2026-04-07 |
+| 17. DebateChatApp | v3.0 | 3/3 | Complete | 2026-04-07 |
+| 18. Canvas iframe postMessage JSON-RPC API ブリッジ実装 | v4.0 | 3/3 | Complete | 2026-04-08 |
+| 19. Canvas アプリのデプロイ＆ホスティング機能 | v4.0 | 2/2 | Complete | 2026-04-09 |
+| 20. FastMCP Docker サービス基盤 | v5.0 | 2/2 | Complete   | 2026-04-13 |
+| 21. LangGraph bind_tools + ToolNode 統合 | v5.0 | 3/3 | Complete   | 2026-04-10 |
+| 22. Web 検索ツール（Tavily） | v5.0 | 2/2 | Complete   | 2026-04-13 |
+| 23. DB クエリ + Claude Code 実行ツール | v5.0 | 2/2 | Complete   | 2026-04-13 |
+| 24. config.yaml ツールルーティング | v5.0 | 1/1 | Complete   | 2026-04-13 |
+| 25. React Router v7 URL ルーティング | v5.0 | 1/1 | Complete   | 2026-04-14 |
+| 29. ユーザー選択モデルのエージェントデフォルト優先 | v5.0 | 1/1 | Complete    | 2026-04-18 |
+| 30. MCP ツールカタログ single-source-of-truth | v5.0 | 6/6 | Complete | 2026-04-18 |
+| 31. Observability 基盤 | v5.0 | 0/8 | Planned |  |

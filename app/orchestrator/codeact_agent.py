@@ -24,6 +24,8 @@ from typing import Any
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool
 
+from app.observability.config import get_args_max_chars, get_result_max_chars
+from app.observability.trace import attach_usage_attributes, trace_span
 from app.utils.system_prompt import build_system_prompt_prefix
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
@@ -150,110 +152,159 @@ class CodeActSubAgent:
         return instance
 
     async def run(self, state: AgentState) -> AgentState:
-        """コード生成→実行→まとめのループを実行する。"""
-        context = state.get("context")
-        user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
-        base_system = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
-        user_input = state["input"]
+        """コード生成→実行→まとめのループを実行する。
 
-        execute_python = self._tools.get("execute_python")
-        if not execute_python:
-            # execute_python がない場合は通常の LLM 応答
-            response = await self._llm.ainvoke([
+        Phase 31 Plan 04:
+            - 全体を ``trace_span("sub_agent", ...)`` で包み、4 共通 attribute を
+              ContextVar で子 tool_call span に継承させる
+            - ``execute_python.ainvoke`` 呼び出しを ``trace_span("tool_call",
+              privileged=True)`` で包む（execute_python は sandbox 内全権のため
+              常に privileged=True 固定。軸 B 経路 2）
+            - iteration ごとに tool_call span が 1 本ずつ emit される（D-06 の
+              「ReAct turn = 1 span」規約）
+        """
+        context = state.get("context")
+        trace_id = context.correlation_id if context else ""
+        common_attrs: dict = {
+            "user_id": context.user_id if context else "unknown",
+            "app_id": context.app_id if context else "",
+            "thread_id": context.thread_id if context else "",
+            "agent_name": self.name,
+            "model_name": getattr(self._llm, "model", "unknown"),
+        }
+        async with trace_span(
+            "sub_agent", trace_id=trace_id, attributes=common_attrs
+        ) as span:
+            user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
+            base_system = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
+            user_input = state["input"]
+
+            execute_python = self._tools.get("execute_python")
+            if not execute_python:
+                # execute_python がない場合は通常の LLM 応答
+                response = await self._llm.ainvoke([
+                    SystemMessage(content=base_system),
+                    HumanMessage(content=user_input),
+                ])
+                attach_usage_attributes(span, self._llm)
+                span.set_attribute("message_count", 2)
+                return {
+                    "output": response.content,
+                    "messages": [HumanMessage(content=user_input), AIMessage(content=response.content, name=self.name)],
+                    "agent_name": self.name,
+                }
+
+            messages: list[BaseMessage] = [
                 SystemMessage(content=base_system),
                 HumanMessage(content=user_input),
-            ])
-            return {
-                "output": response.content,
-                "messages": [HumanMessage(content=user_input), AIMessage(content=response.content, name=self.name)],
-                "agent_name": self.name,
-            }
+            ]
 
-        messages: list[BaseMessage] = [
-            SystemMessage(content=base_system),
-            HumanMessage(content=user_input),
-        ]
+            # ツール実行のトレースを記録（最終出力に含める）
+            trace_parts: list[str] = []
 
-        # ツール実行のトレースを記録（最終出力に含める）
-        trace_parts: list[str] = []
+            for iteration in range(self._max_iterations):
+                logger.info("[codeact] %s: iteration %d", self.name, iteration + 1)
+                response = await self._llm.ainvoke(messages)
+                content = response.content
 
-        for iteration in range(self._max_iterations):
-            logger.info("[codeact] %s: iteration %d", self.name, iteration + 1)
-            response = await self._llm.ainvoke(messages)
-            content = response.content
+                # Python コードブロックを検出 → execute_python
+                code = _extract_code(content)
+                if code:
+                    logger.info("[codeact] %s: executing python (%d chars)", self.name, len(code))
 
-            # Python コードブロックを検出 → execute_python
-            code = _extract_code(content)
-            if code:
-                logger.info("[codeact] %s: executing python (%d chars)", self.name, len(code))
+                    # UI にツール実行中を通知
+                    from app.orchestrator.tool_context import tool_event_cb
+                    cb = tool_event_cb.get()
+                    if cb:
+                        try:
+                            await cb("execute_python", "")
+                        except Exception:
+                            pass
 
-                # UI にツール実行中を通知
-                from app.orchestrator.tool_context import tool_event_cb
-                cb = tool_event_cb.get()
-                if cb:
-                    try:
-                        await cb("execute_python", "")
-                    except Exception:
-                        pass
+                    # Per-call tool_call span — execute_python is always privileged
+                    # (sandbox-resident, full-FS access). D-12 + T-31-03 mitigation.
+                    args_json = json.dumps({"code": code}, ensure_ascii=False)
+                    args_max = get_args_max_chars()
+                    result_max = get_result_max_chars()
+                    tool_attrs = {
+                        **common_attrs,
+                        "tool_name": "execute_python",
+                        "args_bytes": len(args_json.encode("utf-8")),
+                        "args_prefix": args_json[:args_max],
+                        "privileged": True,
+                    }
+                    async with trace_span(
+                        "tool_call", trace_id=trace_id, attributes=tool_attrs
+                    ) as tool_span:
+                        try:
+                            result = await execute_python.ainvoke({"code": code})
+                            raw_result = _normalize_tool_result(result)
+                        except Exception as e:
+                            raw_result = json.dumps({"stdout": "", "stderr": str(e), "exit_code": -1})
+                            tool_span.set_status("ERROR", str(e)[:200])
 
-                try:
-                    result = await execute_python.ainvoke({"code": code})
-                    raw_result = _normalize_tool_result(result)
-                except Exception as e:
-                    raw_result = json.dumps({"stdout": "", "stderr": str(e), "exit_code": -1})
+                        tool_span.set_attribute(
+                            "result_bytes", len(raw_result.encode("utf-8"))
+                        )
+                        tool_span.set_attribute("result_prefix", raw_result[:result_max])
+                        stdout, stderr, exit_code = _parse_execute_result(raw_result)
+                        tool_span.set_attribute("success", exit_code == 0)
+                        if exit_code != 0:
+                            tool_span.set_status("ERROR", f"exit_code={exit_code}")
 
-                stdout, stderr, exit_code = _parse_execute_result(raw_result)
+                    # トレースにコードのみ追加（stdout はまとめ LLM に渡すだけ、ユーザーには見せない）
+                    trace_parts.append(f"```python\n{code}\n```")
+                    if stderr:
+                        trace_parts.append(f"**stderr:**\n```\n{stderr}\n```")
 
-                # トレースにコードのみ追加（stdout はまとめ LLM に渡すだけ、ユーザーには見せない）
-                trace_parts.append(f"```python\n{code}\n```")
-                if stderr:
-                    trace_parts.append(f"**stderr:**\n```\n{stderr}\n```")
+                    # エラーの場合はリトライ用にフィードバック
+                    if exit_code != 0 and iteration < self._max_iterations - 1:
+                        error_msg = stderr or stdout
+                        messages.append(AIMessage(content=content, name=self.name))
+                        messages.append(HumanMessage(
+                            content=f"実行エラー (exit_code={exit_code}):\n```\n{error_msg}\n```\nエラーを修正したコードを書いてください。```python ブロックだけ返してください。"
+                        ))
+                        continue
 
-                # エラーの場合はリトライ用にフィードバック
-                if exit_code != 0 and iteration < self._max_iterations - 1:
-                    error_msg = stderr or stdout
+                    # 成功 → まとめを生成
                     messages.append(AIMessage(content=content, name=self.name))
                     messages.append(HumanMessage(
-                        content=f"実行エラー (exit_code={exit_code}):\n```\n{error_msg}\n```\nエラーを修正したコードを書いてください。```python ブロックだけ返してください。"
+                        content=f"実行結果:\n```\n{stdout}\n```\n\n{SUMMARY_PROMPT}"
+                    ))
+                    summary = await self._llm.ainvoke(messages)
+                    trace_parts.append("---")
+                    trace_parts.append(summary.content)
+                    break
+
+                # コードブロックなし → テキスト応答
+                # 初回でコードなしの場合、コード生成を促す
+                if iteration == 0 and not trace_parts:
+                    messages.append(AIMessage(content=content, name=self.name))
+                    messages.append(HumanMessage(
+                        content="コードを書いて実行してください。```python ブロックでコードだけを返してください。説明は不要です。"
                     ))
                     continue
 
-                # 成功 → まとめを生成
-                messages.append(AIMessage(content=content, name=self.name))
-                messages.append(HumanMessage(
-                    content=f"実行結果:\n```\n{stdout}\n```\n\n{SUMMARY_PROMPT}"
-                ))
-                summary = await self._llm.ainvoke(messages)
-                trace_parts.append("---")
-                trace_parts.append(summary.content)
+                # 2回目以降でコードなし → テキスト応答として終了
+                trace_parts.append(content)
                 break
+            else:
+                # max_iterations 到達
+                trace_parts.append("(最大イテレーション数に到達しました)")
 
-            # コードブロックなし → テキスト応答
-            # 初回でコードなしの場合、コード生成を促す
-            if iteration == 0 and not trace_parts:
-                messages.append(AIMessage(content=content, name=self.name))
-                messages.append(HumanMessage(
-                    content="コードを書いて実行してください。```python ブロックでコードだけを返してください。説明は不要です。"
-                ))
-                continue
+            output = "\n\n".join(trace_parts)
 
-            # 2回目以降でコードなし → テキスト応答として終了
-            trace_parts.append(content)
-            break
-        else:
-            # max_iterations 到達
-            trace_parts.append("(最大イテレーション数に到達しました)")
-
-        output = "\n\n".join(trace_parts)
-
-        return {
-            "output": output,
-            "messages": [
-                HumanMessage(content=user_input),
-                AIMessage(content=output, name=self.name),
-            ],
-            "agent_name": self.name,
-        }
+            # Attach Copilot SDK ASSISTANT_USAGE event payload (Plan 01 confirmed 4 fields).
+            attach_usage_attributes(span, self._llm)
+            span.set_attribute("message_count", len(messages))
+            return {
+                "output": output,
+                "messages": [
+                    HumanMessage(content=user_input),
+                    AIMessage(content=output, name=self.name),
+                ],
+                "agent_name": self.name,
+            }
 
     async def close(self) -> None:
         await self._llm.close()

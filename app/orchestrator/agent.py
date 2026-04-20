@@ -9,6 +9,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
+from app.observability.trace import attach_usage_attributes, trace_span
 from app.utils.system_prompt import build_system_prompt_prefix
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
@@ -126,34 +127,49 @@ class SubAgent:
         )
 
     async def run(self, state: AgentState) -> AgentState:
+        # Phase 31 Plan 04: sub_agent span + usage attributes.
         context = state.get("context")
-        user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
-        system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
-        messages: list = [
-            SystemMessage(content=system_prompt),
-        ]
-        # Inject past conversation context if provided
-        ctx_msgs = state.get("context_messages")
-        if ctx_msgs:
-            for cm in ctx_msgs:
-                if cm["role"] == "user":
-                    messages.append(HumanMessage(content=cm["content"]))
-                else:
-                    messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
-        messages.append(HumanMessage(content=state["input"]))
-        # llm.astream() で iterate することで LangGraph の on_chat_model_stream が
-        # 発火し、orchestrator_handler が notifier.send_token 経由で SSE にトークンを
-        # 流せるようになる。chunk を accumulate して最終 AIMessage を返す。
-        response: AIMessage | None = None
-        async for chunk in self._llm.astream(messages):
-            response = chunk if response is None else response + chunk
-        if response is None:
-            response = AIMessage(content="")
-        return {
-            "output": response.content,
+        trace_id = context.correlation_id if context else ""
+        common_attrs: dict = {
+            "user_id": context.user_id if context else "unknown",
+            "app_id": context.app_id if context else "",
+            "thread_id": context.thread_id if context else "",
             "agent_name": self.name,
-            "messages": [AIMessage(content=response.content, name=self.name)],
+            "model_name": getattr(self._llm, "model", "unknown"),
         }
+        async with trace_span(
+            "sub_agent", trace_id=trace_id, attributes=common_attrs
+        ) as span:
+            user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
+            system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
+            messages: list = [
+                SystemMessage(content=system_prompt),
+            ]
+            # Inject past conversation context if provided
+            ctx_msgs = state.get("context_messages")
+            if ctx_msgs:
+                for cm in ctx_msgs:
+                    if cm["role"] == "user":
+                        messages.append(HumanMessage(content=cm["content"]))
+                    else:
+                        messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
+            messages.append(HumanMessage(content=state["input"]))
+            # llm.astream() で iterate することで LangGraph の on_chat_model_stream が
+            # 発火し、orchestrator_handler が notifier.send_token 経由で SSE にトークンを
+            # 流せるようになる。chunk を accumulate して最終 AIMessage を返す。
+            response: AIMessage | None = None
+            async for chunk in self._llm.astream(messages):
+                response = chunk if response is None else response + chunk
+            if response is None:
+                response = AIMessage(content="")
+            # Attach Copilot SDK ASSISTANT_USAGE event payload (Plan 01 confirmed 4 fields).
+            attach_usage_attributes(span, self._llm)
+            span.set_attribute("message_count", len(messages) + 1)
+            return {
+                "output": response.content,
+                "agent_name": self.name,
+                "messages": [AIMessage(content=response.content, name=self.name)],
+            }
 
     async def close(self) -> None:
         await self._llm.close()
@@ -236,6 +252,7 @@ class SubAgentRegistry:
                                     github_token=github_token,
                                     tools=selected_tools,
                                     keywords=meta.get("keywords", []),
+                                    privileged_tool_names=self._privileged,
                                 )
                                 agent_type = "folder+tools"
                         else:

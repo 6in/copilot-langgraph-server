@@ -16,7 +16,9 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
+from app.observability.trace import trace_span
 from app.orchestrator.agent import SubAgentRegistry
+from app.orchestrator.context import RPCContext
 from app.orchestrator.debate_graph import build_debate_graph
 from app.providers.copilot import ChatCopilot
 
@@ -54,6 +56,13 @@ class DebateHandler(TaskHandler):
         github_login: str = job.get("github_login", "unknown")
         gem_ids: list[str] = job.get("gem_ids") or []
 
+        # Phase 31 Plan 04: build RPCContext at handler entry for trace_id propagation.
+        context = RPCContext.from_http(
+            user_id=github_login,
+            app_id="debate",
+            thread_id=thread_id,
+        )
+
         # T-17-05: pattern バリデーション
         if pattern not in _ALLOWED_PATTERNS:
             logger.warning("DebateHandler: invalid pattern=%s, defaulting to 'debate'", pattern)
@@ -62,14 +71,60 @@ class DebateHandler(TaskHandler):
         job_store = ctx["job_store"]
         notifier = build_notifier(reply_to, job_store)
 
-        # バリデーション: participants + gem_ids の合計が 2 名未満
-        # gem_ids はこの後マージされるため、合計数でチェックする
-        if len(participants) + len(gem_ids) < 2:
-            error_msg = f"Error: participants must have at least 2 agents total (agents + gems), got {len(participants) + len(gem_ids)}"
-            await job_store.save_result(job_id, error_msg)
-            await notifier.done()
-            return {"job_id": job_id, "status": "done"}
+        async with trace_span(
+            "request",
+            trace_id=context.correlation_id,
+            attributes={
+                "user_id": context.user_id,
+                "app_id": context.app_id,
+                "thread_id": context.thread_id,
+                "handler": "debate",
+                "pattern": pattern,
+                "max_turns": max_turns,
+            },
+        ):
+            # バリデーション: participants + gem_ids の合計が 2 名未満
+            # gem_ids はこの後マージされるため、合計数でチェックする
+            if len(participants) + len(gem_ids) < 2:
+                error_msg = f"Error: participants must have at least 2 agents total (agents + gems), got {len(participants) + len(gem_ids)}"
+                await job_store.save_result(job_id, error_msg)
+                await notifier.done()
+                return {"job_id": job_id, "status": "done"}
 
+            return await self._handle_inner(
+                ctx, job, job_store, notifier, context,
+                job_id=job_id,
+                thread_id=thread_id,
+                prompt=prompt,
+                github_token=github_token,
+                participants=participants,
+                pattern=pattern,
+                max_turns=max_turns,
+                current_turn=current_turn,
+                github_login=github_login,
+                gem_ids=gem_ids,
+            )
+
+    async def _handle_inner(
+        self,
+        ctx: dict,
+        job: dict,
+        job_store,
+        notifier,
+        context: RPCContext,
+        *,
+        job_id: str,
+        thread_id: str,
+        prompt: str,
+        github_token: str,
+        participants: list[str],
+        pattern: str,
+        max_turns: int,
+        current_turn: int,
+        github_login: str,
+        gem_ids: list[str],
+    ) -> dict:
+        """Original handler body, unchanged — wrapped by the request span."""
         registry = SubAgentRegistry(AGENT_DIR, github_token)
 
         try:

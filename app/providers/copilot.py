@@ -66,6 +66,65 @@ class ChatCopilot(BaseChatModel):
     # Private — not part of the Pydantic schema
     _client: Any = PrivateAttr(default=None)
 
+    # Phase 31 Plan 04: last ASSISTANT_USAGE payload (int-cast 4-field dict or None).
+    # Populated non-invasively by a session.on() hook in _agenerate / _astream so that
+    # SubAgent.run() / ToolEnabledSubAgent.run() / CodeActSubAgent.run() can attach
+    # usage attributes to their sub_agent span (docs/phase-31-reasoning-token-spike.md).
+    _last_usage: Optional[dict] = PrivateAttr(default=None)
+
+    @property
+    def last_usage(self) -> Optional[dict]:
+        """Return the last captured ASSISTANT_USAGE dict (or None when never emitted).
+
+        Keys when populated: ``input_tokens`` / ``output_tokens`` /
+        ``cache_read_tokens`` / ``cache_write_tokens`` (all ``int``).
+        """
+        return self._last_usage
+
+    # ------------------------------------------------------------------
+    # Phase 31 Plan 04 — token usage capture helpers (non-invasive)
+    # ------------------------------------------------------------------
+
+    def _store_usage(self, data: Any) -> None:
+        """Normalise an ``ASSISTANT_USAGE`` event payload into ``last_usage``.
+
+        Copilot SDK 0.2.0 emits ``input_tokens`` / ``output_tokens`` /
+        ``cache_read_tokens`` / ``cache_write_tokens`` as ``float | None``
+        (see docs/phase-31-reasoning-token-spike.md). We int-cast with a
+        0 fallback for robustness — the spike confirmed all 3 target models
+        (haiku / sonnet / gpt-4.1) emit non-null values but the SDK type is
+        permissive. Absolutely never raise — a broken usage event must not
+        propagate to the LLM call.
+        """
+        try:
+            if data is None:
+                return
+            self._last_usage = {
+                "input_tokens": int(getattr(data, "input_tokens", 0) or 0),
+                "output_tokens": int(getattr(data, "output_tokens", 0) or 0),
+                "cache_read_tokens": int(getattr(data, "cache_read_tokens", 0) or 0),
+                "cache_write_tokens": int(getattr(data, "cache_write_tokens", 0) or 0),
+            }
+        except Exception:  # pragma: no cover - defensive
+            pass
+
+    def _register_usage_hook(self, session: Any) -> None:
+        """Attach a ``session.on`` callback that records ASSISTANT_USAGE.
+
+        Used by ``_agenerate`` (non-streaming path) where the existing code
+        did not install an event handler. ``_astream`` embeds the same
+        capture inline in its queue-driven ``on_event`` closure so the
+        behaviour is uniform across both invocation paths.
+        """
+        try:
+            def _on(event: Any) -> None:
+                if getattr(event, "type", None) == SessionEventType.ASSISTANT_USAGE:
+                    self._store_usage(getattr(event, "data", None))
+
+            session.on(_on)
+        except Exception:  # pragma: no cover - defensive
+            pass
+
     # ------------------------------------------------------------------
     # BaseChatModel required interface
     # ------------------------------------------------------------------
@@ -105,6 +164,12 @@ class ChatCopilot(BaseChatModel):
                 on_permission_request=PermissionHandler.approve_all,
                 model=self.model,
             )
+
+            # Phase 31 Plan 04: register an ASSISTANT_USAGE hook BEFORE send so we
+            # capture the token usage event that the Copilot SDK fires for every
+            # turn. Non-blocking — defensively wrapped in try/except so a broken
+            # session.on never prevents the actual LLM call.
+            self._register_usage_hook(session)
 
             response = await session.send_and_wait(prompt, timeout=self.send_timeout)
 
@@ -178,6 +243,9 @@ class ChatCopilot(BaseChatModel):
                     content = getattr(event.data, "content", None)
                     if content:
                         fallback_content[0] = content
+                elif event_type == SessionEventType.ASSISTANT_USAGE:
+                    # Phase 31 Plan 04: capture usage tokens for SubAgent span emit.
+                    self._store_usage(getattr(event, "data", None))
                 elif event_type == SessionEventType.SESSION_IDLE:
                     # If no deltas arrived, emit the full message as a single chunk
                     if not has_deltas[0] and fallback_content[0]:

@@ -97,7 +97,7 @@ async def test_delete_thread_calls_adelete(api_client):
 
 
 # ---------------------------------------------------------------------------
-# Phase 10: Tests for normalized schema (applications/threads/audit_log)
+# Phase 10: Tests for normalized schema (applications/threads). audit_log removed in Phase 31.
 # These tests verify the Phase 10 implementation: app_id filter, LEFT JOIN,
 # threads upsert with app_id.
 # ---------------------------------------------------------------------------

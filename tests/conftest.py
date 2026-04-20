@@ -89,3 +89,33 @@ async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_red
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture
+def capture_trace_logs(caplog):
+    """Capture 'trace' logger JSON lines as parsed span dicts.
+
+    Usage:
+        async def test_foo(capture_trace_logs):
+            async with trace_span("op", trace_id="t"):
+                pass
+            spans = capture_trace_logs()
+            assert spans[0]["operation_name"] == "op"
+    """
+    import json
+    import logging
+
+    caplog.set_level(logging.INFO, logger="trace")
+
+    def _get_spans() -> list[dict]:
+        spans: list[dict] = []
+        for record in caplog.records:
+            if record.name != "trace":
+                continue
+            try:
+                spans.append(json.loads(record.getMessage()))
+            except (json.JSONDecodeError, TypeError):
+                continue
+        return spans
+
+    return _get_spans

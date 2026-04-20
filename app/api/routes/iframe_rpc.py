@@ -60,6 +60,7 @@ async def iframe_rpc(
 
     arq_redis: ArqRedis = request.app.state.arq_redis
     job_id = str(uuid.uuid4())
+    correlation_id = str(uuid.uuid4())  # Phase 31 D-08: trace_id source (span trace_id)
     github_login = payload.get("github_login", "unknown")
 
     await arq_redis.enqueue_job(
@@ -73,6 +74,8 @@ async def iframe_rpc(
         github_login=github_login,
         rpc_method=body.method,
         rpc_params=body.params or {},
+        correlation_id=correlation_id,  # Phase 31: trace_id for span emission
+        app_id="canvas",                 # Phase 31 D-09: common attribute
     )
 
     return IframeRpcResponse(job_id=job_id)

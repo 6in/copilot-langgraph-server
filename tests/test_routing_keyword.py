@@ -127,7 +127,13 @@ async def test_keyword_match_case_insensitive():
 
 @pytest.mark.asyncio
 async def test_stage_keyword_in_log(caplog):
-    """Keyword-stage routing must log stage='keyword'."""
+    """Keyword-stage routing must emit a routing span with attributes.stage='keyword'.
+
+    Phase 31: the legacy `event: routing` JSON line was replaced by the
+    OTEL span-like writer in `app/observability/trace.py` (logger name
+    "trace"). The assertions now read the span's ``operation_name`` and
+    ``attributes.stage`` instead of the flat ``event``/``stage`` keys.
+    """
     registry = _make_registry_with_keywords([
         {"name": "code-reviewer", "keywords": ["コードレビュー"]},
         {"name": "sql-analyst", "keywords": ["SQL"]},
@@ -138,26 +144,30 @@ async def test_stage_keyword_in_log(caplog):
     node._llm = MagicMock()
     node._llm.ainvoke = AsyncMock()
 
-    with caplog.at_level(logging.INFO, logger="app.orchestrator.graph"):
+    with caplog.at_level(logging.INFO, logger="trace"):
         await node(_make_state("コードレビューして"))
 
-    routing_log = None
+    routing_span = None
     for record in caplog.records:
+        if record.name != "trace":
+            continue
         try:
             entry = json.loads(record.getMessage())
-            if entry.get("event") == "routing":
-                routing_log = entry
+            if entry.get("operation_name") == "routing":
+                routing_span = entry
                 break
         except (json.JSONDecodeError, AttributeError):
             continue
 
-    assert routing_log is not None, "No JSON routing log entry found"
-    assert routing_log["stage"] == "keyword", f"Expected stage='keyword', got {routing_log.get('stage')}"
+    assert routing_span is not None, "No routing span found in trace logger"
+    assert routing_span["attributes"]["stage"] == "keyword", (
+        f"Expected stage='keyword', got {routing_span['attributes'].get('stage')}"
+    )
 
 
 @pytest.mark.asyncio
 async def test_stage_llm_in_log(caplog):
-    """LLM-stage routing (no keyword match) must log stage='llm'."""
+    """LLM-stage routing (no keyword match) must emit a routing span with stage='llm'."""
     registry = _make_registry_with_keywords([
         {"name": "code-reviewer", "keywords": ["コードレビュー"]},
         {"name": "general-assistant", "keywords": []},
@@ -170,18 +180,22 @@ async def test_stage_llm_in_log(caplog):
     mock_response.content = "general-assistant"
     node._llm.ainvoke = AsyncMock(return_value=mock_response)
 
-    with caplog.at_level(logging.INFO, logger="app.orchestrator.graph"):
+    with caplog.at_level(logging.INFO, logger="trace"):
         await node(_make_state("今日の天気は？"))
 
-    routing_log = None
+    routing_span = None
     for record in caplog.records:
+        if record.name != "trace":
+            continue
         try:
             entry = json.loads(record.getMessage())
-            if entry.get("event") == "routing":
-                routing_log = entry
+            if entry.get("operation_name") == "routing":
+                routing_span = entry
                 break
         except (json.JSONDecodeError, AttributeError):
             continue
 
-    assert routing_log is not None, "No JSON routing log entry found"
-    assert routing_log["stage"] == "llm", f"Expected stage='llm', got {routing_log.get('stage')}"
+    assert routing_span is not None, "No routing span found in trace logger"
+    assert routing_span["attributes"]["stage"] == "llm", (
+        f"Expected stage='llm', got {routing_span['attributes'].get('stage')}"
+    )

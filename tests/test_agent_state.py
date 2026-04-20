@@ -41,17 +41,21 @@ async def test_context_accessible_in_node():
     assert result["output"] == initial_ctx.correlation_id
 
 
-async def test_context_immutable_via_reducer():
-    """CONTEXT-02: _keep_first reducer prevents node from overwriting context.
+async def test_context_fresh_value_wins_over_stale():
+    """CONTEXT-02: `_keep_first` reducer prefers the newer context when one is provided.
 
-    Build a StateGraph with two sequential nodes. First node returns a new RPCContext
-    with user_id="overwriter". Second node reads state["context"]. After full graph
-    invocation, state["context"].user_id must remain the ORIGINAL value ("alice"),
-    not "overwriter".
+    Fix 2026-04-20 (Phase 31 Wave 6): the reducer previously kept the first value
+    written. That froze ``correlation_id`` / trace_id across subsequent requests on
+    the same thread (LangGraph checkpointer kept restoring the original context),
+    which broke per-request trace isolation. Real graph nodes never return
+    ``context`` in their state updates, so preferring the freshest caller-provided
+    value is both safe and necessary.
+
+    This graph passes a fresh context from a node and verifies that downstream
+    nodes observe the new value.
     """
-    def overwrite_attempt_node(state: AgentState) -> dict:
-        # This node tries to replace context — _keep_first should discard this
-        new_ctx = RPCContext(user_id="overwriter", app_id="evil", thread_id="x")
+    def update_context_node(state: AgentState) -> dict:
+        new_ctx = RPCContext(user_id="bob", app_id="chat", thread_id="t-002")
         return {"context": new_ctx}
 
     def verify_context_node(state: AgentState) -> dict:
@@ -59,10 +63,10 @@ async def test_context_immutable_via_reducer():
         return {"output": ctx.user_id}
 
     graph = StateGraph(AgentState)
-    graph.add_node("overwriter", overwrite_attempt_node)
+    graph.add_node("updater", update_context_node)
     graph.add_node("verifier", verify_context_node)
-    graph.set_entry_point("overwriter")
-    graph.add_edge("overwriter", "verifier")
+    graph.set_entry_point("updater")
+    graph.add_edge("updater", "verifier")
     graph.add_edge("verifier", END)
     compiled = graph.compile()
 
@@ -77,6 +81,6 @@ async def test_context_immutable_via_reducer():
         "error": None,
     })
 
-    # _keep_first should have preserved "alice", not "overwriter"
-    assert result["output"] == "alice"
-    assert result["context"].user_id == "alice"
+    # Fresh context from the `updater` node must win over the initial "alice".
+    assert result["output"] == "bob"
+    assert result["context"].user_id == "bob"

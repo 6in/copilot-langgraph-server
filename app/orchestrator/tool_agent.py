@@ -33,6 +33,8 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.errors import GraphRecursionError
 
+from app.observability.trace import attach_usage_attributes, trace_span
+from app.observability.traced_tool import TracedTool
 from app.utils.system_prompt import build_system_prompt_prefix
 from app.providers.copilot import ChatCopilot
 from app.orchestrator.state import AgentState
@@ -236,6 +238,7 @@ class ToolEnabledSubAgent:
         tools: list[BaseTool],
         keywords: list[str] | None = None,
         recursion_limit: int | None = None,
+        privileged_tool_names: frozenset[str] = frozenset(),
     ):
         self.name = name
         self.description = description
@@ -244,12 +247,21 @@ class ToolEnabledSubAgent:
         self._llm = ChatCopilot(model=model, github_token=github_token)
         self._system_prompt = system_prompt
         self._tools = tools
+        # Phase 31 Plan 04: privileged set lets TracedTool flag sandbox_exposed=false
+        # tools in tool_call spans (D-12). Defaults to empty frozenset for legacy
+        # construction paths that don't supply it (eg tests, canvas).
+        self._privileged_names: frozenset[str] = frozenset(privileged_tool_names)
         if not tools:
             logger.warning(
                 "[tool-agent] '%s' initialized with empty tools list",
                 name,
             )
-        self._tool_node = ToolNode(tools)
+        # Wrap every tool with TracedTool so ToolNode invocations emit tool_call
+        # spans. The LLM still sees the original tool schemas via bind_tools.
+        wrapped_tools: list[BaseTool] = [
+            TracedTool(t, privileged_tool_names=self._privileged_names) for t in tools
+        ]
+        self._tool_node = ToolNode(wrapped_tools)
         self._llm_with_tools = self._llm.bind_tools(tools)
 
     @classmethod
@@ -258,6 +270,7 @@ class ToolEnabledSubAgent:
         agent_dir: Path | str,
         github_token: str,
         tools: list[BaseTool] | None = None,
+        privileged_tool_names: frozenset[str] = frozenset(),
     ) -> "ToolEnabledSubAgent":
         """Load from AGENT.md frontmatter, accepting tools as an explicit argument.
 
@@ -265,6 +278,8 @@ class ToolEnabledSubAgent:
             agent_dir: Path to the agent directory containing AGENT.md.
             github_token: GitHub OAuth token for the Copilot SDK.
             tools: List of BaseTool instances to bind. Defaults to [].
+            privileged_tool_names: Tool names requiring ``privileged=True`` in
+                tool_call spans (Phase 31 D-12). Passed through to TracedTool.
         """
         import frontmatter
 
@@ -280,6 +295,7 @@ class ToolEnabledSubAgent:
             tools=tools or [],
             keywords=meta.get("keywords", []),
             recursion_limit=meta.get("recursion_limit"),
+            privileged_tool_names=privileged_tool_names,
         )
 
     async def run(self, state: AgentState) -> AgentState:
@@ -289,6 +305,11 @@ class ToolEnabledSubAgent:
         Catches GraphRecursionError to return a partial result instead
         of propagating the exception to the caller (TOOL-02).
 
+        Phase 31 Plan 04: wrapped in ``trace_span("sub_agent", ...)`` so ToolNode
+        calls made inside ``mini_graph.ainvoke`` see the common 4 attributes and
+        parent span_id via ContextVar (the TracedTool wrapper on each tool emits
+        its own child ``tool_call`` span).
+
         Returns:
             Partial AgentState dict with output, messages, and agent_name.
         """
@@ -297,46 +318,65 @@ class ToolEnabledSubAgent:
             tool_names=[t.name for t in self._tools],
         )
         context = state.get("context")
-        user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
-        system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
-        init_messages: list[BaseMessage] = [
-            SystemMessage(content=system_prompt),
-        ]
-        # Inject past conversation context if provided
-        ctx_msgs = state.get("context_messages")
-        if ctx_msgs:
-            for cm in ctx_msgs:
-                if cm["role"] == "user":
-                    init_messages.append(HumanMessage(content=cm["content"]))
-                else:
-                    init_messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
-        init_messages.append(HumanMessage(content=state["input"]))
-        try:
-            result = await mini_graph.ainvoke(
-                {"messages": init_messages},
-                config={"recursion_limit": self.recursion_limit},
-            )
-            all_messages: list[BaseMessage] = result["messages"]
-        except GraphRecursionError:
-            logger.warning(
-                "[tool-agent] %s: recursion limit reached (%d), returning partial result",
-                self.name,
-                self.recursion_limit,
-            )
-            all_messages = init_messages  # fallback to initial messages
-
-        last_ai = next(
-            (m for m in reversed(all_messages) if isinstance(m, AIMessage) and m.content),
-            AIMessage(content="(ツール呼び出しが上限に達しました)"),
-        )
-        # Build rich output: include tool calls (code) and results before the final summary.
-        # This allows the frontend to display the full execution trace.
-        output = _build_rich_output(all_messages, last_ai)
-        return {
-            "output": output,
-            "messages": all_messages,
+        trace_id = context.correlation_id if context else ""
+        common_attrs: dict = {
+            "user_id": context.user_id if context else "unknown",
+            "app_id": context.app_id if context else "",
+            "thread_id": context.thread_id if context else "",
             "agent_name": self.name,
+            "model_name": getattr(self._llm, "model", "unknown"),
         }
+        async with trace_span(
+            "sub_agent", trace_id=trace_id, attributes=common_attrs
+        ) as span:
+            user_id = context.user_id if context and getattr(context, "user_id", None) not in (None, "unknown") else None
+            system_prompt = build_system_prompt_prefix(user_id) + "\n\n" + self._system_prompt
+            init_messages: list[BaseMessage] = [
+                SystemMessage(content=system_prompt),
+            ]
+            # Inject past conversation context if provided
+            ctx_msgs = state.get("context_messages")
+            if ctx_msgs:
+                for cm in ctx_msgs:
+                    if cm["role"] == "user":
+                        init_messages.append(HumanMessage(content=cm["content"]))
+                    else:
+                        init_messages.append(AIMessage(content=cm["content"], name=cm.get("sender_name")))
+            init_messages.append(HumanMessage(content=state["input"]))
+            try:
+                result = await mini_graph.ainvoke(
+                    {"messages": init_messages},
+                    config={"recursion_limit": self.recursion_limit},
+                )
+                all_messages: list[BaseMessage] = result["messages"]
+            except GraphRecursionError:
+                logger.warning(
+                    "[tool-agent] %s: recursion limit reached (%d), returning partial result",
+                    self.name,
+                    self.recursion_limit,
+                )
+                all_messages = init_messages  # fallback to initial messages
+                # Record the recursion stop reason on the sub_agent span so dashboards
+                # can surface it without grepping logger.warning lines (D-06).
+                span.set_attribute("recursion_limit_reached", True)
+                span.set_attribute("recursion_limit", self.recursion_limit)
+                span.set_status("ERROR", "recursion_limit_reached")
+
+            last_ai = next(
+                (m for m in reversed(all_messages) if isinstance(m, AIMessage) and m.content),
+                AIMessage(content="(ツール呼び出しが上限に達しました)"),
+            )
+            # Build rich output: include tool calls (code) and results before the final summary.
+            # This allows the frontend to display the full execution trace.
+            output = _build_rich_output(all_messages, last_ai)
+            # Attach Copilot SDK ASSISTANT_USAGE event payload (Plan 01 confirmed 4 fields).
+            attach_usage_attributes(span, self._llm)
+            span.set_attribute("message_count", len(all_messages))
+            return {
+                "output": output,
+                "messages": all_messages,
+                "agent_name": self.name,
+            }
 
     async def close(self) -> None:
         """Release the underlying ChatCopilot client."""

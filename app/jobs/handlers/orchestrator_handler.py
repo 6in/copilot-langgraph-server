@@ -7,6 +7,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
+from app.observability.trace import trace_span
 from app.orchestrator.agent import SubAgentRegistry
 from app.orchestrator.context import RPCContext
 from app.orchestrator.graph import build_orchestrator_graph
@@ -37,6 +38,57 @@ class OrchestratorHandler(TaskHandler):
 
         # Read app_id from job payload; fall back to "superchat" for backward compat (D-08 REVISED)
         app_id: str = job.get("app_id", "superchat")
+        # Extract github_login early so the request span sees the real user_id even on
+        # failure paths (instead of "unknown"). Legacy jobs without github_login still
+        # get the defensive "unknown" fallback below.
+        github_login: str = job.get("github_login", "unknown")
+
+        # Phase 31 Plan 04: build RPCContext at handler entry and wrap the whole
+        # job lifecycle in a `request` span. correlation_id becomes trace_id for
+        # every routing / sub_agent / tool_call span emitted downstream (D-08).
+        context = RPCContext.from_http(
+            user_id=github_login,
+            app_id=app_id,
+            thread_id=thread_id,
+        )
+        async with trace_span(
+            "request",
+            trace_id=context.correlation_id,
+            attributes={
+                "user_id": context.user_id,
+                "app_id": context.app_id,
+                "thread_id": context.thread_id,
+                "handler": "orchestrator",
+            },
+        ):
+            return await self._handle_inner(
+                ctx, job, job_store, notifier, context,
+                job_id=job_id,
+                thread_id=thread_id,
+                prompt=prompt,
+                github_token=github_token,
+                model_override=model_override,
+                app_id=app_id,
+                github_login=github_login,
+            )
+
+    async def _handle_inner(
+        self,
+        ctx: dict,
+        job: dict,
+        job_store,
+        notifier,
+        context: RPCContext,
+        *,
+        job_id: str,
+        thread_id: str,
+        prompt: str,
+        github_token: str,
+        model_override: str | None,
+        app_id: str,
+        github_login: str,
+    ) -> dict:
+        """Original handler body, unchanged except that RPCContext is passed in."""
         # gem_ids (multi-select) takes precedence; fall back to singular gem_id for backward compat
         gem_ids: list[str] = job.get("gem_ids") or ([job["gem_id"]] if job.get("gem_id") else [])
         mcp_tools = ctx.get("mcp_tools", [])
@@ -124,16 +176,8 @@ class OrchestratorHandler(TaskHandler):
                         f"available={list(SubAgentRegistry(AGENT_DIR, github_token).agents.keys())}"
                     )
 
-            # Extract github_login from job payload; default to "unknown" for legacy jobs
-            github_login: str = job.get("github_login", "unknown")
-
-            # Construct RPCContext at job intake — correlation_id generated here flows
-            # through every node and log entry (CONTEXT-01, CONTEXT-04)
-            context = RPCContext.from_http(
-                user_id=github_login,
-                app_id=app_id,
-                thread_id=thread_id,
-            )
+            # RPCContext and github_login are already built above (handler entry).
+            # correlation_id propagates via state["context"] to every node and log entry.
 
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 await checkpointer.setup()

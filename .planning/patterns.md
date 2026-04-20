@@ -67,6 +67,15 @@ SuperChat UI 選択モデルを Handler → Registry → SubAgent の 3 層に�
 folder / folder+tools / codeact / gem の 4 種別 SubAgent で同一パターン、code-type は対象外。
 関連 ADR: [0042](../docs/adr/0042-user-model-override-propagation-to-subagents.md)
 
+### Checkpointer 復元を想定した state reducer 設計
+LangGraph `AsyncPostgresSaver` は thread_id 単位で state を checkpoint/復元するため、
+`request-scoped で fresh であるべきフィールド` に first-wins reducer (`return a if a is not None else b`)
+を使うと、2 回目以降の invoke で stale な前回値が復元・固定されてしまう。
+`context.correlation_id` を trace_id として使う設計で実際に全 child span が stale trace_id を引き継ぐ silent failure が発生 (Phase 31 Wave 6)。
+`context` のようなフィールドは **last-wins + None guard** (`return b if b is not None else a`) とする。
+unit test は**再 invoke シナリオ** (checkpointer 付きでの 2 回目の ainvoke) を含めて検証する。
+関連 ADR: [0046](../docs/adr/0046-integration-check-surfaced-silent-failures.md)
+
 ---
 
 ## MCP・Tools
@@ -116,6 +125,15 @@ MCP ツール（web_search 等）は `mcp_helper` ラッパー経由で Python �
 `AGENT.md` に `agent_type: codeact` で SubAgentRegistry が自動選択。
 関連 ADR: [0041](../docs/adr/0041-codeact-direct-execution-over-react.md)
 関連 ADR: [0022](../docs/adr/0022-tavily-web-search-json-tool-calling-model-compatibility.md)
+
+### LangChain BaseTool を透過 wrap する TracedTool で tool_call span を統一
+MCP / LangChain BaseTool を `TracedTool(wrapped, privileged_tool_names, common_attrs_provider)` で wrap し、
+`ainvoke` 実行前後に `tool_call` span を自動 emit する。`privileged` attribute は `config/mcp_tools.yaml` の
+`sandbox_exposed=false` 集合で判定（ADR-0024 の延長）。args/result は env var `TRACE_ARGS_MAX_CHARS` /
+`TRACE_RESULT_MAX_CHARS` で truncate し、PII / 秘匿情報の span 混入を防ぐ。
+ToolEnabledSubAgent の ReAct ループ（軸 B 経路 1）に適用し、CodeAct（経路 2）と iframe_rpc_handler（経路 3）は
+直接 `async with trace_span("tool_call")` で包む。3 経路すべてが同一 span schema で記録される。
+関連 ADR: [0045](../docs/adr/0045-phase-31-observability-jsonl.md), [0024](../docs/adr/0024-mcp-tool-catalog-validation.md), [0041](../docs/adr/0041-codeact-direct-execution-over-react.md)
 
 ---
 
@@ -205,6 +223,23 @@ LangGraph チェックポイントから復元される `AIMessage.content` は 
 ADR を 7 カテゴリの索引（`docs/adr/INDEX.md`）とパターンカタログ（`.planning/patterns.md`）に分離し、GSD フェーズの CONTEXT.md の canonical_refs に両ファイルを毎回記載する運用で過去意思決定を自動参照させる。INDEX.md は pre-commit hook で自動生成、patterns.md は手動更新。
 関連 ADR: [0034](../docs/adr/0034-adr-catalog-patterns-md-gsd-integration.md)
 
+### 基盤モジュールの self-bootstrap 設定（logger / emitter の silent failure 回避）
+`main.py` lifespan で設定されるべき基盤系 (logger / emitter / tracer) を、module import 時に自己設定する。
+`logging.getLogger("trace")` のような named logger は Python default root が WARNING のため、
+handler 未 attach の状態では `logger.info()` が silently drop される。
+`app/observability/trace.py` では module 末尾で `_configure_trace_logger()` を idempotent に呼び、
+stdout StreamHandler + INFO level を attach する。root / uvicorn / arq logger は触らないためスコープ限定。
+arq worker・pytest・ad-hoc script 等、`main.py` を経由しない import path からも自動的に稼働する副次メリットあり。
+関連 ADR: [0046](../docs/adr/0046-integration-check-surfaced-silent-failures.md)
+
+### Integration check gate（unit test green でも surface しない silent failure を捕捉）
+Phase 完了前に docker compose 実環境で 1 経路以上を end-to-end 手動 / 自動操作し、
+observe された実トレースを phase SUMMARY に貼付する gate。Phase 31 Wave 6 で 3 件の silent failure
+(Python logging root level / LangGraph checkpointer state 復元 / route→worker シグネチャ不整合) を
+unit test 60/60 green の後で初めて捕捉した経験則から、全 phase で必須化する運用。
+観察結果は `docs/phase-XX-integration-check.md` として他 phase からも参照可能な形で残す。
+関連 ADR: [0046](../docs/adr/0046-integration-check-surfaced-silent-failures.md)
+
 ---
 
 ## Data・Persistence
@@ -218,3 +253,12 @@ DB 接続プールパラメータ（min_size/max_size/timeout 等）を `config/
 Gem 公開は DB カラム `is_public` フラグで制御する。
 共有 Gem は全ユーザーが読み取り可能で、GemsScreen に Shared Gems セクションを表示。
 関連 ADR: [0010](../docs/adr/0010-gem-public-sharing-is-public-flag.md)
+
+### Stdout 1 行 JSONL による observability 永続化
+エージェント実行とツール呼び出しのトレースを、OpenTelemetry SDK や外部集約基盤を追加せずに
+`logger.info(json.dumps(span_dict, ensure_ascii=False, default=str))` で stdout へ 1 行 1 span emit する。
+docker logging driver の rotation (`max-size` / `max-file`) をそのまま永続層として使う。
+社内 200 名規模・単一 docker compose クラスタ・可視化 UI 不要・CLI + jq で運用完結の運用コンテキスト向け。
+鍵となる実装は `app/observability/trace.py` の `async with trace_span(...)` context manager、
+`ContextVar` による親 span_id 伝搬、`RPCContext.correlation_id` を `trace_id` として再利用する構造。
+関連 ADR: [0045](../docs/adr/0045-phase-31-observability-jsonl.md)
