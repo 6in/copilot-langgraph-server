@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v5.0
-milestone_name: Agent Tool Platform
-status: shipped
+milestone: v6.0
+milestone_name: UI/AI Experience
+status: active
 last_updated: "2026-04-21T00:00:00.000Z"
 progress:
-  total_phases: 32
+  total_phases: 40
   completed_phases: 32
   total_plans: 91
   completed_plans: 91
-  percent: 100
+  percent: 80
 ---
 
 # Roadmap: Copilot LangGraph Chat
@@ -21,7 +21,7 @@ progress:
 - ✅ **v3.0 Agent Platform** — Phases 11–17 (shipped 2026-04-07) — [Archive](milestones/v3.0-ROADMAP.md)
 - ✅ **v4.0 Canvas API Bridge** — Phases 18–19 (shipped 2026-04-09) — [Archive](milestones/v4.0-ROADMAP.md)
 - ✅ **v5.0 Agent Tool Platform** — Phases 20–31 + 31.1 (shipped 2026-04-20) — [Archive](milestones/v5.0-ROADMAP.md)
-- 📋 **v6.0** — (planning — run `/gsd-new-milestone`)
+- 🚧 **v6.0 UI/AI Experience** — Phases 32–39 (in progress)
 
 ## Phases
 
@@ -96,19 +96,129 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 
 </details>
 
-### 📋 v6.0 (Planning)
+### 🚧 v6.0 UI/AI Experience (Phases 32–39)
 
-次期 milestone は `/gsd-new-milestone` で計画。現時点の候補 (PROJECT.md Active v6.0 セクション):
+**Milestone Goal:** AI からもユーザーからも扱いやすい UI 基盤を整備する — AI 操作可能性と人間 UX の両輪を強化し、ファイル I/O とバグ残債を仕上げる
 
-- エージェント別 ツール allowlist (Phase 24 D-02 で defer)
-- MCP サーバーゲートウェイ機能 (別 MCP サーバーのツール中継)
-- チャット入力ファイルアップロード + worker 生成ファイルダウンロード
-- claude_code MCP ツール認証バインド (spirit-room 方式)
-- Mermaid View ハング調査
-- AI 操作しやすい UI (data-ai-role 属性)
-- インストール済み code review skill の運用フロー組込み
+- [ ] **Phase 32: AI-UI 操作基盤 (data-ai-role + ページ探索 API)** — 主要 UI コンポーネントへ data-ai-role 属性を付与し、現在表示中のページ構造を JSON で返す探索 API を提供する
+- [ ] **Phase 33: AI-UI 操作 MCP ツール + trace/人間承認** — ui_click / ui_read / ui_fill / ui_navigate を MCP ツール化し、observability trace 記録と破壊的操作の確認ダイアログ承認をセットで提供する
+- [ ] **Phase 34: チャット操作性 + スレッド/アプリ探索性** — メッセージコピー・再送信・キャンセル・ストリーミング、スレッド検索・タイトル自動生成・フィルタなど日常操作の摩擦を低減する
+- [ ] **Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一** — メニュー画面のダッシュボード再設計とモバイル幅・ダークモード・クロスブラウザ対応の統一
+- [ ] **Phase 36: ファイル入力 — text/code + image multimodal** — チャット添付からテキスト/コード系ファイル + 画像 (multimodal) を LLM コンテキストへ流し込む基盤
+- [x] **Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照** — PDF / Office ファイルのテキスト抽出と、添付ファイルを execute_python / claude_code 等の MCP ツールから参照可能にする (completed 2026-04-22)
+- [ ] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装
+- [ ] **Phase 39: UI バグ潰し + Polish 枠** — Mermaid hang・CollapsibleCodeBlock バルーン・test_sse hang/JobStore dead code を整理し、開発中に発覚した小バグをまとめて潰す
+
+## Phase Details
+
+### Phase 32: AI-UI 操作基盤 (data-ai-role + ページ探索 API)
+**Goal**: AI がチャットから自分の UI を操作するための土台 — 「どこに何があるか」をセマンティックに表現し、機械可読に取得できる
+**Depends on**: Phase 31 (Observability 基盤 — trace_id を後続 phase の操作ログに流用)
+**Requirements**: AIUI-01, AIUI-03
+**Success Criteria** (what must be TRUE):
+  1. ユーザーが ThreadSidebar / MessageArea / MenuScreen / GemSelector / Header 等の主要コンポーネントを開発者ツールで `data-ai-role="..."` セマンティック属性で識別できる
+  2. AI または開発者が「現在表示中のページにどんな data-ai-role 要素があるか」を JSON で取得できる API（例: `GET /api/ui/inspect` または iframe RPC `ui_inspect`）が動作する
+  3. 探索 API が要素の role 名・親子関係・可視性・テキストラベルを構造化して返し、後続 MCP ツールが targeting に使える形式になっている
+  4. data-ai-role 付与によるレンダリング負荷増・DOM 肥大が体感できないレベルに抑えられている (200名規模で UX 劣化なし)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 33: AI-UI 操作 MCP ツール + trace/人間承認
+**Goal**: AI がチャットから自分の UI を実際に操作できる — 観察 (read) → 入力 (click/fill/navigate) のループを MCP ツールセットで完結させ、破壊的操作は人間の確認を経る
+**Depends on**: Phase 32 (data-ai-role + ページ探索 API)
+**Requirements**: AIUI-02, AIUI-04
+**Success Criteria** (what must be TRUE):
+  1. AI が `ui_click` / `ui_read` / `ui_fill` / `ui_navigate` MCP ツールを使い data-ai-role を target にして UI 要素を操作できる
+  2. 新規 MCP ツールが `config/mcp_tools.yaml` に宣言され、`/add-mcp-tool` フローで追加され、自動生成された helper / JS カタログ / docs と整合している
+  3. UI 操作が `RPCContext.correlation_id` を `trace_id` とする stdout JSONL trace に span として記録され、`scripts/trace_query.py` で検索できる
+  4. 破壊的操作 (削除・送信・デプロイ等) は実行前に確認ダイアログを表示し、ユーザーが明示的に承認しない限り blocking する
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 34: チャット操作性 + スレッド/アプリ探索性
+**Goal**: 日常チャット操作とスレッド・アプリ探索の摩擦をまとめて解消し、200名規模の社内利用に耐える人間 UX を確立する
+**Depends on**: Phase 33 (AI-UI 操作 MCP ツール — UX 改善で新設するボタン等にも data-ai-role を付与)
+**Requirements**: UX-01, UX-02
+**Success Criteria** (what must be TRUE):
+  1. ユーザーがチャット画面でメッセージのコピー・再送信・実行中ジョブのキャンセル・サイドバーのスムーズな置換などを低摩擦で実行できる
+  2. ストリーミング表示があり、AI 応答が逐次更新されているように見える (Copilot SDK 制約下のベスト実装)
+  3. ユーザーがスレッド一覧を検索 / フィルタ / 最近アクセス順などで絞り込め、目的のスレッドにすぐ到達できる
+  4. 新規スレッドのタイトルが会話内容から自動生成され、無題スレッドが大量に並ばない
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一
+**Goal**: 初見ユーザーが迷わず Gems / Canvas / SuperChat / DebateChat を使い分けられるダッシュボード型メニューと、モバイル幅・ダーク/ライト・クロスブラウザでの破綻ゼロのデザイン統一
+**Depends on**: Phase 34 (チャット操作性 — UX 改善基盤の上にデザインシステム的整備を載せる)
+**Requirements**: UX-03, UX-04
+**Success Criteria** (what must be TRUE):
+  1. メニュー画面がダッシュボード化され、Gems / Canvas / SuperChat / DebateChat の用途とエントリポイントが明確になる
+  2. 初見ユーザーが説明なしで「最初にどのアプリを使えばいいか」を判断できるような視覚情報設計になっている
+  3. UI がモバイル幅 (例: 375-768px) でレイアウト崩れせずに動作する
+  4. ダークモード・主要モダンブラウザ (Chrome / Edge / Safari) で chatscope バルーン幅などのデザイン破綻が発生しない
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 36: ファイル入力 — text/code + image multimodal
+**Goal**: チャット入力欄からテキスト/コード系ファイルと画像を添付し、LLM がコンテキストとして参照できる基盤を確立する
+**Depends on**: Phase 35 (デザイン統一 — 添付 UI/プレビューがモバイル幅・ダークモードで破綻しないよう Phase 35 完了後に実装)
+**Requirements**: FIN-01, FIN-02
+**Success Criteria** (what must be TRUE):
+  1. ユーザーがチャット入力欄から .txt / .md / .json / .csv / .py / .js などのテキスト/コード系ファイルを添付し、LLM がその内容を参照して応答できる
+  2. ユーザーが .png / .jpg / .webp 画像を添付でき、multimodal 対応モデルで画像内容を踏まえた応答を得られる
+  3. multimodal 非対応モデルが選択されている場合、エラーで止まらず graceful にテキスト要約や警告にフォールバックする
+  4. 添付ファイルがチャット履歴 (PostgreSQL checkpointer) に紐付けされ、スレッドを再オープンしたときも添付情報を確認できる
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照
+**Goal**: PDF / Office ファイルをサーバー側で抽出して LLM に渡し、添付ファイルを MCP ツール (execute_python / claude_code 等) からも参照可能にする
+**Depends on**: なし（Phase 36 の添付 UI から切り離し — **scope 調整 2026-04-21**）
+**Scope 前提 (2026-04-21 調整)**: Phase 36 を待たずに先行着手する。ファイルは「決められたフォルダ」に事前配置される前提で抽出パイプラインと MCP 参照を実装する。基本レイアウトは **チャットセッション (thread_id) 単位のフォルダ** に配置される形式 (例: `/shared/thread-files/<thread_id>/foo.pdf`)。Phase 36 でアップロード UI が完成したら同じフォルダ規約に配置するよう繋ぎ込む。
+**Requirements**: FIN-03, FIN-04
+**Success Criteria** (what must be TRUE):
+  1. 指定フォルダ (例: `/shared/thread-files/<thread_id>/`) に配置された .pdf / .docx / .xlsx / .pptx からサーバー側で抽出されたテキストを LLM が参照して応答できる
+  2. 抽出失敗 (パスワード保護・破損・サイズ超過) はエラーで止まらず、ユーザーに理由を返した上でチャットを継続できる
+  3. 同じフォルダ規約で配置されたファイルが execute_python sandbox 内にマウントされる、または claude_code workspace から参照可能なパスで渡され、MCP ツール側でファイル内容を直接処理できる
+  4. PDF/Office 抽出に必要な依存ライブラリ (例: pypdf / python-docx / openpyxl) が pyproject.toml + Docker image に組み込まれ、再現可能にビルドできる
+  5. フォルダ規約 (パス / 命名 / ライフサイクル) が ADR 化され、Phase 36 (アップロード UI) と Phase 38 (出力ファイル保持) が同じ規約で接続できる
+**Plans:** 5/5 plans complete
+Plans:
+- [x] 37-01-spike-mcp-headers-PLAN.md — MultiServerMCPClient headers サポートの検証スパイク (Wave 0)
+- [x] 37-02-volume-deps-scaffold-PLAN.md — thread-files volume + MarkItDown 依存 + AgentState.attachments + Wave 0 テストスタブ (Wave 0)
+- [x] 37-03-mcp-attachments-tools-PLAN.md — attachments_list / attachments_extract MCP ツール + YAML SSoT + xfail 8 ケース GREEN 化 (Wave 1)
+- [x] 37-04-handler-prepend-delete-hook-PLAN.md — LangGraphHandler scan + SystemMessage prepend + delete_thread フォルダ削除 hook (Wave 2)
+- [x] 37-05-adr-patterns-integration-PLAN.md — ADR-0048 (フォルダ規約) + patterns.md 追記 + integration check + VALIDATION.md クローズ (Wave 3)
+
+### Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持
+**Goal**: execute_python / claude_code が生成したファイルをユーザーがチャット UI から DL・プレビュー・再取得できる、ユーザー別ストレージを備えた成果物管理基盤
+**Depends on**: Phase 37 (ファイル入力 — 入力側の抽出/ストレージ設計を踏まえて出力側を一貫した命名・ライフサイクルで構築)
+**Requirements**: FOUT-01, FOUT-02, FOUT-03, FOUT-04
+**Success Criteria** (what must be TRUE):
+  1. execute_python sandbox で生成された PDF / 画像 / CSV 等をユーザーがチャット UI からダウンロードできる
+  2. claude_code 実行 workspace の成果物 (生成された .md / .py / 画像等) もユーザーが同じ UI から取得できる
+  3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
+  4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
+  5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 39: UI バグ潰し + Polish 枠
+**Goal**: v5.0 から繰り越した既知 UI バグと、v6.0 開発中に発覚した小バグをまとめて潰し、milestone を綺麗に閉じる
+**Depends on**: Phase 38 (ファイル出力 — v6.0 主要機能完了後の polish phase として配置)
+**Requirements**: UIFIX-01, UIFIX-02, UIFIX-03, UIFIX-04
+**Success Criteria** (what must be TRUE):
+  1. Mermaid View デフォルト表示時の OS レベル hang が再現条件と回避策付きで解消されている (or 恒久修正適用)
+  2. CollapsibleCodeBlock のバルーン幅 chatscope fit-content 問題が、chat 内コードブロックが縦長で潰れず横幅が安定する形で解消されている
+  3. `tests/test_sse.py::test_sse_done_signal` の hang が修正または削除され、JobStore.register_sse / unregister_sse の dead code が整理されている
+  4. v6.0 期間中に発覚した小 UI バグが一覧化され、polish 枠で消化済み or 明示的に v6.1+ defer 判断されている
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 → 39
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -145,3 +255,11 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 | 30. MCP ツールカタログ single-source-of-truth | v5.0 | 6/6 | Complete | 2026-04-18 |
 | 31. Observability 基盤 | v5.0 | 8/8 | Complete | 2026-04-20 |
 | 31.1. v5.0 milestone cleanup | v5.0 | 2/2 | Complete | 2026-04-20 |
+| 32. AI-UI 操作基盤 (data-ai-role + ページ探索 API) | v6.0 | 0/TBD | Not started | - |
+| 33. AI-UI 操作 MCP ツール + trace/人間承認 | v6.0 | 0/TBD | Not started | - |
+| 34. チャット操作性 + スレッド/アプリ探索性 | v6.0 | 0/TBD | Not started | - |
+| 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 0/TBD | Not started | - |
+| 36. ファイル入力 — text/code + image multimodal | v6.0 | 0/TBD | Not started | - |
+| 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 0/TBD | Not started | - |
+| 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |

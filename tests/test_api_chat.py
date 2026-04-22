@@ -278,3 +278,103 @@ async def test_list_threads_left_join(api_client, jwt_cookie):
     if executed_sqls:
         assert any("LEFT JOIN" in sql.upper() for sql in executed_sqls), \
             "Expected LEFT JOIN in GET /api/threads SQL"
+
+
+# Phase 37: delete_thread がフォルダを rm する
+
+def _make_delete_app_state(github_login: str, thread_owner: str):
+    """DELETE /api/threads テスト用の app.state セットアップとモック群を返すヘルパー。
+
+    conftest.py の api_client fixture と同じ app.state セットアップを行う。
+    github_login: JWT に埋め込む login 名
+    thread_owner: threads テーブルの SELECT 結果として返す github_login
+    """
+    from unittest.mock import AsyncMock, MagicMock
+    from app.api.main import app
+    from app.auth.jwt_utils import create_jwt
+
+    # app.state を conftest.api_client と同様にセットアップ
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.adelete_thread = AsyncMock(return_value=None)
+    app.state.checkpointer = mock_checkpointer
+    app.state.db_uri = "postgresql://test:test@localhost:5432/test"
+    if not hasattr(app.state, "graph"):
+        app.state.graph = MagicMock()
+    if not hasattr(app.state, "job_store"):
+        app.state.job_store = AsyncMock()
+    if not hasattr(app.state, "arq_redis"):
+        app.state.arq_redis = AsyncMock()
+
+    token = create_jwt("ghu_test_token", github_login=github_login)
+
+    # psycopg cursor mock — async context manager を正しく構成する
+    mock_cursor = AsyncMock()
+    mock_cursor.execute = AsyncMock(return_value=None)
+    mock_cursor.fetchone = AsyncMock(return_value={"github_login": thread_owner})
+
+    # cursor() は async context manager: async with conn.cursor() as cur
+    cursor_ctx = AsyncMock()
+    cursor_ctx.__aenter__ = AsyncMock(return_value=mock_cursor)
+    cursor_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    mock_conn = AsyncMock()
+    mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_conn.__aexit__ = AsyncMock(return_value=None)
+    mock_conn.cursor = MagicMock(return_value=cursor_ctx)
+    mock_conn.commit = AsyncMock()
+
+    return app, token, mock_conn, mock_checkpointer
+
+
+@pytest.mark.asyncio
+async def test_delete_thread_removes_folder():
+    """FIN-04 SC-5 / D-03: DELETE /api/threads/{id} が shutil.rmtree を呼ぶ。
+
+    フォルダが存在しない thread を削除しても 204 を返す (ignore_errors=True)。
+    """
+    from unittest.mock import patch
+    from httpx import AsyncClient, ASGITransport
+
+    app, token, mock_conn, _ = _make_delete_app_state("testuser", "testuser")
+
+    with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
+        with patch("app.api.routes.chat.shutil.rmtree") as mock_rm:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.delete(
+                    "/api/threads/test-thread-123",
+                    cookies={"session": token},
+                )
+
+    assert resp.status_code == 204
+    # rmtree が 1 回呼ばれた (フォルダ不在でも ignore_errors=True で吸収)
+    mock_rm.assert_called_once()
+    # 第 1 引数が testuser/test-thread-123 を含むパス (realpath 解決後)
+    call_args = mock_rm.call_args
+    called_path = call_args.args[0] if call_args.args else call_args.kwargs.get("path", "")
+    assert "testuser" in called_path
+    assert "test-thread-123" in called_path
+    # ignore_errors=True が kwargs に含まれる
+    assert call_args.kwargs.get("ignore_errors") is True
+
+
+@pytest.mark.asyncio
+async def test_delete_thread_rejects_path_traversal():
+    """W-01: github_login に `..` が混入しても rmtree が実行されず 204 を返す。"""
+    from unittest.mock import patch
+    from httpx import AsyncClient, ASGITransport
+
+    app, token, mock_conn, _ = _make_delete_app_state("../../etc", "../../etc")
+
+    with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
+        with patch("app.api.routes.chat.shutil.rmtree") as mock_rm:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.delete(
+                    "/api/threads/malicious",
+                    cookies={"session": token},
+                )
+
+    assert resp.status_code == 204
+    # realpath prefix assert が失敗 → rmtree は呼ばれない
+    mock_rm.assert_not_called()

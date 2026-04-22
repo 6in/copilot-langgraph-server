@@ -15,6 +15,7 @@ Phase 30 (D-02): 自動生成される mcp_helper.py から分離された手書
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
 
 _INTERNAL_URL = "http://localhost:8001/internal/call_tool"
@@ -24,13 +25,27 @@ _TIMEOUT = 55  # execute_python の 60 秒タイムアウトより短く
 def _call_tool(name: str, args: dict | None = None) -> dict:
     """MCP ツールを呼び出して結果を dict で返す。
 
+    Phase 37 D-17: subprocess 環境変数 X_THREAD_ID / X_GITHUB_LOGIN を
+    HTTP ヘッダー X-Thread-Id / X-Github-Login として /internal/call_tool に転送する。
+    これにより execute_python sandbox → mcp-server attachments_* への RPCContext 伝搬が成立する (Route A)。
+
     エラー時は {"error": "..."} を返す（例外は投げない）。
     """
     payload = json.dumps({"tool": name, "args": args or {}}).encode("utf-8")
+
+    # Phase 37 D-17: RPCContext を HTTP ヘッダーで下流に伝搬
+    req_headers = {"Content-Type": "application/json"}
+    _thread_id = os.environ.get("X_THREAD_ID", "")
+    _github_login = os.environ.get("X_GITHUB_LOGIN", "")
+    if _thread_id:
+        req_headers["X-Thread-Id"] = _thread_id
+    if _github_login:
+        req_headers["X-Github-Login"] = _github_login
+
     req = urllib.request.Request(
         _INTERNAL_URL,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers=req_headers,
     )
     try:
         with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:

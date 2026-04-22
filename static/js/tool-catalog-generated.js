@@ -13,6 +13,8 @@
  * | claude_code          | Claude Code CLI をサブプロセスとして実行（env サニタイズ + 60 秒タイムアウト + 4000 文字切り詰め） [privileged]                      |
  * | execute_python       | Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す（AST allowlist + 512MB + 60 秒タイムアウト） [privileged] |
  * | get_current_datetime | 現在の日時を JST で返す（日付・時刻・曜日・タイムゾーン情報を含む dict）                                                            |
+ * | attachments_list     | 現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す                                                       |
+ * | attachments_extract  | 指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト)                      |
  */
 export const AVAILABLE_TOOLS = [
   { name: "ping", description: "MCP サーバーのヘルスチェック（疎通確認・タイムスタンプ取得）" },
@@ -21,4 +23,6 @@ export const AVAILABLE_TOOLS = [
   { name: "claude_code", description: "Claude Code CLI をサブプロセスとして実行（env サニタイズ + 60 秒タイムアウト + 4000 文字切り詰め）", privileged: true },
   { name: "execute_python", description: "Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す（AST allowlist + 512MB + 60 秒タイムアウト）", privileged: true },
   { name: "get_current_datetime", description: "現在の日時を JST で返す（日付・時刻・曜日・タイムゾーン情報を含む dict）" },
+  { name: "attachments_list", description: "現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す" },
+  { name: "attachments_extract", description: "指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト)" },
 ];

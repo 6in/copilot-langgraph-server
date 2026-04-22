@@ -84,3 +84,14 @@ async def test_context_fresh_value_wins_over_stale():
     # Fresh context from the `updater` node must win over the initial "alice".
     assert result["output"] == "bob"
     assert result["context"].user_id == "bob"
+
+
+# Phase 37: attachments フィールド
+
+@pytest.mark.asyncio
+async def test_attachments_field_accepted():
+    """D-12: AgentState に attachments フィールドが存在する。"""
+    from typing import get_type_hints
+    from app.orchestrator.state import AgentState
+    hints = get_type_hints(AgentState)
+    assert "attachments" in hints

@@ -8,6 +8,7 @@ dependencies = [
     "langchain-community>=0.4.1",
     "psycopg[pool,binary]>=3.3.0",
     "pyyaml>=6.0",
+    "markitdown[pdf,docx,pptx,xlsx]>=0.1.5,<0.2.0",   # Phase 37 D-06
 ]
 
 [build-system]

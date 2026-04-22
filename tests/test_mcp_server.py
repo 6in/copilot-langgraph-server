@@ -25,7 +25,8 @@ from fastmcp import Client  # noqa: E402
 from server import mcp  # noqa: E402  (imports register_tools side-effect)
 
 # Phase 28: execute_python 追加 + get_current_datetime 漏れ修正
-EXPECTED_TOOLS = {"ping", "web_search", "db_query", "claude_code", "execute_python", "get_current_datetime"}
+EXPECTED_TOOLS = {"ping", "web_search", "db_query", "claude_code", "execute_python", "get_current_datetime",
+                  "attachments_list", "attachments_extract"}  # Phase 37
 
 
 @pytest.mark.asyncio

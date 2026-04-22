@@ -16,3 +16,4 @@ class AgentState(TypedDict):
     error: str | None
     agent_name: str | None  # which agent produced the final output
     context_messages: list[dict] | None  # 過去の会話コンテキスト [{role, content, sender_name}]
+    attachments: list[dict] | None  # Phase 37 D-12: [{name, size, modified_at, ext}, ...] — last-wins

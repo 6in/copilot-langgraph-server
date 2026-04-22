@@ -8,6 +8,10 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.graph.builder import build_canvas_graph, build_graph
+from app.jobs.handlers.attachments_helper import (
+    build_attachments_hint,
+    scan_thread_attachments,
+)
 from app.jobs.handlers.base import TaskHandler
 from app.observability.trace import trace_span
 from app.orchestrator.context import RPCContext
@@ -71,6 +75,12 @@ class LangGraphHandler(TaskHandler):
         notifier = build_notifier(reply_to, job_store)
         llm = ChatCopilot(github_token=github_token, model=model)
 
+        # HIGH-01 (Phase 37 Code Review): chatbot グラフは mcp_tools を使わないため
+        # per-job MCP client の生成は dead code。build_graph に渡していないうえ
+        # MultiServerMCPClient の cleanup も行われていなかったので削除した。
+        # 通常チャットに添付ファイルツールを公開する場合は別フェーズで
+        # build_graph のシグネチャ拡張 + async with 管理を併せて行うこと。
+
         async with trace_span(
             "request",
             trace_id=context.correlation_id,
@@ -124,7 +134,22 @@ class LangGraphHandler(TaskHandler):
                 # SystemMessage は state に含めない — config 経由で渡して chatbot_node が動的注入
                 # 現在日時をシステムプロンプトの先頭に注入
                 datetime_prefix = get_datetime_context()
-                effective_system_prompt = datetime_prefix + "\n\n" + (system_prompt or "") + AUQ_PROTOCOL
+
+                # Phase 37 D-11/D-12: thread フォルダを scan し、メタデータ一覧を SystemMessage に prepend する
+                attachments_meta = scan_thread_attachments(thread_id, github_login)
+                attachments_hint = build_attachments_hint(attachments_meta)
+
+                if attachments_hint:
+                    effective_system_prompt = (
+                        datetime_prefix + "\n\n"
+                        + (system_prompt or "")
+                        + AUQ_PROTOCOL
+                        + "\n\n## 添付ファイル\n"
+                        + attachments_hint
+                    )
+                else:
+                    effective_system_prompt = datetime_prefix + "\n\n" + (system_prompt or "") + AUQ_PROTOCOL
+
                 config = {
                     "configurable": {
                         "thread_id": thread_id,
@@ -141,7 +166,8 @@ class LangGraphHandler(TaskHandler):
                 # astream_events(version="v2") で on_chat_model_stream を捕捉して
                 # トークンを send_token 経由で SSE に転送する。
                 # on_chain_end / LangGraph イベントから最終状態を取得する。
-                state_input = {"messages": messages_input}
+                # Phase 37 D-12: state に attachments メタデータを持たせる (last-wins reducer なし)
+                state_input = {"messages": messages_input, "attachments": attachments_meta or None}
                 final_state = None
                 async for event in graph.astream_events(state_input, config=config, version="v2"):
                     kind = event.get("event")

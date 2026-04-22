@@ -17,6 +17,8 @@
 | `claude_code` | yes | — | Claude Code CLI をサブプロセスとして実行（env サニタイズ + 60 秒タイムアウト + 4000 文字切り詰め） |
 | `execute_python` | yes | — | Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す（AST allowlist + 512MB + 60 秒タイムアウト） |
 | `get_current_datetime` | no | `mcp_helper.get_datetime()` | 現在の日時を JST で返す（日付・時刻・曜日・タイムゾーン情報を含む dict） |
+| `attachments_list` | no | `mcp_helper.list_attachments()` | 現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す |
+| `attachments_extract` | no | `mcp_helper.extract_attachment()` | 指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト) |
 
 ## `ping`
 
@@ -117,4 +119,48 @@ Example:
     from mcp_helper import get_datetime
     dt = get_datetime()
     print(f"今日は {dt['date']} ({dt['weekday']})")
+```
+
+## `attachments_list`
+
+現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す
+
+**Sandbox Helper:** `def list_attachments() -> list[dict]`
+
+```
+添付ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+
+Returns:
+    [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>, "ext": ".pdf", "mime_type": "..."}, ...]
+    ファイルが存在しない場合は []
+
+Example:
+    from mcp_helper import list_attachments
+    files = list_attachments()
+    for f in files:
+        print(f["name"], f["size"])
+```
+
+## `attachments_extract`
+
+指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト)
+
+**Sandbox Helper:** `def extract_attachment(filename: str) -> dict`
+
+```
+添付ファイルのテキストを抽出する。
+
+Args:
+    filename: ファイル名 (basename のみ。パス区切り文字不可)
+
+Returns:
+    {"filename": "...", "content": "...", "error": null, "truncated": false, "truncated_chars": 0}
+    エラー時: {"filename": "...", "content": null, "error": {"code": "...", "message": "..."}, ...}
+    error.code: password | corrupt | size_over | unsupported | extract_timeout
+
+Example:
+    from mcp_helper import extract_attachment
+    r = extract_attachment("report.pdf")
+    if r["error"] is None:
+        print(r["content"][:500])
 ```

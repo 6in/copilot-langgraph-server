@@ -135,6 +135,14 @@ ToolEnabledSubAgent の ReAct ループ（軸 B 経路 1）に適用し、CodeAc
 直接 `async with trace_span("tool_call")` で包む。3 経路すべてが同一 span schema で記録される。
 関連 ADR: [0045](../docs/adr/0045-phase-31-observability-jsonl.md), [0024](../docs/adr/0024-mcp-tool-catalog-validation.md), [0041](../docs/adr/0041-codeact-direct-execution-over-react.md)
 
+### Per-job MCP client ライフサイクル判断
+ジョブ単位で `MultiServerMCPClient` を生成するのは、その client から得たツールを実際に graph / registry / ToolNode に渡す handler だけに限る（OrchestratorHandler は該当、通常チャットの LangGraphHandler は非該当で dead code だった）。cleanup は `async with` / `__aexit__` を使わず、`getattr(client, "aclose") or getattr(client, "close")` で存在するクロースメソッドのみを呼ぶ前方互換パターン。`langchain-mcp-adapters` 0.1.x は stateless で事実上 no-op だが、将来 stateful に戻った場合にコード変更不要。
+関連 ADR: [0049](../docs/adr/0049-per-job-mcp-client-lifecycle-and-cancel-safe-exceptions.md), [0020](../docs/adr/0020-fastmcp-docker-service-infrastructure.md)
+
+### MCP ツールの Cancel-safe 例外処理
+MCP ツールコア関数で長時間非同期処理を囲むときは `except BaseException` を使わない。Python 3.8+ で `asyncio.CancelledError` は `BaseException` 直下のため arq worker キャンセルを握り潰して協調シャットダウンを壊す。`except asyncio.CancelledError: raise` + `except Exception` の 2 段構えを契約とし、さらに `_classify_error` 系で返すメッセージには内部例外の `str(exc)` を埋め込まない（LLM コンテキストに内部パスが漏れるため）。
+関連 ADR: [0049](../docs/adr/0049-per-job-mcp-client-lifecycle-and-cancel-safe-exceptions.md)
+
 ---
 
 ## Worker・Jobs
@@ -271,3 +279,11 @@ docker logging driver の rotation (`max-size` / `max-file`) をそのまま永�
 鍵となる実装は `app/observability/trace.py` の `async with trace_span(...)` context manager、
 `ContextVar` による親 span_id 伝搬、`RPCContext.correlation_id` を `trace_id` として再利用する構造。
 関連 ADR: [0045](../docs/adr/0045-phase-31-observability-jsonl.md)
+
+### thread-files 共有フォルダ規約
+Phase 37 で導入。`/shared/thread-files/<github_login>/<thread_id>/` の 2 階層 named volume で
+api:RW / mcp-server:RW / worker:RO。thread 削除 (`adelete_thread` 直後の realpath guard + `shutil.rmtree`) と同期。
+ファイル命名は `YYYYMMDDTHHMMSS_<original>.<ext>`。`THREAD_FILES_DIR` 環境変数で base path を差し替え可能。
+抽出失敗 0 文字 PDF は `error` ではなく `content: ""` を返す (D-08)。
+Phase 36 (アップロード UI) / Phase 38 (出力ストレージ) が同じ規約で接続する。
+関連 ADR: [0048](../docs/adr/0048-thread-files-folder-convention.md)

@@ -92,12 +92,17 @@ def _set_limits():
     resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES))
 
 
-async def execute_python(code: str, timeout: int = 60) -> dict:
+async def execute_python(code: str, timeout: int = 60, headers: dict | None = None) -> dict:
     """Python コードをサンドボックス実行する (D-01, D-09)。
+
+    Phase 37 D-17: headers 引数で RPCContext (x-thread-id / x-github-login) を受け取り、
+    subprocess 環境変数 X_THREAD_ID / X_GITHUB_LOGIN として伝搬する。
+    FastMCP tool として登録する際は CurrentHeaders() DI を使用する。
 
     Args:
         code: 実行する Python コード文字列
         timeout: タイムアウト秒数（デフォルト 60、D-03）
+        headers: HTTP リクエストヘッダー dict (FastMCP CurrentHeaders() から注入)
 
     Returns:
         {"stdout": str, "stderr": str, "exit_code": int, "truncated": bool}
@@ -130,6 +135,16 @@ async def execute_python(code: str, timeout: int = 60) -> dict:
     # mcp_helper を import 可能にするため PYTHONPATH に tools ディレクトリを追加
     tools_dir = os.path.dirname(os.path.abspath(__file__))
     sanitized_env["PYTHONPATH"] = tools_dir
+
+    # Phase 37 D-17: RPCContext を subprocess に伝搬 (attachments_* tool 呼び出し用)
+    # headers は FastMCP CurrentHeaders() から注入される (Route A)
+    _req_headers = headers or {}
+    _thread_id = _req_headers.get("x-thread-id", "")
+    _github_login = _req_headers.get("x-github-login", "")
+    if _thread_id:
+        sanitized_env["X_THREAD_ID"] = _thread_id
+    if _github_login:
+        sanitized_env["X_GITHUB_LOGIN"] = _github_login
 
     # 3. サブプロセス実行 (D-01, D-02)
     try:
@@ -185,5 +200,16 @@ async def execute_python(code: str, timeout: int = 60) -> dict:
 
 
 def register_tools(mcp: "FastMCP") -> None:
-    """Register execute_python tool on the given FastMCP instance."""
-    mcp.tool(execute_python)
+    """Register execute_python tool on the given FastMCP instance.
+
+    Phase 37 D-17: execute_python は CurrentHeaders() DI でヘッダーを受け取り、
+    subprocess env に X_THREAD_ID / X_GITHUB_LOGIN を伝搬する。
+    """
+    from fastmcp.dependencies import CurrentHeaders  # noqa: PLC0415
+
+    async def execute_python_with_headers(code: str, timeout: int = 60,
+                                          headers: dict = CurrentHeaders()) -> dict:
+        """execute_python の FastMCP tool ラッパー (CurrentHeaders DI 付き)。"""
+        return await execute_python(code=code, timeout=timeout, headers=headers)
+
+    mcp.tool(execute_python_with_headers, name="execute_python")

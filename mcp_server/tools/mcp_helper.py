@@ -91,3 +91,39 @@ def get_datetime() -> dict:
         print(f"今日は {dt['date']} ({dt['weekday']})")
     """
     return _call_tool("get_current_datetime")
+
+
+def list_attachments() -> list[dict]:
+    """添付ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+
+    Returns:
+        [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>, "ext": ".pdf", "mime_type": "..."}, ...]
+        ファイルが存在しない場合は []
+
+    Example:
+        from mcp_helper import list_attachments
+        files = list_attachments()
+        for f in files:
+            print(f["name"], f["size"])
+    """
+    return _call_tool("attachments_list")
+
+
+def extract_attachment(filename: str) -> dict:
+    """添付ファイルのテキストを抽出する。
+
+    Args:
+        filename: ファイル名 (basename のみ。パス区切り文字不可)
+
+    Returns:
+        {"filename": "...", "content": "...", "error": null, "truncated": false, "truncated_chars": 0}
+        エラー時: {"filename": "...", "content": null, "error": {"code": "...", "message": "..."}, ...}
+        error.code: password | corrupt | size_over | unsupported | extract_timeout
+
+    Example:
+        from mcp_helper import extract_attachment
+        r = extract_attachment("report.pdf")
+        if r["error"] is None:
+            print(r["content"][:500])
+    """
+    return _call_tool("attachments_extract", {"filename": filename})

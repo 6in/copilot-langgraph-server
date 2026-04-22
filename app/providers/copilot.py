@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import uuid
 from typing import Any, AsyncIterator, List, Optional, Sequence
@@ -61,7 +62,11 @@ class ChatCopilot(BaseChatModel):
     # Copilot SDK send_and_wait timeout (seconds). Default 60s is too short
     # for tool-bound ReAct loops where the second LLM call includes tool
     # results in the prompt, making the context significantly larger.
-    send_timeout: float = 120.0
+    # Phase 37.1: extended to 300s to accommodate attachments_extract tool
+    # invocations on longer conversation histories with multiple tool schemas
+    # (gpt-4.1 occasionally exceeds 120s when deciding among 5+ tools with
+    # accumulated context). Configurable via COPILOT_SEND_TIMEOUT env var.
+    send_timeout: float = float(os.environ.get("COPILOT_SEND_TIMEOUT", "300"))
 
     # Private — not part of the Pydantic schema
     _client: Any = PrivateAttr(default=None)

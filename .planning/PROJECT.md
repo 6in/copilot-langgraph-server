@@ -69,11 +69,15 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - ✓ Observability 基盤 — stdout JSONL 1 行 1 span (OTEL span-like)、trace_id = RPCContext.correlation_id、3 経路統合、scripts/trace_query.py CLI — v5.0
 - ✓ v5.0 milestone cleanup — 9 phase VALIDATION.md を status: validated に backfill + Phase 30 VALIDATION.md 遡及作成 — v5.0 (Phase 31.1)
 
+### Validated (v6.0)
+
+- ✓ Phase 37: ファイル入力 PDF/Office 抽出 + MCP ツール参照 — `attachments_list` / `attachments_extract` を MCP ツールとして実装、`/shared/thread-files/<login>/<thread_id>/` フォルダ規約 (ADR-0048)、SuperChat / Chat 両経路で per-job MCP client + RPCContext 伝播 (Phase 37.1 in-place fix)、thread 削除時の folder 同期 + path traversal 防御 — v6.0
+
 ### Active (v6.0 candidates)
 
 - [ ] エージェント別 ツール allowlist — Phase 24 D-02 で defer、エージェントごとに呼び出し可能なツールを制限
 - [ ] MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継し単一 worker から集約アクセス
-- [ ] チャット入力ファイルアップロード + worker 生成ファイルダウンロード — チャット UX 拡張
+- [ ] チャット入力ファイルアップロード — Phase 36/38 で UI 側を統合 (Phase 37 で出力側のフォルダ規約と抽出 MCP ツールは確立済み)
 - [ ] claude_code MCP ツール認証バインド — spirit-room 方式でユーザー別トークン注入
 - [ ] Mermaid View ハング調査 — OS レベル hang の再現手順と回避策
 - [ ] AI が操作しやすい UI — data-ai-role 属性導入、AI 向け操作性向上
@@ -97,10 +101,25 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - モバイル対応 — PC ブラウザのみ対象
 - ストリーミング応答（逐次トークン） — Copilot SDK Technical Preview では未対応
 
-## Current Milestone: (planning next)
+## Current Milestone: v6.0 UI/AI Experience
 
-v5.0 は 2026-04-20 に shipped。次期 milestone (v6.0) は `/gsd-new-milestone` で計画。
-Active セクションの候補 (エージェント別 ツール allowlist / MCP ゲートウェイ / ファイル UX 等) から選抜予定。
+**Goal:** AI からもユーザーからも扱いやすい UI 基盤を整備する — AI 操作可能性と人間 UX の両輪を強化し、ファイル I/O とバグ残債を仕上げる。
+
+**Target features:**
+
+- AI が UI を操作できる基盤（data-ai-role 属性方式 vs AI-API ファースト方式を research フェーズで調査、要件フェーズで決定）
+- 人間向け UX 改善（チャット操作性・視認性・メニュー導線など、v5.0 で顕在化した痛点を要件化して解消）
+- ファイル I/O UX（チャット入力ファイルアップロード + worker 生成ファイルダウンロード、双方 v6.0 スコープ）
+- 既存 UI バグ潰し（Mermaid View ハング、CollapsibleCodeBlock バルーン幅、その他 v5.0 で defer された UI 不具合）
+
+**規模感:** 中規模（6-8 phase 想定）
+
+**Key context:**
+
+- AI 操作のターゲット層（Canvas 内 / チャット UI 全体 / 両方）は要件定義フェーズで確定
+- AI 操作基盤の具体アーキテクチャは research フェーズで両アプローチを調査してから要件化
+- v5.0 の observability（stdout JSONL trace）を UI 操作の監査ログとしても継続利用
+- 200 名規模・社内利用 — AI 操作基盤が人間 UX を阻害しない（DOM 肥大 / レンダリング負荷の最小化）こと
 
 ## Previous State: v5.0 COMPLETE
 
@@ -189,4 +208,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-21 after v5.0 milestone — Agent Tool Platform shipped (MCP 6 tools + bind_tools + CodeAct + AUQ + observability + ADR catalog)*
+*Last updated: 2026-04-22 — Phase 37 完了 (PDF/Office 抽出 + thread-files MCP ツール経路、ADR-0048 規約確立、Phase 37.1 in-place fix で SuperChat/Chat 両 handler の per-job MCP client 統合)*

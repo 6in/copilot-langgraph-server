@@ -5,6 +5,10 @@ from pathlib import Path
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
+from app.jobs.handlers.attachments_helper import (
+    build_attachments_hint,
+    scan_thread_attachments,
+)
 from app.jobs.handlers.base import TaskHandler
 from app.jobs.notifier import build_notifier
 from app.observability.trace import trace_span
@@ -18,6 +22,7 @@ logger = logging.getLogger(__name__)
 AGENT_DIR = os.getenv("AGENT_DIR", "./agents")
 APP_DIR = os.getenv("APP_DIR", "./apps")
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+MCP_SERVER_URL = os.environ.get("MCP_SERVER_URL", "http://mcp-server:8001")
 
 
 class OrchestratorHandler(TaskHandler):
@@ -91,7 +96,33 @@ class OrchestratorHandler(TaskHandler):
         """Original handler body, unchanged except that RPCContext is passed in."""
         # gem_ids (multi-select) takes precedence; fall back to singular gem_id for backward compat
         gem_ids: list[str] = job.get("gem_ids") or ([job["gem_id"]] if job.get("gem_id") else [])
-        mcp_tools = ctx.get("mcp_tools", [])
+
+        # Phase 37.1: per-job MCP client with x-thread-id / x-github-login headers (Route A).
+        # Worker startup の mcp_tools は headers を持たないため、attachments_list/extract が
+        # 常に空 thread_id でスキャンしてしまう。job 単位で client を作り直し、
+        # その client から取得したツールを agent に bind することで RPCContext を伝播する。
+        mcp_tools = ctx.get("mcp_tools", [])  # fallback (startup tools, no headers)
+        per_job_mcp_client = None
+        try:
+            from langchain_mcp_adapters.client import MultiServerMCPClient  # noqa: PLC0415
+
+            per_job_mcp_client = MultiServerMCPClient({
+                "copilot-tools": {
+                    "transport": "streamable_http",
+                    "url": MCP_SERVER_URL + "/mcp",
+                    "headers": {
+                        "x-thread-id": context.thread_id,
+                        "x-github-login": context.user_id,
+                    },
+                }
+            })
+            mcp_tools = await per_job_mcp_client.get_tools()
+        except Exception as e:
+            logger.warning(
+                "OrchestratorHandler: per-job MCP client failed (%s); falling back to startup tools without headers",
+                e,
+            )
+
         privileged_names = ctx.get("mcp_privileged_tool_names") or frozenset()
         registry = SubAgentRegistry(
             AGENT_DIR,
@@ -179,6 +210,14 @@ class OrchestratorHandler(TaskHandler):
             # RPCContext and github_login are already built above (handler entry).
             # correlation_id propagates via state["context"] to every node and log entry.
 
+            # Phase 37.1: thread フォルダ scan + LLM 向け hint prepend (D-11)
+            attachments_meta = scan_thread_attachments(thread_id, github_login)
+            attachments_hint = build_attachments_hint(attachments_meta)
+            effective_prompt = (
+                "## 添付ファイル情報\n" + attachments_hint
+                + "\n\n## ユーザー入力\n" + prompt
+            ) if attachments_hint else prompt
+
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 await checkpointer.setup()
                 graph = build_orchestrator_graph(registry, github_token, checkpointer=checkpointer)
@@ -188,13 +227,14 @@ class OrchestratorHandler(TaskHandler):
                 # via operator.add. Pass only input/output/next/context/error each turn.
                 # context and error must always be present — no NotRequired on AgentState.
                 initial: AgentState = {
-                    "input": prompt,
+                    "input": effective_prompt,
                     "output": "",
                     "next": "",
                     "error": None,
                     "agent_name": None,
                     "context": context,
                     "context_messages": job.get("context_messages"),
+                    "attachments": attachments_meta or None,
                 }
                 from app.orchestrator.tool_context import tool_event_cb
 
@@ -249,5 +289,28 @@ class OrchestratorHandler(TaskHandler):
 
         finally:
             await registry.close()
+            # MEDIUM-02 (Phase 37 Code Review): per-job MCP client cleanup。
+            # langchain-mcp-adapters 0.1.0+ の MultiServerMCPClient は stateless で、
+            # get_tools() 内部で各サーバーごとに新規セッションを生成→即クローズする。
+            # 現バージョン (0.1.x) では context manager 利用は NotImplementedError。
+            # ただしコードの意図を明確にし、将来のバージョンで stateful な cleanup が
+            # 必要になった場合に対応できるよう、明示的な close 試行を入れる。
+            # None チェック: 生成時に例外で落ちた場合を考慮。
+            if per_job_mcp_client is not None:
+                # 優先: aclose / close メソッドがあれば呼ぶ。
+                # フォールバック: 何もしない（0.1.x では NotImplementedError な __aexit__ は呼ばない）。
+                closer = (
+                    getattr(per_job_mcp_client, "aclose", None)
+                    or getattr(per_job_mcp_client, "close", None)
+                )
+                if closer is not None:
+                    try:
+                        result = closer()
+                        if hasattr(result, "__await__"):
+                            await result
+                    except Exception as e:
+                        logger.warning(
+                            "OrchestratorHandler: per-job MCP client close failed: %s", e
+                        )
 
         return {"job_id": job_id, "status": "done"}

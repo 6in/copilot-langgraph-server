@@ -10,6 +10,8 @@ Endpoints:
 - GET    /api/threads/{thread_id}/messages — get messages for a thread (JWT protected)
 """
 import json
+import os
+import shutil
 import uuid
 from datetime import datetime, timezone, timedelta
 
@@ -26,6 +28,9 @@ from app.api.models import ChatAsyncResponse, ChatRequest, RenameThreadRequest, 
 from app.auth.jwt_utils import decode_jwt, decrypt_github_token, async_is_blocked
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+# Phase 37 D-01/D-03/D-04: thread フォルダ base path。api:RW mount で削除可能。
+THREAD_FILES_DIR = os.environ.get("THREAD_FILES_DIR", "/shared/thread-files")
 
 
 def _normalize_content(content) -> str:
@@ -383,6 +388,29 @@ async def delete_thread(thread_id: str, request: Request, payload: dict = Depend
     except Exception:
         # Silently succeed if thread doesn't exist
         pass
+
+    # Phase 37 D-03 + D-18 W-01: thread フォルダを同期削除 (RW mount, api container)。
+    # パストラバーサルを遮断するため必ず realpath prefix assert を通す。
+    thread_folder = os.path.join(THREAD_FILES_DIR, github_login, thread_id)
+    try:
+        real_folder = os.path.realpath(thread_folder)
+        root = os.path.realpath(THREAD_FILES_DIR)
+        if not real_folder.startswith(root + os.sep):
+            # path traversal 検出: github_login / thread_id に `..` 等が混入した場合
+            # 204 は返すが削除はしない
+            raise ValueError(f"path traversal attempt: {thread_folder}")
+        shutil.rmtree(real_folder, ignore_errors=True)
+    except ValueError as ve:
+        # MEDIUM-03 (Phase 37 Code Review): traversal 検出を監査ログに残す。
+        # セキュリティイベントはログなしで握り潰してはならない。thread の論理削除は完了済み。
+        import logging
+        logging.getLogger(__name__).warning(
+            "path traversal attempt blocked in delete_thread: "
+            "thread_id=%r github_login=%r reason=%s",
+            thread_id, github_login, ve,
+        )
+    except Exception:
+        pass   # 予期せぬエラーも握り潰す
 
 
 @router.patch("/threads/{thread_id}")

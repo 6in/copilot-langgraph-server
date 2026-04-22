@@ -14,6 +14,7 @@ from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from tools.attachments import register_tools as register_attachments_tools
 from tools.claude_code import register_tools as register_claude_code_tools
 from tools.db_query import close_pools, init_pools
 from tools.db_query import register_tools as register_db_query_tools
@@ -51,6 +52,7 @@ register_web_search_tools(mcp)
 register_db_query_tools(mcp)
 register_claude_code_tools(mcp)
 register_execute_python_tools(mcp)
+register_attachments_tools(mcp)  # Phase 37: attachments_list / attachments_extract
 
 
 # ─────────────────────────────────────────────

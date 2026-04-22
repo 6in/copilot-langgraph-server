@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 44 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 46 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -36,6 +36,7 @@
 | [0030](0030-canvas-db-access-via-mcp-db-query.md) | Canvas DB アクセスを MCP db_query ツール経由に移行 | 2026-04-14 |
 | [0041](0041-codeact-direct-execution-over-react.md) | CodeAct は ReAct ループではなく直接実行方式を採用する | 2026-04-18 |
 | [0044](0044-mcp-tool-catalog-single-source-of-truth.md) | MCP ツールカタログ single-source-of-truth 化（YAML + 決定論ジェネレータ + drift 検知） | 2026-04-18 |
+| [0049](0049-per-job-mcp-client-lifecycle-and-cancel-safe-exceptions.md) | Per-job MCP client のライフサイクルとキャンセル安全な MCP ツール例外処理 (Phase 37 Code Review) | 2026-04-22 |
 
 ## Worker・Jobs
 
@@ -81,6 +82,7 @@
 | [0026](0026-thread-deletion-also-removes-threads-table-row.md) | スレッド削除時に threads テーブルの行も削除する | 2026-04-14 |
 | [0032](0032-db-pools-yaml-driven-tuning-params.md) | db_pools.yaml 駆動の接続プールチューニングパラメータ | 2026-04-15 |
 | [0045](0045-phase-31-observability-jsonl.md) | Phase 31 — エージェント実行・MCP ツール利用の observability 基盤 (stdout JSONL + OTEL span-like schema) | 2026-04-18 |
+| [0048](0048-thread-files-folder-convention.md) | thread-files 共有フォルダ規約 (Phase 37) | 2026-04-21 |
 
 ## 欠番
 

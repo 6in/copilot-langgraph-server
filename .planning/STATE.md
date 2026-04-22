@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v5.0
-milestone_name: Agent Tool Platform
-status: archived
-stopped_at: v5.0 archived 2026-04-21 — ready for /gsd-new-milestone
-last_updated: "2026-04-21T00:00:00.000Z"
-last_activity: 2026-04-21
+milestone: v6.0
+milestone_name: UI/AI Experience
+status: executing
+stopped_at: Phase 37 context gathered (scope 調整で 36 から切り離し先行着手)
+last_updated: "2026-04-22T01:04:26.923Z"
+last_activity: 2026-04-22
 progress:
-  total_phases: 13
-  completed_phases: 13
-  total_plans: 35
-  completed_plans: 35
+  total_phases: 8
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -18,26 +18,25 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-21 after v5.0 milestone)
+See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v5.0 archived — planning next milestone (v6.0 via /gsd-new-milestone)
+**Current focus:** Phase 37 — pdf-office-mcp
 
 ## Current Position
 
-Phase: v5.0 archived
-Plan: none (between milestones)
-Milestone: v5.0 Agent Tool Platform (archived 2026-04-21)
-Status: Ready for next milestone — run /gsd-new-milestone
-Last activity: 2026-04-21
-
-Progress: [██████████] v5.0 = 35/35 plans complete (archived)
+Phase: 38
+Plan: Not started
+Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
+Status: Executing Phase 37
+Progress: 0/8 phases complete · `[░░░░░░░░] 0%`
+Last activity: 2026-04-22
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 11 (v5.0)
+- Total plans completed: 16 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -48,6 +47,7 @@ Progress: [██████████] v5.0 = 35/35 plans complete (archived
 | 27 | 2 | - | - |
 | 29 | 1 | - | - |
 | 31 | 8 | - | - |
+| 37 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -244,6 +244,7 @@ Recent decisions affecting current work:
 - Phase 28 added: CodeAct パターンの実装 — LLM がコードを生成・サンドボックス実行し結果を観察する推論ループ
 - Phase 30 added: MCP ツールカタログ single-source-of-truth 化 + 追加マニュアル整備 — config/mcp_tools.yaml を唯一のソースとし、mcp_helper.py / tool-catalog-generated.js / docs/mcp-tools.md を決定論的スクリプトで自動生成、/add-mcp-tool スラッシュコマンドと docs/mcp-tool-add-manual.md で標準化
 - Phase 31 added: エージェント実行・MCP ツール利用の observability 基盤 — 軸 A: routing/ReAct/LLM 思考の構造化トレース、軸 B: 3 経路 (ToolEnabledSubAgent/CodeAct/iframe RPC) の audit_log 統一、共通: docker logs 永続化。todo 2026-04-18-mcp-tool-usage-impact-visibility.md から phase 化
+- v6.0 roadmap created (2026-04-21): Phases 32–39 — AI-UI 操作基盤 (data-ai-role + 探索 API) → AI-UI MCP ツール + trace/承認 → チャット操作性 + スレッド探索性 → ダッシュボード化 + レスポンシブ → ファイル入力 (text/image) → ファイル入力 (PDF/Office + MCP参照) → ファイル出力 (DL + プレビュー + ユーザー別保持) → UI バグ潰し + Polish。20/20 REQ-IDs (AIUI/UX/FIN/FOUT/UIFIX 各カテゴリ) を 8 phase に均等にマッピング、orphan/duplicate ゼロ
 
 ### Pending Todos
 
@@ -301,10 +302,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-21 - v5.0 Agent Tool Platform archived via /gsd-complete-milestone (13 phases, 35 plans, git tag v5.0, 64 historical drift items acknowledged as deferred)
+Last activity: 2026-04-21 — Phase 37 discuss-phase 完了 (CONTEXT.md + DISCUSSION-LOG.md)
 Last session: 2026-04-21T00:00:00.000Z
-Stopped at: v5.0 archived, ready for next milestone
-Resume file: none — run /gsd-new-milestone
+Stopped at: Phase 37 context gathered (scope 調整で 36 から切り離し先行着手)
+Resume file: .planning/phases/37-pdf-office-mcp/37-CONTEXT.md — next action: `/gsd-plan-phase 37`
 
 ## Deferred Items
 

@@ -156,3 +156,59 @@ tools:
       mcp_args_mapping: {}
       result_transform:
         mode: passthrough
+
+  - name: attachments_list
+    description: 現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す
+    privileged: false
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: list_attachments
+      args: []
+      return_type: "list[dict]"
+      docstring: |
+        添付ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+
+        Returns:
+            [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>, "ext": ".pdf", "mime_type": "..."}, ...]
+            ファイルが存在しない場合は []
+
+        Example:
+            from mcp_helper import list_attachments
+            files = list_attachments()
+            for f in files:
+                print(f["name"], f["size"])
+      mcp_args_mapping: {}
+      result_transform:
+        mode: passthrough
+
+  - name: attachments_extract
+    description: 指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト)
+    privileged: false
+    sandbox_exposed: true
+    python_wrapper:
+      function_name: extract_attachment
+      args:
+        - name: filename
+          type: str
+          description: "抽出するファイル名 (basename のみ)"
+      return_type: dict
+      docstring: |
+        添付ファイルのテキストを抽出する。
+
+        Args:
+            filename: ファイル名 (basename のみ。パス区切り文字不可)
+
+        Returns:
+            {"filename": "...", "content": "...", "error": null, "truncated": false, "truncated_chars": 0}
+            エラー時: {"filename": "...", "content": null, "error": {"code": "...", "message": "..."}, ...}
+            error.code: password | corrupt | size_over | unsupported | extract_timeout
+
+        Example:
+            from mcp_helper import extract_attachment
+            r = extract_attachment("report.pdf")
+            if r["error"] is None:
+                print(r["content"][:500])
+      mcp_args_mapping:
+        filename: filename
+      result_transform:
+        mode: passthrough
