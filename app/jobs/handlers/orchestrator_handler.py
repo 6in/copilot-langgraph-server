@@ -28,6 +28,41 @@ MCP_SERVER_URL = os.environ.get("MCP_SERVER_URL", "http://mcp-server:8001")
 class OrchestratorHandler(TaskHandler):
     """Handles task_type="orchestrator": builds OrchestratorGraph per job and routes input."""
 
+    async def _prepare_new_attachments(
+        self,
+        job: dict,
+        llm,
+        model: str,
+    ) -> list[dict]:
+        """Phase 36 D-14/D-18: job.attachments を取り出し、vision 非対応モデルでは画像を drop する.
+
+        LangGraphHandler._prepare_messages_input と同じロジックだが、SuperChat 経路では
+        SubAgent 側で HumanMessage を作るため messages_input ではなく state['new_attachments']
+        を経由して伝搬する. SystemMessage 警告は SubAgent 側 system_prompt 注入は v6.1 検討
+        (Plan 07 Open Issues). 本 plan では D-18 の画像 drop のみを defense-in-depth で適用する.
+
+        Args:
+            job: arq job dict (job.get('attachments') を参照)
+            llm: ChatCopilot 互換 (await llm.is_vision_model(model) を呼ぶ)
+            model: vision 判定対象のモデル ID
+
+        Returns:
+            text/code は全て残し、vision 非対応時は ext in {png,jpg,jpeg,webp} を除外したリスト.
+            空 / None / SDK 例外時は [] を返す (fail-safe).
+        """
+        new_attachments: list[dict] = job.get("attachments") or []
+        if not new_attachments:
+            return []
+        vision_ok = await llm.is_vision_model(model)
+        if vision_ok:
+            return new_attachments
+        image_exts = {"png", "jpg", "jpeg", "webp"}
+        return [
+            a for a in new_attachments
+            if isinstance(a, dict)
+            and (a.get("ext") or "").lower().lstrip(".") not in image_exts
+        ]
+
     async def handle(self, ctx: dict, job: dict) -> dict:
         job_id: str = job["job_id"]
         thread_id: str = job["thread_id"]
@@ -218,6 +253,21 @@ class OrchestratorHandler(TaskHandler):
                 + "\n\n## ユーザー入力\n" + prompt
             ) if attachments_hint else prompt
 
+            # Phase 36 D-14/D-18: per-turn 新規添付 + vision 非対応モデル時の画像 drop
+            # (defense-in-depth — UI pre-validate / handler 側 / provider 側で多段防御).
+            # aggregator 用 LLM インスタンスを生成して is_vision_model だけ参照する.
+            # SubAgent 側の HumanMessage 注入は v6.1 検討 (Plan 07 Open Issues).
+            from app.providers.copilot import ChatCopilot  # noqa: PLC0415
+
+            aggregator_model = job.get("model") or "claude-sonnet-4.5"
+            _vision_llm = ChatCopilot(github_token=github_token, model=aggregator_model)
+            try:
+                new_attachments = await self._prepare_new_attachments(
+                    job, _vision_llm, aggregator_model,
+                )
+            finally:
+                await _vision_llm.close()
+
             async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
                 await checkpointer.setup()
                 graph = build_orchestrator_graph(registry, github_token, checkpointer=checkpointer)
@@ -235,6 +285,8 @@ class OrchestratorHandler(TaskHandler):
                     "context": context,
                     "context_messages": job.get("context_messages"),
                     "attachments": attachments_meta or None,
+                    # Phase 36 D-14/D-20: per-turn 新規添付 (SubAgent 側で HumanMessage に展開).
+                    "new_attachments": new_attachments or None,
                 }
                 from app.orchestrator.tool_context import tool_event_cb
 

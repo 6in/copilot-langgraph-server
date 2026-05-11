@@ -76,6 +76,28 @@ LangGraph `AsyncPostgresSaver` は thread_id 単位で state を checkpoint/復�
 unit test は**再 invoke シナリオ** (checkpointer 付きでの 2 回目の ainvoke) を含めて検証する。
 関連 ADR: [0046](../docs/adr/0046-integration-check-surfaced-silent-failures.md)
 
+### HumanMessage.additional_kwargs サイドカー envelope (per-turn メタデータ搬送)
+per-turn のメッセージメタデータ（添付ファイル・引用・tool_call_id 等）を `HumanMessage.additional_kwargs: dict` に載せることで、
+追加 state フィールド不要で LangGraph `add_messages` reducer + PostgreSQL checkpointer (AsyncPostgresSaver JSONB) に透過永続化する。
+`AIMessage.name` が checkpoint 経由で落ちる既知問題 (ADR-0038) とは別系統で `additional_kwargs` は保持される (Phase 36 Wave 0 で round-trip 検証済)。
+provider 側 (`ChatCopilot._extract_attachments`) で最後の HumanMessage の `additional_kwargs["attachments"]` を読み、SDK 型に変換して SDK call に渡す。
+`additional_kwargs` 経路は v6.1+ で token usage / 引用 / tool_call_id の per-message metadata 搬送にも応用可能。
+関連 ADR: [0050](../docs/adr/0050-copilot-sdk-multimodal-attachments.md), [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
+
+### Vision / model capability fallback の 2 段構造 (UI 事前通知 + worker defense-in-depth)
+モデル能力依存の機能（vision / tool-calling / context length 等）で UI bypass を防ぐには、UI 側で事前通知 + 推奨モデル提示 +
+ワンクリック切替（graceful guidance）を行い、worker 側で再検証 + drop + SystemMessage 警告注入（enforcement）を行う 2 段構造が有効。
+hardcoded allowlist は持たず、SDK `list_models()` 経由でモデル能力 (`ModelInfo.capabilities.supports.vision` 等) を single source of truth にする
+(TTL 1h キャッシュで新規モデル追加時の UI 更新を不要化)。SystemMessage 警告注入は ADR-0025 の datetime/user injection と同じ pattern を踏襲。
+関連 ADR: [0050](../docs/adr/0050-copilot-sdk-multimodal-attachments.md), [0025](../docs/adr/0025-datetime-and-user-context-injection-into-agent-prompts.md)
+
+### Wave 0 risk-gate — checkpointer round-trip を MVP 前に潰す
+新規機能が LangGraph checkpointer (PostgreSQL JSONB) 経由で保存される `BaseMessage` 系フィールドに新規データを載せる場合、Plan 01 (Wave 0)
+に round-trip 検証 (`MemorySaver` + `AsyncPostgresSaver` 両方) を必ず置く。ADR-0038 (AIMessage.name 喪失) 同系統の risk を実装完了後に
+発見するとデータモデル全体の手戻りになるため、1 plan 使って先取りすると Plan 02-06 の並列展開が安全になる。対象判定: per-message metadata
+を新規 field で運ぶ (`additional_kwargs` / 新規 reducer) / `BaseMessage` の追加属性 / 外部 SDK の Technical Preview API 依存。
+関連 ADR: [0051](../docs/adr/0051-multi-app-rollout-process-patterns.md), [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
+
 ---
 
 ## MCP・Tools
@@ -222,6 +244,14 @@ LangGraph チェックポイントから復元される `AIMessage.content` は 
 バックエンド `_normalize_content` で text ブロックを抽出して string 化し、ToolMessage は履歴から除外（根本治療）。フロントの `MarkdownMessage` / `CopyAllButton` は typeof + JSON.stringify で非 string をガード（既存 DB データに対する後方互換）。
 型定義 `ChatMessage.content: string` は変更せず、ガードは「出るべきでない」例外処理として位置づける。
 関連 ADR: [0043](../docs/adr/0043-chat-history-content-normalization-defense-in-depth.md)
+
+### 3 入り口統一 staging hook (click / drop / paste)
+ファイル添付の 3 入力経路（`<input type="file">` クリック / DataTransfer drop / ClipboardData paste）を単一 React hook (`useAttachments`) に集約し、
+各入口から呼ばれる `upload(files: File[])` 一本で state / AbortController / サーバー連動 CRUD (POST/DELETE) を管理する。
+入口ごとのブラウザ差異（drop の `preventDefault` / paste の `clipboardData.items.kind === 'file'` filter / image-only paste など）は hook 内部または call site で吸収。
+サーバー側は Plan 03 の multipart REST (`POST /api/threads/{tid}/attachments`) と対応付く。
+削除も同 hook の `remove(storage_name)` から `DELETE /api/threads/{tid}/attachments/{name}` 1 本に集約され、staging chip × ボタンと履歴非破壊の両立を担保する。
+関連 ADR: [0050](../docs/adr/0050-copilot-sdk-multimodal-attachments.md), [0048](../docs/adr/0048-thread-files-folder-convention.md)
 
 ---
 

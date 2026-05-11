@@ -102,6 +102,58 @@ class LangGraphHandler(TaskHandler):
                 github_login=github_login,
             )
 
+    async def _prepare_messages_input(
+        self,
+        job: dict,
+        effective_system_prompt: str,
+        llm: ChatCopilot,
+        model: str,
+        prompt: str,
+    ) -> tuple[list, str]:
+        """Phase 36 D-10/D-14/D-18: per-turn 添付を取り出し HumanMessage.additional_kwargs
+        に注入する. vision 非対応モデルでは画像を drop し、effective_system_prompt の末尾に
+        「画像非対応モデル警告」セクションを追加する.
+
+        Returns:
+            (messages_input, updated_effective_system_prompt)
+
+        - 空リスト/None → additional_kwargs={} (Pitfall 10 None-guard)
+        - vision 対応 (is_vision_model=True) → 画像も含めて全て pass through
+        - vision 非対応 → 画像 (ext in {png, jpg, jpeg, webp}) を除外 + system_prompt に警告
+        - 画像のみで全 drop の場合 → additional_kwargs={} に縮退
+        """
+        new_attachments: list[dict] = job.get("attachments") or []
+        if not new_attachments:
+            messages_input: list = [HumanMessage(content=prompt, additional_kwargs={})]
+            return messages_input, effective_system_prompt
+
+        vision_ok = await llm.is_vision_model(model)
+        if not vision_ok:
+            image_exts = {"png", "jpg", "jpeg", "webp"}
+            image_atts = [
+                a for a in new_attachments
+                if isinstance(a, dict)
+                and (a.get("ext") or "").lower().lstrip(".") in image_exts
+            ]
+            non_image_atts = [a for a in new_attachments if a not in image_atts]
+            if image_atts:
+                names = ", ".join((a.get("name") or "?") for a in image_atts)
+                warn = (
+                    "\n\n## 画像非対応モデル警告\n"
+                    f"以下の画像が添付されましたが、このモデル (`{model}`) は"
+                    f"画像非対応のため内容を読めません: {names}。"
+                    f"vision 対応モデル (例: claude-sonnet-4.6) への切替えを"
+                    f"ユーザーに案内してください。"
+                )
+                effective_system_prompt = (effective_system_prompt or "") + warn
+            new_attachments = non_image_atts
+
+        messages_input = [HumanMessage(
+            content=prompt,
+            additional_kwargs={"attachments": new_attachments} if new_attachments else {},
+        )]
+        return messages_input, effective_system_prompt
+
     async def _handle_inner(
         self,
         ctx: dict,
@@ -150,6 +202,14 @@ class LangGraphHandler(TaskHandler):
                 else:
                     effective_system_prompt = datetime_prefix + "\n\n" + (system_prompt or "") + AUQ_PROTOCOL
 
+                # Phase 36 D-10/D-14/D-18: per-turn 添付の取り出し + vision 非対応モデル時の
+                # 画像 drop + SystemMessage 警告. helper に抽出して unit test を可能にする
+                # (_handle_inner 全体は AsyncPostgresSaver / build_graph と深く連結しており
+                # mock しきれないため).
+                messages_input, effective_system_prompt = await self._prepare_messages_input(
+                    job, effective_system_prompt, llm, model, prompt,
+                )
+
                 config = {
                     "configurable": {
                         "thread_id": thread_id,
@@ -159,9 +219,6 @@ class LangGraphHandler(TaskHandler):
                 }
 
                 await notifier.progress("thinking")
-
-                # HumanMessage のみ state に追加（SystemMessage は含めない）
-                messages_input: list = [HumanMessage(content=prompt)]
 
                 # astream_events(version="v2") で on_chat_model_stream を捕捉して
                 # トークンを send_token 経由で SSE に転送する。

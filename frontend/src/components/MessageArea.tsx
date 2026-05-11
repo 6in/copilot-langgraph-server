@@ -1,5 +1,5 @@
 // frontend/src/components/MessageArea.tsx
-// Message list + custom textarea input.
+// Message list + InputBar (Phase 35 D-08: chat-input-bar extracted to InputBar.tsx).
 // Critical patterns from 07-RESEARCH.md:
 // - TypingIndicator is a PROP on MessageList (not a child element)
 // - AI messages use type="custom" + Message.CustomContent + MarkdownMessage
@@ -7,9 +7,9 @@
 // Note: chatscope MessageInput replaced with native textarea for multi-line support.
 // MessageList is placed directly inside a cs-chat-container wrapper (no ChatContainer component)
 // so that the textarea can sit below it as a sibling flex item.
+// Phase 35: isDark ternary eliminated — all colors via var(--color-*).
 
 import { useRef, useState, useEffect } from 'react';
-import type { KeyboardEvent } from 'react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { agentBgColor, agentAccentColor } from '../utils/agentColor';
 import {
@@ -18,7 +18,12 @@ import {
 } from '@chatscope/chat-ui-kit-react';
 import { MarkdownMessage } from './MarkdownMessage';
 import { QuestionPanel } from './QuestionPanel';
-import type { AskUserQuestionPayload, ChatMessage, ContextMessage } from '../types';
+import { InputBar } from './InputBar';
+import type { AskUserQuestionPayload, AttachmentMeta, ChatMessage, ContextMessage } from '../types';
+
+const ATTACH_API_BASE = (import.meta.env.VITE_APP_BASE ?? '').replace(/\/$/, '');
+const IMAGE_EXTS_HISTORY = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const HISTORY_THUMB = 48;
 
 interface MessageAreaProps {
   messages: ChatMessage[];
@@ -32,6 +37,87 @@ interface MessageAreaProps {
   enableResend?: boolean;   // 過去メッセージ再送信機能を有効化（SuperChat用）
   pendingQuestion?: AskUserQuestionPayload | null;
   onQuestionSubmit?: (answers: Record<string, string>) => void;
+  onAskMe?: (() => void) | null;  // AUQ 起動ハンドラ（AUQ suffix は MessageArea 側で付与）
+  // Phase 36: InputBar slots — ChatApp 側で AttachmentButton / AttachmentChips を差し込む
+  inputToolbarSlot?: React.ReactNode;
+  inputPreviewSlot?: React.ReactNode;
+  inputWarningSlot?: React.ReactNode;   // Phase 36 D-17: VisionWarningBanner
+  // Phase 36 D-21: bubble 内 AttachmentChipRow が画像サムネ URL を組み立てるのに必要
+  activeThreadId?: string | null;
+}
+
+// Phase 36 D-21: メッセージバブル内に表示する添付チップ行 (履歴復元用、読み取り専用)。
+// 画像 (png/jpg/jpeg/webp) は 48×48 サムネ、それ以外は 📄 pill。
+// staging UI の AttachmentChips とは別 component (削除ボタンなし、サーバ URL から img src 直読み)。
+function AttachmentChipRow({
+  attachments,
+  threadId,
+}: {
+  attachments: AttachmentMeta[];
+  threadId: string | null;
+}) {
+  if (!attachments || attachments.length === 0) return null;
+  return (
+    <div
+      role="group"
+      aria-label={`添付ファイル ${attachments.length} 件`}
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 'var(--space-2)',
+        marginTop: 'var(--space-2)',
+        paddingTop: 'var(--space-2)',
+        borderTop: '1px solid var(--color-border)',
+      }}
+    >
+      {attachments.map((a) => {
+        const ext = (a.ext || '').toLowerCase();
+        const isImage = IMAGE_EXTS_HISTORY.has(ext);
+        if (isImage && threadId && a.storage_name) {
+          return (
+            <img
+              key={a.storage_name}
+              src={`${ATTACH_API_BASE}/api/threads/${encodeURIComponent(threadId)}/attachments/${encodeURIComponent(a.storage_name)}`}
+              alt={a.name}
+              width={HISTORY_THUMB}
+              height={HISTORY_THUMB}
+              title={`${a.name}（${_formatHistorySize(a.size)}）`}
+              style={{
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                objectFit: 'cover',
+              }}
+            />
+          );
+        }
+        return (
+          <span
+            key={a.storage_name || a.name}
+            title={`${a.name}（${_formatHistorySize(a.size)}）`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            📄 {a.name}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function _formatHistorySize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -50,11 +136,11 @@ function CopyButton({ text }: { text: string }) {
       className="chat-copy-btn"
       style={{
         background: 'none',
-        border: '1px solid #d1dbe3',
-        borderRadius: '4px',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-sm)',
         cursor: 'pointer',
         fontSize: '0.75rem',
-        color: '#666',
+        color: 'var(--color-text-muted)',
         padding: '2px 6px',
         marginTop: '2px',
       }}
@@ -91,11 +177,11 @@ function CopyAllButton({ messages }: { messages: ChatMessage[] }) {
       className="chat-copy-btn"
       style={{
         background: 'none',
-        border: '1px solid #d1dbe3',
-        borderRadius: '4px',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-sm)',
         cursor: 'pointer',
         fontSize: '0.75rem',
-        color: '#666',
+        color: 'var(--color-text-muted)',
         padding: '3px 8px',
         alignSelf: 'flex-end',
       }}
@@ -125,18 +211,37 @@ function useElapsedSeconds(active: boolean): number {
   return elapsed;
 }
 
-export function MessageArea({ messages, isThinking, currentTool, streamPreview, onSend, onCancel, disabled = false, placeholder, enableResend = false, pendingQuestion, onQuestionSubmit }: MessageAreaProps) {
+export function MessageArea({
+  messages,
+  isThinking,
+  currentTool,
+  streamPreview,
+  onSend,
+  onCancel,
+  disabled = false,
+  placeholder,
+  enableResend = false,
+  pendingQuestion,
+  onQuestionSubmit,
+  onAskMe,
+  inputToolbarSlot,
+  inputPreviewSlot,
+  inputWarningSlot,
+  activeThreadId = null,
+}: MessageAreaProps) {
+  // theme は agentBgColor に渡すために保持（isDark 変数は使用しない — D-01）
   const theme = useCurrentTheme();
-  const isDark = theme === 'dark';
   const [inputValue, setInputValue] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isInputDisabled = isThinking || disabled;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messageListRef = useRef<any>(null);
   const elapsed = useElapsedSeconds(isThinking);
 
   // Context inclusion: track which messages to exclude (default = all included)
+  // Pitfall 8: excludedIndices は MessageArea 側に残す（InputBar に持ち込まない）
   const [excludedIndices, setExcludedIndices] = useState<Set<number>>(new Set());
+
+  // Pitfall 4: AUQ suffix 付与ロジックは MessageArea 側の責務
+  const AUQ_SUFFIX = '\n\n[回答はAUQプロトコル（<ask_user_question>フォーマット）で返してください]';
 
   const toggleMsgInclusion = (index: number) => {
     setExcludedIndices((prev) => {
@@ -151,9 +256,8 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
     messageListRef.current?.scrollToBottom('auto');
   }, [messages, isThinking]);
 
-  const AUQ_SUFFIX = '\n\n[回答はAUQプロトコル（<ask_user_question>フォーマット）で返してください]';
-
-  const doSend = (text: string) => {
+  // contextMessages 組み立ては MessageArea に残す（InputBar に渡さない — Pitfall 8）
+  const handleSendWrapped = (text: string) => {
     if (enableResend && messages.length > 0) {
       const ctxMsgs: ContextMessage[] = messages
         .filter((_, i) => !excludedIndices.has(i))
@@ -166,37 +270,18 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
     } else {
       onSend(text);
     }
-    setInputValue('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   };
 
-  const handleSend = () => {
-    const text = inputValue.trim();
-    if (!text || isInputDisabled) return;
-    doSend(text);
-  };
-
-  const handleAskMe = () => {
-    const text = inputValue.trim();
-    if (!text || isInputDisabled) return;
-    doSend(text + AUQ_SUFFIX);
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleInput = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-  };
+  // AUQ suffix 付与は MessageArea 側の責務（Pitfall 4）
+  // InputBar の onAskMe は opaque callback として受け取る
+  const handleAskMeWrapped = onAskMe
+    ? () => {
+        const text = inputValue.trim();
+        if (!text) return;
+        handleSendWrapped(text + AUQ_SUFFIX);
+        setInputValue('');
+      }
+    : undefined;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
@@ -226,10 +311,19 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
         {messages.map((msg, index) => {
           const isIncluded = enableResend && !excludedIndices.has(index);
           if (msg.role === 'user') {
+            // Phase 36 D-21: 添付がある場合は type:'custom' に切替えて CustomContent 内で
+            // テキスト + AttachmentChipRow を並列描画する。添付がなければ既存の type:'text' を維持
+            // (chatscope の outgoing 装飾が一番安定するため)。
+            const userAttachments = msg.additional_kwargs?.attachments;
+            const hasAttachments = !!(userAttachments && userAttachments.length > 0);
             return (
               <Message
                 key={index}
-                model={{
+                model={hasAttachments ? {
+                  direction: 'outgoing',
+                  position: 'single',
+                  type: 'custom',
+                } : {
                   direction: 'outgoing',
                   position: 'single',
                   type: 'text',
@@ -240,14 +334,28 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                   transition: 'opacity 0.15s',
                 } : undefined}
               >
+                {hasAttachments && (
+                  <Message.CustomContent>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    <AttachmentChipRow
+                      attachments={userAttachments!}
+                      threadId={activeThreadId}
+                    />
+                  </Message.CustomContent>
+                )}
                 <Message.Footer style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', alignItems: 'center' }}>
                   {enableResend && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: isDark ? '#9090a8' : '#888', cursor: 'pointer', marginLeft: 'auto' }}>
+                    <label style={{
+                      display: 'flex', alignItems: 'center', gap: '3px',
+                      fontSize: '0.72rem',
+                      color: 'var(--color-text-muted)',
+                      cursor: 'pointer', marginLeft: 'auto',
+                    }}>
                       <input
                         type="checkbox"
                         checked={isIncluded}
                         onChange={() => toggleMsgInclusion(index)}
-                        style={{ margin: 0, cursor: 'pointer', accentColor: '#0366d6' }}
+                        style={{ margin: 0, cursor: 'pointer', accentColor: 'var(--color-accent)' }}
                       />
                       送信に含める
                     </label>
@@ -273,7 +381,7 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
               >
               <Message.CustomContent>
                 <div style={msg.senderName ? {
-                  background: agentBgColor(msg.senderName, isDark),
+                  background: agentBgColor(msg.senderName, theme),
                   margin: '-8px -12px',
                   padding: '8px 12px',
                   borderRadius: '6px',
@@ -297,17 +405,30 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                     </div>
                   )}
                   <MarkdownMessage content={msg.content} />
+                  {/* Phase 36 D-21: AI 側にも additional_kwargs.attachments があれば履歴表示
+                      (現状は HumanMessage 側にのみ載るが将来 AI 添付が来ても破綻しないよう描画) */}
+                  {msg.additional_kwargs?.attachments && msg.additional_kwargs.attachments.length > 0 && (
+                    <AttachmentChipRow
+                      attachments={msg.additional_kwargs.attachments}
+                      threadId={activeThreadId}
+                    />
+                  )}
                 </div>
               </Message.CustomContent>
               <Message.Footer style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                 <CopyButton text={msg.content} />
                 {enableResend && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: isDark ? '#9090a8' : '#888', cursor: 'pointer', marginLeft: 'auto' }}>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: '3px',
+                    fontSize: '0.72rem',
+                    color: 'var(--color-text-muted)',
+                    cursor: 'pointer', marginLeft: 'auto',
+                  }}>
                     <input
                       type="checkbox"
                       checked={isIncluded}
                       onChange={() => toggleMsgInclusion(index)}
-                      style={{ margin: 0, cursor: 'pointer', accentColor: '#0366d6' }}
+                      style={{ margin: 0, cursor: 'pointer', accentColor: 'var(--color-accent)' }}
                     />
                     送信に含める
                   </label>
@@ -330,7 +451,7 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                 {elapsed > 0 && (
                   <span style={{
                     fontSize: '0.75rem',
-                    color: isDark ? '#9090a8' : '#888',
+                    color: 'var(--color-text-muted)',
                     marginLeft: 8,
                     fontVariantNumeric: 'tabular-nums',
                   }}>
@@ -343,11 +464,11 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                     title="応答をキャンセル"
                     style={{
                       background: 'none',
-                      border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
-                      borderRadius: '4px',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-sm)',
                       cursor: 'pointer',
                       fontSize: '0.72rem',
-                      color: isDark ? '#9090a8' : '#888',
+                      color: 'var(--color-text-muted)',
                       padding: '1px 6px',
                       marginLeft: 8,
                     }}
@@ -357,14 +478,14 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
                 )}
               </div>
               {currentTool && (
-                <div style={{ fontSize: '0.8em', color: '#888', padding: '4px 8px' }}>
+                <div style={{ fontSize: '0.8em', color: 'var(--color-text-muted)', padding: '4px 8px' }}>
                   {`🔍 ${currentTool.tool} を実行中${currentTool.query ? `: "${currentTool.query}"` : '...'}`}
                 </div>
               )}
               {streamPreview && streamPreview.split('\n')[0] && (
                 <div style={{
                   fontSize: '0.83em',
-                  color: '#777',
+                  color: 'var(--color-text-muted)',
                   marginTop: '6px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -380,109 +501,45 @@ export function MessageArea({ messages, isThinking, currentTool, streamPreview, 
         )}
       </MessageList>
 
-      {/* Custom textarea input — replaces chatscope MessageInput for multi-line support */}
-      <div className="chat-input-bar" style={{
-        borderTop: '1px solid #d1dbe3',
-        background: '#fff',
-        flexShrink: 0,
-      }}>
-        {pendingQuestion ? (
-          <div style={{ padding: '0.75rem' }}>
-            <div style={{
-              fontSize: '11px',
-              color: isDark ? '#9090a8' : '#888',
-              marginBottom: '8px',
-            }}>
-              質問に回答してください
-            </div>
-            <QuestionPanel
-              questions={pendingQuestion.questions}
-              onSubmit={onQuestionSubmit!}
-            />
+      {/* Input area: QuestionPanel (pendingQuestion あり) または InputBar */}
+      {pendingQuestion ? (
+        <div
+          className="chat-input-bar"
+          style={{
+            padding: '0.75rem',
+            background: 'var(--color-surface)',
+            borderTop: '1px solid var(--color-border)',
+          }}
+        >
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--color-text-muted)',
+            marginBottom: '8px',
+          }}>
+            質問に回答してください
           </div>
-        ) : (
-          <>
-            {messages.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 8px 0' }}>
-                <CopyAllButton messages={messages} />
-              </div>
-            )}
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '0.5rem',
-              padding: '0.6rem 0.75rem',
-            }}>
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onInput={handleInput}
-                placeholder={placeholder ?? 'Ask Copilot anything... (Ctrl+Enter to send)'}
-                disabled={isInputDisabled}
-                rows={1}
-                className="chat-textarea"
-                style={{
-                  flex: 1,
-                  resize: 'none',
-                  border: '1px solid #d1dbe3',
-                  borderRadius: '6px',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.95rem',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.5',
-                  outline: 'none',
-                  overflowY: 'auto',
-                  maxHeight: '160px',
-                }}
-              />
-              <button
-                onClick={handleAskMe}
-                disabled={!inputValue.trim() || isInputDisabled}
-                title="AUQプロトコルで回答を要求"
-                style={{
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '6px',
-                  border: `1px solid ${isDark ? '#2a4a2a' : '#22c55e'}`,
-                  background: 'transparent',
-                  color: '#22c55e',
-                  fontWeight: 'bold',
-                  cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
-                  opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.4,
-                  fontSize: '0.8rem',
-                  flexShrink: 0,
-                  alignSelf: 'flex-end',
-                  height: '36px',
-                }}
-              >
-                AskMe
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || isInputDisabled}
-                className="chat-send-btn"
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: '#0366d6',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  cursor: inputValue.trim() && !isInputDisabled ? 'pointer' : 'not-allowed',
-                  opacity: inputValue.trim() && !isInputDisabled ? 1 : 0.5,
-                  fontSize: '0.9rem',
-                  flexShrink: 0,
-                  alignSelf: 'flex-end',
-                  height: '36px',
-                }}
-              >
-                Send
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+          <QuestionPanel
+            questions={pendingQuestion.questions}
+            onSubmit={onQuestionSubmit!}
+          />
+        </div>
+      ) : (
+        <InputBar
+          value={inputValue}
+          onChange={setInputValue}
+          onSend={handleSendWrapped}
+          onCancel={onCancel}
+          onAskMe={handleAskMeWrapped}
+          isThinking={isThinking}
+          disabled={disabled}
+          placeholder={placeholder}
+          copyAllSlot={messages.length > 0 ? <CopyAllButton messages={messages} /> : undefined}
+          // Phase 36: ChatApp が AttachmentButton / AttachmentChips を name 付きで差し込む
+          toolbarSlot={inputToolbarSlot}
+          previewSlot={inputPreviewSlot}
+          warningSlot={inputWarningSlot}
+        />
+      )}
     </div>
     </div>
   );

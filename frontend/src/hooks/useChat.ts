@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postChat, getJob, streamJob } from '../api/client';
-import type { AskUserQuestionPayload, CanvasAppInfo, CanvasResult, ChatMessage, ContextMessage } from '../types';
+import type { AskUserQuestionPayload, AttachmentMeta, CanvasAppInfo, CanvasResult, ChatMessage, ContextMessage } from '../types';
 import { parseAUQ } from '../components/QuestionPanel';
 
 // Phase 17: 討論チャット結果
@@ -40,6 +40,10 @@ interface UseChatOptions {
   maxTurns?: number;
   currentTurn?: number;
   onDebateResult?: (result: { debate_text: string; turns?: DebateTurn[]; final_turn: number; max_turns: number; is_complete: boolean }) => void;
+  // Phase 36 D-14 / D-06: 送信時の添付ファイル取得 callback (ChatApp から useAttachments.getReadyItems を渡す)
+  getReadyAttachments?: () => AttachmentMeta[];
+  // Phase 36 D-06: 送信成功時 (ケース C) の staging クリア callback (ChatApp から useAttachments.clearAll を渡す)
+  onAttachmentsSent?: () => void;
 }
 
 interface UseChatReturn {
@@ -111,6 +115,8 @@ export function useChat({
   maxTurns,
   currentTurn,
   onDebateResult,
+  getReadyAttachments,
+  onAttachmentsSent,
 }: UseChatOptions): UseChatReturn {
   const [isThinking, setIsThinking] = useState(false);
   const [currentTool, setCurrentTool] = useState<{tool: string; query: string} | null>(null);
@@ -137,8 +143,17 @@ export function useChat({
     const resolvedThreadId = threadId ?? activeThreadId;
     if (!resolvedThreadId) return;
 
-    // Optimistically add user message
-    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    // Phase 36 D-14: 添付取得 (getReadyItems が done 状態のみを返す。空 / undefined なら [])
+    const readyAttachments = getReadyAttachments?.() ?? [];
+
+    // Optimistically add user message (Phase 36 D-21: additional_kwargs.attachments も載せる)
+    setMessages((prev) => [...prev, {
+      role: 'user',
+      content: text,
+      ...(readyAttachments.length > 0
+        ? { additional_kwargs: { attachments: readyAttachments } }
+        : {}),
+    }]);
     setStreamPreview('');
     setIsThinking(true);
 
@@ -165,6 +180,8 @@ export function useChat({
         ...(pattern ? { pattern } : {}),
         ...(maxTurns !== undefined ? { max_turns: maxTurns } : {}),
         ...(currentTurn !== undefined ? { current_turn: currentTurn } : {}),
+        // Phase 36 D-14: per-turn 添付。空配列なら body から省く
+        ...(readyAttachments.length > 0 ? { attachments: readyAttachments } : {}),
       });
 
       // Helper: handle result raw string (Canvas / debate_result / AUQ / plain text)
@@ -226,12 +243,16 @@ export function useChat({
             setPendingQuestion(auq);
             setIsThinking(false);
             await refreshThreads?.();
+            // Phase 36 D-06 ケース C: メッセージ自体は成功 → staging クリア
+            onAttachmentsSent?.();
             return;
           }
         }
         handleResult(immediate.result);
         setIsThinking(false);
         await refreshThreads?.();
+        // Phase 36 D-06 ケース C: 成功扱いで staging をクリア
+        onAttachmentsSent?.();
         return;
       }
 
@@ -285,6 +306,8 @@ export function useChat({
                   setPendingQuestion(auq);
                   setIsThinking(false);
                   await refreshThreads?.();
+                  // Phase 36 D-06 ケース C: AUQ 受信も成功扱い (送信は完了している)
+                  onAttachmentsSent?.();
                   return;
                 }
               }
@@ -321,6 +344,8 @@ export function useChat({
             }
             setIsThinking(false);
             await refreshThreads?.();
+            // Phase 36 D-06 ケース C: SSE done で成功 → staging クリア
+            onAttachmentsSent?.();
           }
           // status === 'thinking' → keep waiting
         } catch {
@@ -346,27 +371,33 @@ export function useChat({
                   setPendingQuestion(auq);
                   setIsThinking(false);
                   await refreshThreads?.();
+                  // Phase 36 D-06 ケース C: AUQ 受信も成功扱い (送信は完了している)
+                  onAttachmentsSent?.();
                   return;
                 }
               }
               handleResult(job.result);
               setIsThinking(false);
               await refreshThreads?.();
+              // Phase 36 D-06 ケース C: fallback polling done で成功 → staging クリア
+              onAttachmentsSent?.();
             }
           } catch {
-            // Poll error — keep trying
+            // Poll error — keep trying (B 系: クリアしない)
           }
         }, 2000);
       };
     } catch (err) {
       // POST /api/chat failed (401 auth required, network error, etc.)
+      // Phase 36 D-06 ケース B (技術失敗): staging を残す。onAttachmentsSent?.() を呼ばない
+      // — ユーザーが同じ添付で再送信できるようにするため。
       setIsThinking(false);
       const errorMsg = err instanceof Error && err.message.includes('401')
         ? 'Session expired. Please log in again.'
         : 'Failed to send message. Please try again.';
       setMessages((prev) => [...prev, { role: 'ai', content: `⚠ ${errorMsg}` }]);
     }
-  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult]);
+  }, [activeThreadId, selectedModel, selectedTaskType, selectedMode, agents, appId, gemId, gemIds, isThinking, setMessages, refreshThreads, onCanvasResponse, participants, pattern, maxTurns, currentTurn, onDebateResult, getReadyAttachments, onAttachmentsSent]);
 
   const handleQuestionSubmit = useCallback((answers: Record<string, string>) => {
     setPendingQuestion(null);
@@ -378,6 +409,10 @@ export function useChat({
   }, [sendMessage]);
 
   const cancelJob = useCallback(() => {
+    // Phase 36 D-06 ケース A (ユーザー明示キャンセル): staging を残す。
+    // ここでは onAttachmentsSent?.() を呼ばない (clearAll 禁止) — ユーザーが
+    // 同じ添付で再送信できるようにするため。
+
     // Close SSE connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();

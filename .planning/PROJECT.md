@@ -98,7 +98,7 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 - 生成アプリからの社内 DB アクセス API — Canvas App 拡張フェーズ
 - Canvas バージョン管理・ロールバック — v1 では最新 HTML のみ保持
 - エージェント間の非同期並列実行 — 現状は逐次ルーティング、並列化は v4.1 以降
-- モバイル対応 — PC ブラウザのみ対象
+- **ネイティブモバイルアプリ** — タブレット幅（768-1024px）までは PC ブラウザでプライマリ scope、スマホ幅（375-767px）もレイアウト破綻ゼロは保証（Phase 35 で実施）。iOS/Android ネイティブアプリは非対象。
 - ストリーミング応答（逐次トークン） — Copilot SDK Technical Preview では未対応
 
 ## Current Milestone: v6.0 UI/AI Experience
@@ -196,6 +196,7 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 | MCP single-source-of-truth (v5.0) | YAML 宣言 → 自動生成スクリプトで Python helper / JS カタログ / docs を全生成、手書きファイルと物理分離 + pre-commit drift 検知 | ✓ `scripts/generate_mcp_artifacts.py`、ADR-0044 |
 | Integration check gate を phase 必須化 (v5.0) | Phase 31 Wave 6 で unit test 60/60 green の後に 3 件 silent failure を捕捉した経験則。Python logging root level / LangGraph state 復元 / route→worker シグネチャ不整合 | ✓ ADR-0046、CLAUDE.md |
 | Decimal phase for milestone cleanup (v5.0) | Milestone archive 直前の帳簿整合作業を独立 decimal phase (例: 31.1) に集約。主 phase 番号を汚さず GSD 規律を保つ | ✓ ADR-0047 |
+| Mobile responsive policy 反転 (Phase 35) | タブレット幅（768-1024px）まで primary scope、スマホ幅（375-767px）は破綻ゼロ保証、iOS/Android ネイティブは非対象 | D-07 |
 
 ## Evolution
 
@@ -208,4 +209,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-22 — Phase 37 完了 (PDF/Office 抽出 + thread-files MCP ツール経路、ADR-0048 規約確立、Phase 37.1 in-place fix で SuperChat/Chat 両 handler の per-job MCP client 統合)*
+*Last updated: 2026-04-23 — Phase 35 完了 (dashboard 化 + デザイン統一 + レスポンシブ対応 + :focus-visible accessibility baseline)、mobile responsive policy 反転（D-07: タブレット幅まで primary scope、スマホ破綻ゼロ保証）*

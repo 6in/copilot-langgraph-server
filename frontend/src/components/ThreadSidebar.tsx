@@ -4,12 +4,14 @@
 // Uses chatscope Sidebar component for layout compatibility.
 // Features: collapse toggle, title filter, inline title editing, drag-to-resize (handle in ChatApp),
 //           bulk select + bulk delete mode.
+// Phase 35 Plan 04: isDark 三項排除 + CSS 変数移行 + drawer state 追加
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sidebar } from '@chatscope/chat-ui-kit-react';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { ConfirmModal } from './ConfirmModal';
 import type { ThreadInfo } from '../types';
+import { groupThreads, groupOrder } from '../utils/threadGroups';
 
 interface ThreadSidebarProps {
   threads: ThreadInfo[];
@@ -22,6 +24,8 @@ interface ThreadSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   width: number;
+  drawerOpen?: boolean;
+  onDrawerOpenChange?: (open: boolean) => void;
 }
 
 export function ThreadSidebar({
@@ -35,9 +39,10 @@ export function ThreadSidebar({
   collapsed,
   onToggleCollapse,
   width,
+  drawerOpen: propDrawerOpen,
+  onDrawerOpenChange,
 }: ThreadSidebarProps) {
   const theme = useCurrentTheme();
-  const isDark = theme === 'dark';
 
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,38 +58,31 @@ export function ThreadSidebar({
   // Collapsible "それ以前" group
   const [olderCollapsed, setOlderCollapsed] = useState(true);
 
+  // Drawer state (uncontrolled mode 用 — controlled mode では propDrawerOpen が優先)
+  const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
+
+  // Drawer state resolver: controlled mode なら props を使用、uncontrolled なら内部 state
+  const drawerOpen = propDrawerOpen ?? internalDrawerOpen;
+  const setDrawerOpen = (next: boolean) => {
+    if (onDrawerOpenChange) onDrawerOpenChange(next);
+    else setInternalDrawerOpen(next);
+  };
+
+  // Escape キーで drawer を閉じる
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
   const filtered = filter.trim()
     ? threads.filter((t) => t.label.toLowerCase().includes(filter.toLowerCase()))
     : threads;
 
-  // Group threads by date
-  type DateGroup = '今日' | '昨日' | '今週' | '先週' | 'それ以前';
-  const groupOrder: DateGroup[] = ['今日', '昨日', '今週', '先週', 'それ以前'];
-
-  function getDateGroup(updatedAt?: string | null): DateGroup {
-    if (!updatedAt) return 'それ以前';
-    const now = new Date();
-    const updated = new Date(updatedAt);
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diffMs = todayStart.getTime() - new Date(updated.getFullYear(), updated.getMonth(), updated.getDate()).getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 0 || diffDays === 0) return '今日';
-    if (diffDays === 1) return '昨日';
-    if (diffDays <= 7) return '今週';
-    if (diffDays <= 14) return '先週';
-    return 'それ以前';
-  }
-
-  function groupThreads(threads: ThreadInfo[]): Map<DateGroup, ThreadInfo[]> {
-    const groups = new Map<DateGroup, ThreadInfo[]>();
-    for (const thread of threads) {
-      const group = getDateGroup(thread.updated_at);
-      if (!groups.has(group)) groups.set(group, []);
-      groups.get(group)!.push(thread);
-    }
-    return groups;
-  }
-
+  // Group threads by date (logic extracted to utils/threadGroups.ts — Phase 35 D-02)
   const grouped = groupThreads(filtered);
 
   const startEdit = (thread: ThreadInfo, e: React.MouseEvent) => {
@@ -147,352 +145,387 @@ export function ThreadSidebar({
 
   if (collapsed) {
     return (
-      <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
-        <div className="sidebar-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
-          <button
-            onClick={onToggleCollapse}
-            title="Expand sidebar"
-            className="sidebar-collapse-btn"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-              color: '#555',
-              padding: '4px',
-            }}
-          >
-            ▶
-          </button>
-        </div>
-      </Sidebar>
+      <>
+        {drawerOpen && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+        <aside
+          className={`sidebar-drawer${drawerOpen ? ' open' : ''}`}
+          role={drawerOpen ? 'dialog' : undefined}
+          aria-modal={drawerOpen ? 'true' : undefined}
+          aria-label={drawerOpen ? 'スレッド一覧' : undefined}
+        >
+          <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
+            <div className="sidebar-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', height: '100%' }}>
+              <button
+                onClick={onToggleCollapse}
+                title="Expand sidebar"
+                className="sidebar-collapse-btn"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.1rem',
+                  color: 'var(--color-text-muted)',
+                  padding: '4px',
+                }}
+              >
+                ▶
+              </button>
+            </div>
+          </Sidebar>
+        </aside>
+      </>
     );
   }
 
   return (
-    <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
-      <div className="sidebar-content" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
+    <>
+      {drawerOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`sidebar-drawer${drawerOpen ? ' open' : ''}`}
+        role={drawerOpen ? 'dialog' : undefined}
+        aria-modal={drawerOpen ? 'true' : undefined}
+        aria-label={drawerOpen ? 'スレッド一覧' : undefined}
+      >
+        <Sidebar position="left" style={{ width: `${width}px`, flexBasis: `${width}px`, flexShrink: 0, minWidth: `${width}px`, maxWidth: `${width}px` }}>
+          <div className="sidebar-content" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', height: '100%' }}>
 
-        {/* Header row: New Chat + select mode toggle + collapse button */}
-        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-          <button
-            onClick={onNewChat}
-            className="sidebar-new-chat-btn"
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              cursor: 'pointer',
-              borderRadius: '6px',
-              border: '1px solid #ddd',
-              background: '#0366d6',
-              color: '#fff',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-            }}
-          >
-            + New Chat
-          </button>
-          <button
-            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
-            title={selectMode ? 'Exit select mode' : 'Select mode'}
-            className="sidebar-collapse-btn"
-            style={{
-              background: selectMode ? (isDark ? '#3a3a52' : '#e8f0fe') : 'none',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-              color: selectMode ? (isDark ? '#e8e8f0' : '#0366d6') : '#555',
-              padding: '4px 6px',
-              flexShrink: 0,
-            }}
-          >
-            ☑
-          </button>
-          <button
-            onClick={onToggleCollapse}
-            title="Collapse sidebar"
-            className="sidebar-collapse-btn"
-            style={{
-              background: 'none',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              color: '#555',
-              padding: '4px 6px',
-              flexShrink: 0,
-            }}
-          >
-            ◀
-          </button>
-        </div>
-
-        {/* Select mode controls */}
-        {selectMode && (
-          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.78rem' }}>
-            <button
-              onClick={toggleSelectAll}
-              style={{
-                background: 'none',
-                border: `1px solid ${isDark ? '#3a3a52' : '#d1dbe3'}`,
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                color: isDark ? '#9090a8' : '#555',
-                padding: '2px 6px',
-              }}
-            >
-              {selectedIds.size === filtered.length && filtered.length > 0 ? '全解除' : '全選択'}
-            </button>
-            {selectedIds.size > 0 && (
+            {/* Header row: New Chat + select mode toggle + collapse button */}
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               <button
-                onClick={() => setBulkDeleteConfirm(true)}
+                onClick={onNewChat}
+                className="sidebar-new-chat-btn"
                 style={{
-                  background: '#e05252',
-                  border: 'none',
-                  borderRadius: '4px',
+                  flex: 1,
+                  padding: '0.5rem',
                   cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  color: '#fff',
-                  padding: '2px 8px',
-                  fontWeight: 600,
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-accent)',
+                  color: 'var(--color-accent-contrast)',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
                 }}
               >
-                {selectedIds.size}件削除
+                + 新しいチャット
               </button>
-            )}
-            <span style={{ color: isDark ? '#9090a8' : '#888', marginLeft: 'auto' }}>
-              {selectedIds.size}/{filtered.length}
-            </span>
-          </div>
-        )}
+              <button
+                onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                title={selectMode ? 'Exit select mode' : 'Select mode'}
+                className="sidebar-collapse-btn"
+                style={{
+                  background: selectMode ? 'var(--color-accent-subtle)' : 'none',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  color: selectMode ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                  padding: '4px 6px',
+                  flexShrink: 0,
+                }}
+              >
+                ☑
+              </button>
+              <button
+                onClick={onToggleCollapse}
+                title="Collapse sidebar"
+                className="sidebar-collapse-btn"
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-text-muted)',
+                  padding: '4px 6px',
+                  flexShrink: 0,
+                }}
+              >
+                ◀
+              </button>
+            </div>
 
-        {/* Title filter input */}
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter conversations..."
-            className="sidebar-filter-input"
-            style={{
-              width: '100%',
-              padding: '0.35rem 1.6rem 0.35rem 0.5rem',
-              fontSize: '0.8rem',
-              border: '1px solid #d1dbe3',
-              borderRadius: '4px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          {filter && (
-            <button
-              onClick={() => setFilter('')}
-              title="Clear filter"
-              className="sidebar-filter-clear"
-              style={{
-                position: 'absolute',
-                right: '4px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#999',
-                fontSize: '0.8rem',
-                padding: '0 2px',
-                lineHeight: 1,
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {filter && (
-          <p className="sidebar-filter-count" style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
-            {filtered.length} / {threads.length} matches
-          </p>
-        )}
-
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {filtered.length === 0 && (
-            <p className="sidebar-empty-text" style={{ color: '#888', fontSize: '0.8rem', padding: '0.5rem 0' }}>
-              {threads.length === 0 ? 'No conversations yet' : 'No matches'}
-            </p>
-          )}
-          {groupOrder.map((groupLabel) => {
-            const groupThreads = grouped.get(groupLabel);
-            if (!groupThreads || groupThreads.length === 0) return null;
-
-            const isOlder = groupLabel === 'それ以前';
-            const isCollapsed = isOlder && olderCollapsed;
-
-            return (
-              <div key={groupLabel}>
-                {/* Group header */}
-                <div
+            {/* Select mode controls */}
+            {selectMode && (
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.78rem' }}>
+                <button
+                  onClick={toggleSelectAll}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 4px 4px',
-                    fontSize: '0.7rem',
-                    color: isDark ? '#808090' : '#888',
-                    ...(isOlder ? { cursor: 'pointer' } : {}),
+                    background: 'none',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    color: 'var(--color-text-muted)',
+                    padding: '2px 6px',
                   }}
-                  onClick={isOlder ? () => setOlderCollapsed((v) => !v) : undefined}
                 >
-                  <div style={{ flex: 1, height: '1px', background: isDark ? '#3a3a52' : '#e0e0e0' }} />
-                  <span style={{ whiteSpace: 'nowrap' }}>
-                    {isOlder
-                      ? (isCollapsed ? `▶ ${groupLabel} (${groupThreads.length}件)` : `▼ ${groupLabel}`)
-                      : groupLabel}
-                  </span>
-                  <div style={{ flex: 1, height: '1px', background: isDark ? '#3a3a52' : '#e0e0e0' }} />
-                </div>
-
-                {/* Thread items (hidden when collapsed) */}
-                {!isCollapsed && groupThreads.map((thread) => (
-                  <div
-                    key={thread.thread_id}
-                    className={`sidebar-thread-item${activeThreadId === thread.thread_id ? ' active' : ''}`}
+                  {selectedIds.size === filtered.length && filtered.length > 0 ? '全解除' : '全選択'}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => setBulkDeleteConfirm(true)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.4rem 0.5rem',
-                      borderRadius: '4px',
+                      background: 'var(--color-destructive)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-sm)',
                       cursor: 'pointer',
-                      background: activeThreadId === thread.thread_id ? '#e8f0fe' : 'transparent',
-                      fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
-                    }}
-                    onClick={() => {
-                      if (selectMode) {
-                        toggleSelect(thread.thread_id);
-                      } else if (editingId !== thread.thread_id) {
-                        onSelectThread(thread.thread_id);
-                      }
+                      fontSize: '0.75rem',
+                      color: 'var(--color-accent-contrast)',
+                      padding: '2px 8px',
+                      fontWeight: 600,
                     }}
                   >
-                    {/* Checkbox in select mode */}
-                    {selectMode && (
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(thread.thread_id)}
-                        onChange={() => toggleSelect(thread.thread_id)}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ marginRight: '6px', flexShrink: 0, cursor: 'pointer' }}
-                      />
-                    )}
+                    {selectedIds.size}件削除
+                  </button>
+                )}
+                <span style={{ color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+                  {selectedIds.size}/{filtered.length}
+                </span>
+              </div>
+            )}
 
-                    {editingId === thread.thread_id ? (
-                      <input
-                        autoFocus
-                        value={editLabel}
-                        onChange={(e) => setEditLabel(e.target.value)}
-                        onBlur={() => commitEdit(thread.thread_id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { e.preventDefault(); commitEdit(thread.thread_id); }
-                          if (e.key === 'Escape') cancelEdit();
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="sidebar-thread-edit-input"
-                        style={{
-                          flex: 1,
-                          fontSize: '0.82rem',
-                          border: '1px solid #0366d6',
-                          borderRadius: '3px',
-                          padding: '1px 4px',
-                          outline: 'none',
-                          minWidth: 0,
-                        }}
-                      />
-                    ) : (
+            {/* Title filter input */}
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="会話を絞り込む..."
+                className="sidebar-filter-input"
+                style={{
+                  width: '100%',
+                  padding: '0.35rem 1.6rem 0.35rem 0.5rem',
+                  fontSize: '0.8rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text)',
+                }}
+              />
+              {filter && (
+                <button
+                  onClick={() => setFilter('')}
+                  title="Clear filter"
+                  className="sidebar-filter-clear"
+                  style={{
+                    position: 'absolute',
+                    right: '4px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--color-text-muted)',
+                    fontSize: '0.8rem',
+                    padding: '0 2px',
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {filter && (
+              <p className="sidebar-filter-count" style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                {filtered.length} / {threads.length} 件一致
+              </p>
+            )}
+
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {filtered.length === 0 && (
+                <p className="sidebar-empty-text" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', padding: '0.5rem 0' }}>
+                  {threads.length === 0 ? 'まだ会話がありません' : '一致する会話がありません'}
+                </p>
+              )}
+              {groupOrder.map((groupLabel) => {
+                const groupThreads = grouped.get(groupLabel);
+                if (!groupThreads || groupThreads.length === 0) return null;
+
+                const isOlder = groupLabel === 'それ以前';
+                const isCollapsed = isOlder && olderCollapsed;
+
+                return (
+                  <div key={groupLabel}>
+                    {/* Group header */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 4px 4px',
+                        fontSize: '0.7rem',
+                        color: 'var(--color-text-muted)',
+                        ...(isOlder ? { cursor: 'pointer' } : {}),
+                      }}
+                      onClick={isOlder ? () => setOlderCollapsed((v) => !v) : undefined}
+                    >
+                      <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+                      <span style={{ whiteSpace: 'nowrap' }}>
+                        {isOlder
+                          ? (isCollapsed ? `▶ ${groupLabel} (${groupThreads.length}件)` : `▼ ${groupLabel}`)
+                          : groupLabel}
+                      </span>
+                      <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+                    </div>
+
+                    {/* Thread items (hidden when collapsed) */}
+                    {!isCollapsed && groupThreads.map((thread) => (
                       <div
-                        style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
-                        onDoubleClick={(e) => !selectMode && startEdit(thread, e)}
-                        title={selectMode ? undefined : 'Double-click to rename'}
+                        key={thread.thread_id}
+                        className={`sidebar-thread-item${activeThreadId === thread.thread_id ? ' active' : ''}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.4rem 0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          background: activeThreadId === thread.thread_id ? 'var(--color-accent-subtle)' : 'transparent',
+                          fontWeight: activeThreadId === thread.thread_id ? 'bold' : 'normal',
+                          color: 'var(--color-text)',
+                        }}
+                        onClick={() => {
+                          if (selectMode) {
+                            toggleSelect(thread.thread_id);
+                          } else if (editingId !== thread.thread_id) {
+                            onSelectThread(thread.thread_id);
+                          }
+                        }}
                       >
-                        <span
-                          className="sidebar-thread-label"
-                          style={{
-                            fontSize: '0.82rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {thread.label}
-                        </span>
-                        {thread.updated_at && (
-                          <span
-                            className="sidebar-thread-date"
-                            style={{
-                              fontSize: '0.7rem',
-                              color: '#999',
-                              whiteSpace: 'nowrap',
+                        {/* Checkbox in select mode */}
+                        {selectMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(thread.thread_id)}
+                            onChange={() => toggleSelect(thread.thread_id)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ marginRight: '6px', flexShrink: 0, cursor: 'pointer' }}
+                          />
+                        )}
+
+                        {editingId === thread.thread_id ? (
+                          <input
+                            autoFocus
+                            value={editLabel}
+                            onChange={(e) => setEditLabel(e.target.value)}
+                            onBlur={() => commitEdit(thread.thread_id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { e.preventDefault(); commitEdit(thread.thread_id); }
+                              if (e.key === 'Escape') cancelEdit();
                             }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sidebar-thread-edit-input"
+                            style={{
+                              flex: 1,
+                              fontSize: '0.82rem',
+                              border: '1px solid var(--color-accent)',
+                              borderRadius: '3px',
+                              padding: '1px 4px',
+                              outline: 'none',
+                              minWidth: 0,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
+                            onDoubleClick={(e) => !selectMode && startEdit(thread, e)}
+                            title={selectMode ? undefined : 'Double-click to rename'}
                           >
-                            {new Date(thread.updated_at).toLocaleDateString()}
-                          </span>
+                            <span
+                              className="sidebar-thread-label"
+                              style={{
+                                fontSize: '0.82rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {thread.label}
+                            </span>
+                            {thread.updated_at && (
+                              <span
+                                className="sidebar-thread-date"
+                                style={{
+                                  fontSize: '0.7rem',
+                                  color: 'var(--color-text-muted)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {new Date(thread.updated_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {!selectMode && editingId !== thread.thread_id && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTargetId(thread.thread_id);
+                            }}
+                            className="sidebar-thread-delete-btn"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--color-text-muted)',
+                              padding: '0 4px',
+                              fontSize: '0.9rem',
+                              flexShrink: 0,
+                            }}
+                            title="Delete thread"
+                            aria-label="Delete thread"
+                          >
+                            ✕
+                          </button>
                         )}
                       </div>
-                    )}
-
-                    {!selectMode && editingId !== thread.thread_id && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTargetId(thread.thread_id);
-                        }}
-                        className="sidebar-thread-delete-btn"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#999',
-                          padding: '0 4px',
-                          fontSize: '0.9rem',
-                          flexShrink: 0,
-                        }}
-                        title="Delete thread"
-                        aria-label="Delete thread"
-                      >
-                        ✕
-                      </button>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Single delete confirm */}
-      <ConfirmModal
-        isOpen={deleteTargetId !== null}
-        message={`「${threads.find((t) => t.thread_id === deleteTargetId)?.label ?? ''}」を削除しますか？`}
-        confirmLabel="削除"
-        isDark={isDark}
-        onConfirm={() => {
-          if (deleteTargetId) onDeleteThread(deleteTargetId);
-          setDeleteTargetId(null);
-        }}
-        onCancel={() => setDeleteTargetId(null)}
-      />
+          {/* Single delete confirm */}
+          <ConfirmModal
+            isOpen={deleteTargetId !== null}
+            message={`「${threads.find((t) => t.thread_id === deleteTargetId)?.label ?? ''}」を削除しますか？`}
+            confirmLabel="削除"
+            isDark={theme === 'dark'}
+            onConfirm={() => {
+              if (deleteTargetId) onDeleteThread(deleteTargetId);
+              setDeleteTargetId(null);
+            }}
+            onCancel={() => setDeleteTargetId(null)}
+          />
 
-      {/* Bulk delete confirm */}
-      <ConfirmModal
-        isOpen={bulkDeleteConfirm}
-        message={`${selectedIds.size}件のスレッドを削除しますか？`}
-        confirmLabel={`${selectedIds.size}件削除`}
-        isDark={isDark}
-        onConfirm={handleBulkDelete}
-        onCancel={() => setBulkDeleteConfirm(false)}
-      />
-    </Sidebar>
+          {/* Bulk delete confirm */}
+          <ConfirmModal
+            isOpen={bulkDeleteConfirm}
+            message={`${selectedIds.size}件のスレッドを削除しますか？`}
+            confirmLabel={`${selectedIds.size}件削除`}
+            isDark={theme === 'dark'}
+            onConfirm={handleBulkDelete}
+            onCancel={() => setBulkDeleteConfirm(false)}
+          />
+        </Sidebar>
+      </aside>
+    </>
   );
 }

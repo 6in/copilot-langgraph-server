@@ -19,6 +19,99 @@
 }
 
 /* ============================================================
+   Phase 35: Design Tokens — Primitive Layer (theme 不変、直接参照禁止)
+   ============================================================ */
+:root {
+  --color-purple-300: #a78bfa;
+  --color-purple-500: #7c6ff7;
+  --color-cyan-400:   #38bdf8;
+  --color-red-500:    #e05252;
+  --color-green-500:  #22c55e;
+  --color-blue-600:   #0366d6;
+  --color-neutral-50:  #f5f5f5;
+  --color-neutral-100: #f6f8fa;
+  --color-neutral-200: #e1e4e8;
+  --color-neutral-300: #d1dbe3;
+  --color-neutral-400: #9090a8;
+  --color-neutral-500: #888888;
+  --color-neutral-700: #333333;
+  --color-neutral-900: #24292e;
+  --color-dark-bg:       #1e1e2e;
+  --color-dark-surface:  #2a2a3e;
+  --color-dark-elevated: #313145;
+  --color-dark-border:   #3a3a52;
+  --color-dark-text:     #e8e8f0;
+
+  /* ========================================================
+     Phase 35: Design Tokens — Semantic Layer (Light 値)
+     ======================================================== */
+  --color-bg:                var(--color-neutral-50);
+  --color-surface:           #ffffff;
+  --color-surface-elevated:  #ffffff;
+  --color-border:            var(--color-neutral-300);
+  --color-text:              var(--color-neutral-700);
+  --color-text-muted:        var(--color-neutral-500);
+  --color-accent:            var(--color-purple-500);
+  --color-accent-contrast:   #ffffff;
+  --color-accent-subtle:     #e8f0fe;
+  --color-destructive:       var(--color-red-500);
+  --color-success:           var(--color-green-500);
+  --color-header-bg:         var(--color-neutral-900);
+  --color-header-text:       #ffffff;
+
+  /* Spacing scale (8-point) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radius */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   12px;
+  --radius-full: 9999px;
+
+  /* Font families */
+  --font-family-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-display: 'Rajdhani', sans-serif;
+
+  /* Font shorthand (role based) */
+  --font-body:    400 16px/1.5 var(--font-family-body);
+  --font-label:   400 14px/1.4 var(--font-family-body);
+  --font-heading: 600 20px/1.3 var(--font-family-body);
+  --font-display: 700 44.8px/1.1 var(--font-family-display);
+  --font-caption: 400 12px/1.4 var(--font-family-body);
+
+  /* Gradient (theme 不変) */
+  --gradient-title: linear-gradient(90deg,
+    var(--color-purple-300),
+    var(--color-purple-500),
+    var(--color-cyan-400)
+  );
+}
+
+/* ============================================================
+   Phase 35: Design Tokens — Semantic Layer (Dark override)
+   primitive は theme 不変のため再定義しない。
+   accent / destructive / success も theme 不変。
+   ============================================================ */
+[data-theme="dark"] {
+  --color-bg:               var(--color-dark-bg);
+  --color-surface:          var(--color-dark-surface);
+  --color-surface-elevated: var(--color-dark-elevated);
+  --color-border:           var(--color-dark-border);
+  --color-text:             var(--color-dark-text);
+  --color-text-muted:       var(--color-neutral-400);
+  --color-accent-subtle:    var(--color-dark-elevated);
+  --color-header-bg:        var(--color-dark-bg);
+  --color-header-text:      var(--color-dark-text);
+}
+
+/* ============================================================
    Markdown content — compact spacing inside chat bubbles
    ============================================================ */
 
@@ -82,34 +175,34 @@
 [data-theme="dark"] .cs-main-container,
 [data-theme="dark"] .cs-chat-container,
 [data-theme="dark"] .cs-message-list {
-  background: #1e1e2e !important;
-  border-color: #3a3a52 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .cs-sidebar--left {
-  background: #2a2a3e !important;
-  border-color: #3a3a52 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .cs-message--incoming .cs-message__content {
-  background: #252535 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .cs-message--outgoing .cs-message__content {
-  background: #313145 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface-elevated) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .cs-typing-indicator {
-  background: #1e1e2e !important;
-  color: #9090a8 !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .cs-typing-indicator__dot {
-  background: #9090a8 !important;
+  background: var(--color-text-muted) !important;
 }
 
 /* ============================================================
@@ -118,88 +211,88 @@
 
 /* Sidebar content wrapper */
 [data-theme="dark"] .sidebar-content {
-  background: #2a2a3e;
-  color: #e8e8f0;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 /* New Chat button */
 [data-theme="dark"] .sidebar-new-chat-btn {
-  background: #7c6ff7 !important;
-  border-color: #7c6ff7 !important;
-  color: #ffffff !important;
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent-contrast) !important;
 }
 
 /* Collapse/expand toggle buttons */
 [data-theme="dark"] .sidebar-collapse-btn {
-  border-color: #3a3a52 !important;
-  color: #9090a8 !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
   background: transparent !important;
 }
 
 /* Filter input */
 [data-theme="dark"] .sidebar-filter-input {
-  background: #1e1e2e !important;
-  color: #e8e8f0 !important;
-  border-color: #3a3a52 !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
 }
 
 [data-theme="dark"] .sidebar-filter-input::placeholder {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Filter clear button */
 [data-theme="dark"] .sidebar-filter-clear {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Filter count text */
 [data-theme="dark"] .sidebar-filter-count {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Empty state text */
 [data-theme="dark"] .sidebar-empty-text {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Thread item */
 [data-theme="dark"] .sidebar-thread-item {
   background: transparent !important;
-  color: #e8e8f0 !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .sidebar-thread-item.active {
-  background: #313145 !important;
+  background: var(--color-surface-elevated) !important;
 }
 
 [data-theme="dark"] .sidebar-thread-item:hover {
-  background: #313145 !important;
+  background: var(--color-surface-elevated) !important;
 }
 
 /* Thread label */
 [data-theme="dark"] .sidebar-thread-label {
-  color: #e8e8f0 !important;
+  color: var(--color-text) !important;
 }
 
 /* Thread date (was hardcoded #999) */
 [data-theme="dark"] .sidebar-thread-date {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Thread inline edit input */
 [data-theme="dark"] .sidebar-thread-edit-input {
-  background: #1e1e2e !important;
-  color: #e8e8f0 !important;
-  border-color: #7c6ff7 !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-accent) !important;
 }
 
 /* Thread delete button */
 [data-theme="dark"] .sidebar-thread-delete-btn {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .sidebar-thread-delete-btn:hover {
-  color: #e05252 !important;
+  color: var(--color-destructive) !important;
 }
 
 /* ============================================================
@@ -208,47 +301,47 @@
 
 /* Input bar wrapper (bottom of chat) */
 [data-theme="dark"] .chat-input-bar {
-  background: #2a2a3e !important;
-  border-top-color: #3a3a52 !important;
+  background: var(--color-surface) !important;
+  border-top-color: var(--color-border) !important;
 }
 
 /* Textarea */
 [data-theme="dark"] .chat-textarea {
-  background: #1e1e2e !important;
-  color: #e8e8f0 !important;
-  border-color: #3a3a52 !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
 }
 
 [data-theme="dark"] .chat-textarea::placeholder {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .chat-textarea:focus {
-  border-color: #7c6ff7 !important;
+  border-color: var(--color-accent) !important;
   outline: none;
 }
 
 /* Send button */
 [data-theme="dark"] .chat-send-btn {
-  background: #7c6ff7 !important;
-  color: #ffffff !important;
+  background: var(--color-accent) !important;
+  color: var(--color-accent-contrast) !important;
 }
 
 /* Copy / Copy-all buttons */
 [data-theme="dark"] .chat-copy-btn {
   background: transparent !important;
-  border-color: #3a3a52 !important;
-  color: #9090a8 !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Empty state inside message list */
 [data-theme="dark"] .chat-empty-state {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .chat-empty-state h3,
 [data-theme="dark"] .chat-empty-state p {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* ============================================================
@@ -256,42 +349,42 @@
    ============================================================ */
 
 [data-theme="dark"] .auth-panel-root {
-  background: #1e1e2e !important;
-  color: #e8e8f0 !important;
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .auth-panel-root h2 {
-  color: #e8e8f0 !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .auth-panel-root p {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .auth-start-btn {
-  background: #2a2a3e !important;
-  border-color: #3a3a52 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .auth-device-code {
-  background: #2a2a3e !important;
-  border-color: #3a3a52 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .auth-copy-btn {
-  background: #2a2a3e !important;
-  border-color: #3a3a52 !important;
-  color: #e8e8f0 !important;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 [data-theme="dark"] .auth-waiting-text {
-  color: #9090a8 !important;
+  color: var(--color-text-muted) !important;
 }
 
 [data-theme="dark"] .auth-link {
-  color: #7c6ff7 !important;
+  color: var(--color-accent) !important;
 }
 
 /* ============================================================
@@ -316,7 +409,7 @@
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
 [data-theme="dark"] .typing-dot {
-  background: #9090a8 !important;
+  background: var(--color-text-muted) !important;
 }
 
 /* ============================================================
@@ -365,26 +458,26 @@
 }
 
 [data-theme="dark"] .md-table-wrap {
-  border-color: #3a3a52;
+  border-color: var(--color-border);
 }
 
 [data-theme="dark"] .md-table {
-  background: #1e1e2e;
-  color: #e8e8f0;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 [data-theme="dark"] .md-table thead th {
-  background: #2a2a3e;
-  border-bottom-color: #3a3a52;
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border);
 }
 
 [data-theme="dark"] .md-table th,
 [data-theme="dark"] .md-table td {
-  border-bottom-color: #313145;
+  border-bottom-color: var(--color-surface-elevated);
 }
 
 [data-theme="dark"] .md-table tbody tr:nth-child(even) {
-  background: #252535;
+  background: var(--color-surface);
 }
 
 /* ============================================================
@@ -394,4 +487,149 @@
 .ag-body-viewport.block-selecting {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ============================================================
+   Phase 35: Responsive — base rules (theme 独立)
+   drawer / hamburger の default 表示制御
+   ============================================================ */
+.sidebar-drawer {
+  /* Desktop default: 既存 Sidebar 挙動を維持 (position: static 相当) */
+  position: relative;
+}
+.header-hamburger {
+  display: none;
+}
+
+/* ============================================================
+   Phase 35: Responsive — Tablet (≤ 1024px)
+   UI-SPEC §Responsive + RESEARCH §Pattern 4
+   ============================================================ */
+@media (max-width: 1024px) {
+  /* MenuScreen: カード grid を狭く、padding 縮小 */
+  .menu-screen {
+    padding: var(--space-6) var(--space-4) !important;
+  }
+  .menu-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  }
+
+  /* Header: Model ラベル / username 非表示 */
+  .header-model-label {
+    display: none;
+  }
+  .header-user-login {
+    display: none;
+  }
+
+  /* ThreadSidebar: drawer overlay として動作 */
+  .sidebar-drawer {
+    position: fixed !important;
+    top: 48px;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    width: min(80vw, 320px) !important;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    overflow-y: auto;
+  }
+  .sidebar-drawer.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Chatscope bubble: outgoing のみ max-width 85% (Pitfall 2 — incoming は変更しない) */
+  .cs-message--outgoing .cs-message__content-wrapper {
+    max-width: 85% !important;
+  }
+
+  /* InputBar: padding 縮小、toolbarSlot が 1 行に収まらない場合に縦積み許容 */
+  .chat-input-row {
+    flex-wrap: wrap !important;
+    padding: 10px !important;
+  }
+}
+
+/* ============================================================
+   Phase 35: Responsive — Mobile (≤ 767px)
+   破綻回避のみ保証 (D-05)
+   ============================================================ */
+@media (max-width: 767px) {
+  /* MenuScreen: 1 列固定 */
+  .menu-screen {
+    padding: var(--space-4) var(--space-3) !important;
+  }
+  .menu-card-grid,
+  .menu-recent-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Header: hamburger 表示、desktop actions 非表示 */
+  .header-hamburger {
+    display: inline-flex !important;
+  }
+  .header-desktop-actions {
+    display: none !important;
+  }
+
+  /* InputBar: textarea padding 縮小、Send ボタンは必ず表示 */
+  .chat-textarea {
+    padding: 0.5rem !important;
+  }
+
+  /* Chatscope bubble: 両サイド 100% 幅 */
+  .cs-message--outgoing .cs-message__content-wrapper {
+    max-width: 100% !important;
+  }
+
+  /* ThreadSidebar drawer: 幅を mobile 用に調整 */
+  .sidebar-drawer {
+    width: min(80vw, 320px) !important;
+  }
+}
+
+/* ============================================================
+   Phase 35: Accessibility — Focus Visible Utility
+   新規追加ボタン群にキーボード操作時の焦点リングを付与
+   (マウスクリック時は outline 表示しない — :focus-visible)
+   ============================================================ */
+.menu-card:focus-visible,
+.recent-thread-card:focus-visible,
+.chat-send-btn:focus-visible,
+.chat-askme-btn:focus-visible,
+.chat-cancel-btn:focus-visible,
+.sidebar-new-chat-btn:focus-visible,
+.header-hamburger summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Phase 36: AttachmentButton hover/focus
+   (UI-SPEC §Accent Reserved-For Extension #8)
+   ============================================================ */
+.chat-attach-btn:hover:not(:disabled) {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.chat-attach-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Phase 36: AttachmentChips × 削除ボタン hover (UI-SPEC §Color §Destructive #1) */
+.chat-attach-remove-btn:hover {
+  color: var(--color-destructive);
+}
+.chat-attach-remove-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }

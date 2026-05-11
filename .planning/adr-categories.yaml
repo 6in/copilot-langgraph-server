@@ -58,6 +58,8 @@ adr_categories:
   "0047": { primary: "Infra・Deploy" }
   "0048": { primary: "Data・Persistence", secondary: "MCP・Tools" }
   "0049": { primary: "MCP・Tools", secondary: "Worker・Jobs" }
+  "0050": { primary: "LangGraph・Graph", secondary: "Frontend・UI" }
+  "0051": { primary: "LangGraph・Graph", secondary: "Infra・Deploy" }
 
 missing:
   - "0015"

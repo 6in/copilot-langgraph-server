@@ -187,6 +187,8 @@ async def send_message(
         pattern=body.pattern,
         max_turns=body.max_turns,
         current_turn=body.current_turn,
+        # Phase 36 (D-14): forward per-turn attachments to worker
+        attachments=body.attachments,
     )
 
     return ChatAsyncResponse(job_id=job_id, thread_id=body.thread_id)
@@ -476,6 +478,16 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
             sender = getattr(msg, "name", None)
             if sender:
                 entry["senderName"] = sender
+            # Phase 36 D-22: additional_kwargs を透過的に返す (現時点は attachments のみ公開).
+            # Pitfall 10 None-guard: legacy メッセージでは additional_kwargs が None / 欠損 / 空 dict.
+            kw = getattr(msg, "additional_kwargs", None) or {}
+            if kw:
+                public_kw: dict = {}
+                atts = kw.get("attachments")
+                if isinstance(atts, list) and atts:
+                    public_kw["attachments"] = atts
+                if public_kw:
+                    entry["additional_kwargs"] = public_kw
             messages.append(entry)
         return messages
 

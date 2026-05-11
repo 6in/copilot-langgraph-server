@@ -51,6 +51,36 @@ export interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
   senderName?: string;  // Phase 17: 討論エージェント名表示用
+  // Phase 36 D-22: 添付履歴は additional_kwargs.attachments として HumanMessage に載る
+  additional_kwargs?: {
+    attachments?: AttachmentMeta[];
+  };
+}
+
+// --- Phase 36: Attachments ---
+
+export interface AttachmentMeta {
+  kind: 'file';
+  name: string;
+  storage_name: string;
+  path: string;
+  size: number;
+  mime_type: string;
+  ext: string;
+  modified_at: string;
+}
+
+// Phase 36 D-16: モデル一覧 (useModels / Header で消費) — Plan 06 で使うが型は先に定義しておく
+export interface ModelInfo {
+  id: string;
+  name: string;
+  vision: boolean;
+  vision_limits?: {
+    supported_media_types?: string[] | null;
+    max_prompt_images?: number | null;
+    max_prompt_image_size?: number | null;
+  } | null;
+  billing_multiplier?: number | null;
 }
 
 export interface ThreadMessagesResponse {
@@ -94,6 +124,8 @@ export interface ChatRequest {
   pattern?: string;        // "debate" | "panel" | "chain"
   max_turns?: number;
   current_turn?: number;
+  // Phase 36 (D-14): per-turn 新規添付
+  attachments?: AttachmentMeta[];
 }
 
 // --- Phase 15: Gem + Canvas types ---

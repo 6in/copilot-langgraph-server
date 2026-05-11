@@ -32,11 +32,11 @@ export function AuthPanel() {
       <h2>Connect to GitHub Copilot</h2>
 
       {authState === 'expired' && (
-        <p style={{ color: '#c0392b' }}>Session expired — please authenticate again.</p>
+        <p style={{ color: 'var(--color-destructive)' }}>Session expired — please authenticate again.</p>
       )}
 
       {flowError && (
-        <p style={{ color: '#c0392b' }}>{flowError}</p>
+        <p style={{ color: 'var(--color-destructive)' }}>{flowError}</p>
       )}
 
       {!flowData ? (
@@ -49,8 +49,8 @@ export function AuthPanel() {
             cursor: 'pointer',
             borderRadius: '6px',
             border: '1px solid #ccc',
-            background: '#24292e',
-            color: '#fff',
+            background: 'var(--color-neutral-900)',
+            color: 'var(--color-accent-contrast)',
           }}
         >
           Start GitHub Authentication
@@ -64,7 +64,7 @@ export function AuthPanel() {
             target="_blank"
             rel="noopener noreferrer"
             className="auth-link"
-            style={{ fontSize: '1.1rem', color: '#0366d6' }}
+            style={{ fontSize: '1.1rem', color: 'var(--color-accent)' }}
           >
             {flowData.verification_uri}
           </a>
@@ -96,7 +96,7 @@ export function AuthPanel() {
             </button>
           </div>
 
-          <div className="auth-waiting-text" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#57606a' }}>
+          <div className="auth-waiting-text" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-muted)' }}>
             <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
             <span>Waiting for authentication...</span>
           </div>

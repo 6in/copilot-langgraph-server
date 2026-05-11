@@ -143,6 +143,10 @@ async def process_chat(
     rpc_params: dict | None = None,
     # Phase 31: iframe_rpc route generates correlation_id; handler uses it as trace_id
     correlation_id: str | None = None,
+    # Phase 36 (D-14): per-turn attachments (list of dict conforming to D-14 schema).
+    # REST 入口 (chat.py) の enqueue_job(attachments=body.attachments) からそのまま流れる.
+    # handler 側で HumanMessage.additional_kwargs / AgentState.new_attachments に注入する.
+    attachments: list[dict] | None = None,
 ) -> dict:
     """arq job function: route to the appropriate handler by task_type.
 
@@ -184,6 +188,9 @@ async def process_chat(
         # Phase 31: trace_id source for iframe_rpc_handler (other handlers build
         # their own RPCContext and ignore this field).
         "correlation_id": correlation_id,
+        # Phase 36 (D-14): per-turn attachments — handler が HumanMessage.additional_kwargs /
+        # AgentState.new_attachments に展開する.
+        "attachments": attachments,
     }
     return await handler.handle(ctx, job)
 

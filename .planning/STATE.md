@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: executing
-stopped_at: Phase 37 context gathered (scope 調整で 36 から切り離し先行着手)
-last_updated: "2026-04-22T01:04:26.923Z"
-last_activity: 2026-04-22
+status: Phase 36 complete (7/7 plans) — ready for verifier + phase closeout
+stopped_at: Phase 36 Wave 6 complete (Plan 07: integration-check + ADR-0050 + patterns.md +3 + VERIFICATION.md)
+last_updated: "2026-05-11T05:35:50.799Z"
+last_activity: 2026-05-11
 progress:
   total_phases: 8
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 3
+  total_plans: 20
+  completed_plans: 20
   percent: 100
 ---
 
@@ -21,22 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 37 — pdf-office-mcp
+**Current focus:** Phase 35 — dashboard-design-system
 
 ## Current Position
 
-Phase: 38
-Plan: Not started
+Phase: 36-text-code-image-multimodal
+Plan: 36-07 (Wave 6 — Phase 36 closing gate complete)
 Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
-Status: Executing Phase 37
-Progress: 0/8 phases complete · `[░░░░░░░░] 0%`
-Last activity: 2026-04-22
+Status: Phase 36 complete (7/7 plans, Success Criteria 4/4 PASS) — verifier + completion pending
+Progress: 3/8 phases complete (Phase 37 + Phase 35 + Phase 36) · `[███░░░░░] 38%`
+Last activity: 2026-05-11
+Resume file: .planning/phases/36-text-code-image-multimodal/36-VERIFICATION.md
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 16 (v5.0)
+- Total plans completed: 32 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -48,6 +49,7 @@ Last activity: 2026-04-22
 | 29 | 1 | - | - |
 | 31 | 8 | - | - |
 | 37 | 5 | - | - |
+| 35 | 8 | - | - |
 
 **Recent Trend:**
 
@@ -257,8 +259,9 @@ Recent decisions affecting current work:
 - MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
 - エージェント実行・MCP ツール利用の observability 基盤 — api
 - Docker 外部から trace ログを検索できるラッパースクリプトを整備 — tooling
+- AskMe ボタンが全チャットアプリで描画されない regression を修正 — ui
 
-<!-- 9/9 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30; 2026-04-20: Phase 31 振り返りで host-side trace wrapper を追加) -->
+<!-- 10/10 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30; 2026-04-20: Phase 31 振り返りで host-side trace wrapper を追加; 2026-04-23: Phase 35 InputBar/MessageArea split regression - AskMe button wiring lost in 5 chat apps) -->
 
 ### Quick Tasks Completed
 
@@ -303,8 +306,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-21 — Phase 37 discuss-phase 完了 (CONTEXT.md + DISCUSSION-LOG.md)
-Last session: 2026-04-21T00:00:00.000Z
-Stopped at: Phase 37 context gathered (scope 調整で 36 から切り離し先行着手)
+Last session: 2026-04-23T03:44:23.422Z
+Stopped at: Phase 36 context gathered
 Resume file: .planning/phases/37-pdf-office-mcp/37-CONTEXT.md — next action: `/gsd-plan-phase 37`
 
 ## Deferred Items

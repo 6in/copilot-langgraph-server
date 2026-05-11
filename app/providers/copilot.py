@@ -33,7 +33,13 @@ from pydantic import ConfigDict, PrivateAttr
 
 # SDK imports are at module top-level so that tests can patch them at
 # app.providers.copilot.CopilotClient / SubprocessConfig / PermissionHandler
-from copilot import CopilotClient, SubprocessConfig, PermissionHandler  # type: ignore[import-untyped]
+from copilot import (  # type: ignore[import-untyped]
+    CopilotClient,
+    SubprocessConfig,
+    PermissionHandler,
+    FileAttachment,  # Phase 36 D-10/D-15: TypedDict. dict リテラル {"type": "file", "path": ..., "displayName": ...} で組む.
+    ModelInfo,       # Phase 36 D-16: list_models() 戻り値、dataclass (capabilities / limits / billing) を持つ.
+)
 from copilot.generated.session_events import SessionEventType  # type: ignore[import-untyped]
 
 
@@ -163,6 +169,9 @@ class ChatCopilot(BaseChatModel):
         """
         await self._ensure_client()
         prompt = self._messages_to_prompt(messages)
+        # Phase 36 D-09/D-10: 最後の HumanMessage の additional_kwargs["attachments"] を
+        # SDK FileAttachment TypedDict に変換して send_and_wait に渡す.
+        sdk_atts = self._extract_attachments(messages)
 
         try:
             session = await self._client.create_session(
@@ -176,7 +185,11 @@ class ChatCopilot(BaseChatModel):
             # session.on never prevents the actual LLM call.
             self._register_usage_hook(session)
 
-            response = await session.send_and_wait(prompt, timeout=self.send_timeout)
+            response = await session.send_and_wait(
+                prompt,
+                attachments=sdk_atts,
+                timeout=self.send_timeout,
+            )
 
             if response is None or response.data.content is None:
                 raise RuntimeError(
@@ -220,6 +233,9 @@ class ChatCopilot(BaseChatModel):
         """
         await self._ensure_client()
         prompt = self._messages_to_prompt(messages)
+        # Phase 36 D-09/D-10: streaming 経路でも最後の HumanMessage の attachments を抽出して
+        # session.send に同じ kwarg で渡す.
+        sdk_atts = self._extract_attachments(messages)
 
         try:
             session = await self._client.create_session(
@@ -259,7 +275,7 @@ class ChatCopilot(BaseChatModel):
 
             # Register handler BEFORE send() to avoid missing early delta events
             session.on(on_event)
-            await session.send(prompt)
+            await session.send(prompt, attachments=sdk_atts)
 
             # Yield chunks from the queue until completion signal (None)
             while True:
@@ -303,6 +319,68 @@ class ChatCopilot(BaseChatModel):
         )
         await self._client.start()
 
+    # ------------------------------------------------------------------
+    # Phase 36 D-16/D-18 — model catalog & vision capability helpers
+    # ------------------------------------------------------------------
+
+    async def list_models(self) -> list[dict]:
+        """Phase 36 D-16: SDK list_models() を D-14 dict に変換する.
+
+        戻り値: [{id, name, vision, vision_limits, billing_multiplier}, ...]
+        - vision: bool — ModelCapabilities.supports.vision
+        - vision_limits: dict | None — ModelVisionLimits.to_dict() or None
+        - billing_multiplier: float | None — ModelBilling.multiplier
+
+        SDK 型 (ModelInfo / ModelCapabilities / ModelVisionLimits) はこのメソッド内で
+        全て dict 化し、route 層 (D-15 SDK 隔離原則) には dict のみを露出する.
+        """
+        await self._ensure_client()
+        models = await self._client.list_models()
+        payload: list[dict] = []
+        for m in models:
+            caps = getattr(m, "capabilities", None)
+            supports = getattr(caps, "supports", None) if caps else None
+            limits = getattr(caps, "limits", None) if caps else None
+            vision_flag = bool(getattr(supports, "vision", False)) if supports else False
+            vision_limits_obj = getattr(limits, "vision", None) if limits else None
+            vision_limits: dict | None = None
+            if vision_limits_obj is not None:
+                if hasattr(vision_limits_obj, "to_dict"):
+                    vision_limits = vision_limits_obj.to_dict()
+                else:
+                    # dataclass フィールドをそのまま dict 化 (to_dict が無い旧 SDK 用 fallback)
+                    import dataclasses
+                    vision_limits = (
+                        dataclasses.asdict(vision_limits_obj)
+                        if dataclasses.is_dataclass(vision_limits_obj)
+                        else None
+                    )
+            billing = getattr(m, "billing", None)
+            multiplier = getattr(billing, "multiplier", None) if billing else None
+            payload.append({
+                "id": m.id,
+                "name": m.name,
+                "vision": vision_flag,
+                "vision_limits": vision_limits,
+                "billing_multiplier": multiplier,
+            })
+        return payload
+
+    async def is_vision_model(self, model_id: str) -> bool:
+        """Phase 36 D-18: worker 側 vision drop 判定ヘルパー.
+
+        list_models() 取得・例外時は False を返す (fail-safe, drop 画像 + SystemMessage 警告
+        で graceful 継続するため、SDK エラー時に「vision 対応」と誤判定して画像を送るのを防ぐ).
+        """
+        try:
+            models = await self.list_models()
+            for m in models:
+                if m.get("id") == model_id:
+                    return bool(m.get("vision"))
+        except Exception:
+            return False
+        return False
+
     async def close(self) -> None:
         """Stop the underlying CopilotClient and release resources."""
         if self._client is not None:
@@ -312,6 +390,51 @@ class ChatCopilot(BaseChatModel):
     # ------------------------------------------------------------------
     # Message formatting
     # ------------------------------------------------------------------
+
+    def _extract_attachments(
+        self,
+        messages: Sequence[BaseMessage],
+    ) -> Optional[List["FileAttachment"]]:
+        """Phase 36 D-10/D-14/D-15: 最後の HumanMessage の additional_kwargs['attachments']
+        を SDK FileAttachment TypedDict に変換して返す.
+
+        - 他 BaseMessage 型 (AIMessage / SystemMessage / ToolMessage) は skip
+        - additional_kwargs が空 / 不在 / list が空なら None を返す (send_and_wait は None を許容)
+        - kind != 'file' は本 phase 未採用なので skip (将来 BlobAttachment 追加時にここを拡張)
+        - path が str で非空でない entry は skip (防御的)
+        - displayName は SDK 0.2.0 で required (Wave 0 Plan 01 Task 2 で確認).
+          name が str で非空ならそれを採用、それ以外は path basename を fallback で必ず埋める.
+        """
+        import os.path as _ospath
+
+        last_human = None
+        for m in reversed(messages):
+            if isinstance(m, HumanMessage):
+                last_human = m
+                break
+        if last_human is None:
+            return None
+        atts_meta = (last_human.additional_kwargs or {}).get("attachments") or []
+        sdk_atts: List[FileAttachment] = []
+        for a in atts_meta:
+            if not isinstance(a, dict):
+                continue
+            if a.get("kind") != "file":
+                continue
+            path = a.get("path")
+            if not isinstance(path, str) or not path:
+                continue
+            display_name = a.get("name")
+            if not (isinstance(display_name, str) and display_name):
+                # Wave 0 Plan 01 Deviation #2: SDK は displayName 必須. fallback で必ず埋める.
+                display_name = _ospath.basename(path) or path
+            entry: FileAttachment = {
+                "type": "file",
+                "path": path,
+                "displayName": display_name,
+            }
+            sdk_atts.append(entry)
+        return sdk_atts or None
 
     def _messages_to_prompt(self, messages: Sequence[BaseMessage]) -> str:
         """Convert a LangChain message list to a single prompt string.

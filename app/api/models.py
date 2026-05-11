@@ -49,6 +49,10 @@ class ChatRequest(BaseModel):
     pattern: str = "debate"                # "debate" | "panel" | "chain"
     max_turns: int = 3                     # 討論ターン数
     current_turn: int = 0                  # 再エンキュー時に前回の終了ターンを渡す
+    # Phase 36 (D-14): per-turn attachments — D-14 統一 dict スキーマのリスト
+    # (kind / name / storage_name / path / size / mime_type / ext / modified_at)
+    # pydantic 側で構造バリデーションはしない。worker 側で defensive `.get()` + `isinstance` で validate。
+    attachments: list[dict] | None = None
 
 
 class ChatResponse(BaseModel):

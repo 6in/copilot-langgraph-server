@@ -103,8 +103,8 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 - [ ] **Phase 32: AI-UI 操作基盤 (data-ai-role + ページ探索 API)** — 主要 UI コンポーネントへ data-ai-role 属性を付与し、現在表示中のページ構造を JSON で返す探索 API を提供する
 - [ ] **Phase 33: AI-UI 操作 MCP ツール + trace/人間承認** — ui_click / ui_read / ui_fill / ui_navigate を MCP ツール化し、observability trace 記録と破壊的操作の確認ダイアログ承認をセットで提供する
 - [ ] **Phase 34: チャット操作性 + スレッド/アプリ探索性** — メッセージコピー・再送信・キャンセル・ストリーミング、スレッド検索・タイトル自動生成・フィルタなど日常操作の摩擦を低減する
-- [ ] **Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一** — メニュー画面のダッシュボード再設計とモバイル幅・ダークモード・クロスブラウザ対応の統一
-- [ ] **Phase 36: ファイル入力 — text/code + image multimodal** — チャット添付からテキスト/コード系ファイル + 画像 (multimodal) を LLM コンテキストへ流し込む基盤
+- [x] **Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一** — メニュー画面のダッシュボード再設計とモバイル幅・ダークモード・クロスブラウザ対応の統一 (completed 2026-04-23)
+- [x] **Phase 36: ファイル入力 — text/code + image multimodal** — チャット添付からテキスト/コード系ファイル + 画像 (multimodal) を LLM コンテキストへ流し込む基盤 (completed 2026-05-11)
 - [x] **Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照** — PDF / Office ファイルのテキスト抽出と、添付ファイルを execute_python / claude_code 等の MCP ツールから参照可能にする (completed 2026-04-22)
 - [ ] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装
 - [ ] **Phase 39: UI バグ潰し + Polish 枠** — Mermaid hang・CollapsibleCodeBlock バルーン・test_sse hang/JobStore dead code を整理し、開発中に発覚した小バグをまとめて潰す
@@ -156,7 +156,15 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
   2. 初見ユーザーが説明なしで「最初にどのアプリを使えばいいか」を判断できるような視覚情報設計になっている
   3. UI がモバイル幅 (例: 375-768px) でレイアウト崩れせずに動作する
   4. ダークモード・主要モダンブラウザ (Chrome / Edge / Safari) で chatscope バルーン幅などのデザイン破綻が発生しない
-**Plans**: TBD
+**Plans:** 8/8 plans complete
+Plans:
+- [x] 35-01-foundation-setup-PLAN.md — CSS 変数基盤 + utils 切り出し + 検証ハーネス (Wave 0)
+- [x] 35-02-theme-hex-to-var-PLAN.md — theme.css hex → var() 機械置換 + chatscope override 変数駆動化 (Wave 1)
+- [x] 35-03-messagearea-inputbar-split-PLAN.md — MessageArea → InputBar 分離 + var() 移行 + isDark 排除 (Wave 1)
+- [x] 35-04-threadsidebar-migration-PLAN.md — ThreadSidebar isDark 排除 + var() 移行 + drawer state (Wave 1)
+- [x] 35-05-header-migration-PLAN.md — Header isDark 排除 + var() 移行 + hamburger menu (Wave 1)
+- [x] 35-06-dashboard-responsive-PLAN.md — MenuScreen ダッシュボード化 + レスポンシブ @media 集約 (Wave 2)
+- [ ] 35-07-a11y-crossbrowser-handoff-PLAN.md — :focus-visible + cross-browser + Phase 36 Handoff 検証 + PROJECT.md 更新 (Wave 3)
 **UI hint**: yes
 
 ### Phase 36: ファイル入力 — text/code + image multimodal
@@ -168,7 +176,15 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
   2. ユーザーが .png / .jpg / .webp 画像を添付でき、multimodal 対応モデルで画像内容を踏まえた応答を得られる
   3. multimodal 非対応モデルが選択されている場合、エラーで止まらず graceful にテキスト要約や警告にフォールバックする
   4. 添付ファイルがチャット履歴 (PostgreSQL checkpointer) に紐付けされ、スレッドを再オープンしたときも添付情報を確認できる
-**Plans**: TBD
+**Plans:** 7/7 plans complete
+Plans:
+- [x] 36-01-PLAN.md — Wave 0 A1 risk (additional_kwargs round-trip) + SDK attachments spike 検証 (2026-04-24)
+- [x] 36-02-PLAN.md — ChatCopilot provider 配線 (attachments kwarg + list_models + is_vision_model) + GET /api/models route + main.py 登録 (Wave 1) (2026-04-24)
+- [x] 36-03-PLAN.md — POST/GET/DELETE /api/threads/{tid}/attachments 実装 + ChatRequest 拡張 + history additional_kwargs 返却 (D-22) (Wave 2) (2026-04-24)
+- [x] 36-04-PLAN.md — worker.process_chat + 2 handler (LangGraph / Orchestrator) で HumanMessage.additional_kwargs 注入 + D-18 vision drop (Wave 3) (2026-04-24)
+- [x] 36-05-PLAN.md — useAttachments hook + AttachmentButton / AttachmentChips + ChatApp drop zone + paste listener (Wave 4) (2026-04-24)
+- [x] 36-06-PLAN.md — useModels + VisionWarningBanner + Header vision 絵文字 + InputBar warningSlot + useChat.sendMessage attachments + bubble AttachmentChipRow (Wave 5) (2026-04-24)
+- [x] 36-07-PLAN.md — docker compose E2E integration check + ADR-0050 起票 + patterns.md 追記 + VERIFICATION.md クローズ (Wave 6)
 **UI hint**: yes
 
 ### Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照
@@ -258,8 +274,8 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 32. AI-UI 操作基盤 (data-ai-role + ページ探索 API) | v6.0 | 0/TBD | Not started | - |
 | 33. AI-UI 操作 MCP ツール + trace/人間承認 | v6.0 | 0/TBD | Not started | - |
 | 34. チャット操作性 + スレッド/アプリ探索性 | v6.0 | 0/TBD | Not started | - |
-| 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 0/TBD | Not started | - |
-| 36. ファイル入力 — text/code + image multimodal | v6.0 | 0/TBD | Not started | - |
+| 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
+| 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
 | 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 0/TBD | Not started | - |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |

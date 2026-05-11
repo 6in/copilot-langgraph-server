@@ -168,10 +168,19 @@ def test_ensure_client_no_token_no_manager():
 
 @pytest.mark.asyncio
 async def test_send_and_wait_called_with_string(mock_copilot):
-    """send_and_wait must receive the prompt as a plain str, not a dict."""
+    """send_and_wait must receive the prompt as a plain str, not a dict.
+
+    Phase 36 D-09 で attachments + timeout kwargs が追加されたため、第 1 引数
+    (prompt) のみ str 検査し、kwargs は型と attachments=None を assert する.
+    """
     from app.providers.copilot import ChatCopilot
 
     provider = ChatCopilot(model="gpt-4.1", github_token="ghu_test")
     await provider._agenerate([HumanMessage(content="hello")])
 
-    mock_copilot["session"].send_and_wait.assert_called_once_with("[User]: hello")
+    mock_copilot["session"].send_and_wait.assert_awaited_once()
+    args, kwargs = mock_copilot["session"].send_and_wait.call_args
+    assert args == ("[User]: hello",)
+    # Phase 36: 添付なしの HumanMessage では attachments=None が渡る
+    assert kwargs.get("attachments") is None
+    assert "timeout" in kwargs

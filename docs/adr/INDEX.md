@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 46 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 48 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -24,6 +24,8 @@
 | [0038](0038-superchat-context-messages-and-agent-name-persistence.md) | SuperChat 過去メッセージコンテキスト注入とエージェント名永続化 | 2026-04-16 |
 | [0042](0042-user-model-override-propagation-to-subagents.md) | SuperChat ユーザー選択モデルを SubAgent デフォルトより優先する `model_override` 伝播 | 2026-04-18 |
 | [0046](0046-integration-check-surfaced-silent-failures.md) | Phase 31 Integration Check retrospective — unit-test green でも surface しなかった silent failure 3 件 | 2026-04-20 |
+| [0050](0050-copilot-sdk-multimodal-attachments.md) | Copilot SDK 0.2.0 multimodal attachments の採用と SDK 隔離原則 | 2026-05-11 |
+| [0051](0051-multi-app-rollout-process-patterns.md) | Multi-app 機能展開フェーズの工程パターン (Phase 36 retrospective) | 2026-05-11 |
 
 ## MCP・Tools
 

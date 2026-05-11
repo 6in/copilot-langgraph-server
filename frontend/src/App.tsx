@@ -204,7 +204,8 @@ function ChatRoute({
   return (
     <>
       <Header selectedModel={selectedModel} onModelChange={onModelChange} theme={theme} onToggleTheme={onToggleTheme} onBackToMenu={() => navigate('/')} />
-      <ChatApp selectedModel={selectedModel} />
+      {/* Phase 36 D-17: ChatApp 内 VisionWarningBanner CTA からモデル切替を発火するため onModelChange も渡す */}
+      <ChatApp selectedModel={selectedModel} onModelChange={onModelChange} />
     </>
   );
 }

@@ -18,9 +18,9 @@ function hashName(name: string): number {
   return hash % AGENT_PALETTES.length;
 }
 
-export function agentBgColor(name: string, isDark: boolean): string {
+export function agentBgColor(name: string, theme: string): string {
   const p = AGENT_PALETTES[hashName(name)];
-  return isDark ? p.dark : p.light;
+  return theme === 'dark' ? p.dark : p.light;
 }
 
 export function agentAccentColor(name: string): string {

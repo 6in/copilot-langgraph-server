@@ -26,6 +26,8 @@ import type {
   GemCreate,
   CanvasAppInfo,
   CanvasDeployResponse,
+  AttachmentMeta,   // Phase 36
+  ModelInfo,        // Phase 36 (D-16)
 } from '../types';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -94,6 +96,47 @@ export const deleteThread = async (threadId: string): Promise<void> => {
     throw new Error(`Delete thread failed: ${resp.status}`);
   }
 };
+
+// --- Phase 36: Attachments (D-07) ---
+
+// postAttachments: multipart/form-data。Content-Type は browser が boundary 付きで自動設定するので
+// 明示的に Content-Type を指定しない (指定すると boundary が壊れる)。
+// apiFetch wrapper は JSON 前提なので使わず直接 fetch で投げる (deleteThread と同 pattern)。
+export const postAttachments = async (
+  threadId: string,
+  files: File[],
+  signal?: AbortSignal,
+): Promise<{ attachments: AttachmentMeta[] }> => {
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f, f.name);
+  const resp = await fetch(
+    `${API_BASE}/api/threads/${encodeURIComponent(threadId)}/attachments`,
+    { method: 'POST', body: fd, credentials: 'include', signal },
+  );
+  if (!resp.ok) {
+    throw new Error(`postAttachments failed: ${resp.status}`);
+  }
+  return resp.json();
+};
+
+// deleteAttachment: 204 No Content 期待。idempotent。
+export const deleteAttachment = async (threadId: string, name: string): Promise<void> => {
+  const resp = await fetch(
+    `${API_BASE}/api/threads/${encodeURIComponent(threadId)}/attachments/${encodeURIComponent(name)}`,
+    { method: 'DELETE', credentials: 'include' },
+  );
+  if (resp.status !== 204 && !resp.ok) {
+    throw new Error(`deleteAttachment failed: ${resp.status}`);
+  }
+};
+
+// --- Phase 36: Models (D-16) ---
+
+// getModels: GET /api/models. Plan 02 で実装済の TTL 1h cache 付き endpoint を呼ぶ。
+// useModels hook (Plan 06) でさらに 1h TTL のモジュール変数キャッシュを重ねるため、
+// このラッパー自体はキャッシュを持たない。
+export const getModels = () =>
+  apiFetch<ModelInfo[]>(`${API_BASE}/api/models`);
 
 export const renameThread = (threadId: string, label: string) =>
   apiFetch<{ thread_id: string; label: string }>(

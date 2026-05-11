@@ -68,6 +68,64 @@ async def test_chat_enqueue_includes_github_token(api_client, mock_arq_redis, jw
     assert call_kwargs["github_token"] == "ghu_test_token_for_chat"
 
 
+# ---------------------------------------------------------------------------
+# Phase 36 Plan 03 Task 1: ChatRequest.attachments + arq enqueue_job 経由
+# ---------------------------------------------------------------------------
+
+def test_chat_request_accepts_attachments_field():
+    """Phase 36 D-14: ChatRequest が attachments=[D-14 dict, ...] を valid に受ける。"""
+    from app.api.models import ChatRequest
+    atts = [{"kind": "file", "path": "/x", "name": "x.txt"}]
+    req = ChatRequest(message="hi", thread_id="t", attachments=atts)
+    assert req.attachments == atts
+
+
+def test_chat_request_attachments_optional():
+    """Phase 36 D-14: attachments=None (省略時のデフォルト) が valid。"""
+    from app.api.models import ChatRequest
+    req = ChatRequest(message="hi", thread_id="t")
+    assert req.attachments is None
+
+
+async def test_post_chat_forwards_attachments_to_enqueue_job(
+    api_client, mock_arq_redis, jwt_cookie,
+):
+    """Phase 36 D-14: POST /api/chat body.attachments が enqueue_job(attachments=...) に流れる。"""
+    atts = [{
+        "kind": "file", "name": "sample.png",
+        "storage_name": "20260423T120000_sample.png",
+        "path": "/shared/thread-files/u/t-1/20260423T120000_sample.png",
+        "size": 123, "mime_type": "image/png", "ext": "png",
+        "modified_at": "2026-04-23T12:00:00Z",
+    }]
+    resp = await api_client.post(
+        "/api/chat",
+        json={
+            "message": "これを見て", "thread_id": "t-1", "model": "claude-sonnet-4.6",
+            "attachments": atts,
+        },
+        cookies={"session": jwt_cookie},
+    )
+    assert resp.status_code == 200, resp.text
+    call_kwargs = mock_arq_redis.enqueue_job.call_args.kwargs
+    assert call_kwargs.get("attachments") == atts
+
+
+async def test_post_chat_without_attachments_passes_none(
+    api_client, mock_arq_redis, jwt_cookie,
+):
+    """Phase 36 D-14: attachments を含まない既存 body は enqueue_job(attachments=None) で呼ばれる (後方互換)。"""
+    resp = await api_client.post(
+        "/api/chat",
+        json={"message": "hi", "thread_id": "t-1"},
+        cookies={"session": jwt_cookie},
+    )
+    assert resp.status_code == 200, resp.text
+    call_kwargs = mock_arq_redis.enqueue_job.call_args.kwargs
+    assert "attachments" in call_kwargs
+    assert call_kwargs["attachments"] is None
+
+
 async def test_new_thread_returns_uuid(api_client):
     """POST /api/threads returns a valid UUID4 thread_id (CHAT-04)."""
     import uuid
