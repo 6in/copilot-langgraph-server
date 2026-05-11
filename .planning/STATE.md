@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: Phase 36 complete (7/7 plans) — ready for verifier + phase closeout
-stopped_at: Phase 36 Wave 6 complete (Plan 07: integration-check + ADR-0050 + patterns.md +3 + VERIFICATION.md)
-last_updated: "2026-05-11T05:35:50.799Z"
+status: Phase 35 + 36 main へ squash merge 完了 — 次フェーズ待機中
+stopped_at: Phase 35 + 36 squash merge 完了 (commit e5c2454), Phase 35/36 ブランチ + agent worktree 全削除
+last_updated: "2026-05-11T08:00:00.000Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 8
@@ -21,17 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 35 — dashboard-design-system
+**Current focus:** v6.0 milestone 待機中 (Phase 35/36/37 完了、次候補: Phase 32/33/34/38/39)
 
 ## Current Position
 
-Phase: 36-text-code-image-multimodal
-Plan: 36-07 (Wave 6 — Phase 36 closing gate complete)
+Phase: (待機中 — 次フェーズ未着手)
+Plan: -
 Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
-Status: Phase 36 complete (7/7 plans, Success Criteria 4/4 PASS) — verifier + completion pending
-Progress: 3/8 phases complete (Phase 37 + Phase 35 + Phase 36) · `[███░░░░░] 38%`
+Status: Phase 35 + 36 main へ squash merge 完了 (commit e5c2454)、verifier PASS、manual operation check 25/25 PASS、agent worktree 全削除
+Progress: 3/8 phases complete (Phase 35 + Phase 36 + Phase 37) · `[███░░░░░] 38%`
 Last activity: 2026-05-11
-Resume file: .planning/phases/36-text-code-image-multimodal/36-VERIFICATION.md
+Resume file: .planning/ROADMAP.md (次フェーズ選定)
+Hand-offs to next phases:
+  - Phase 34/39 候補: AskMe button regression (5 chat apps) — `.planning/todos/pending/2026-04-23-fix-askme-button-regression-...md`
+  - Phase 34/v6.1 候補: 📎 入口段差 (activeThreadId disabled UX) — `.planning/phases/36-text-code-image-multimodal/deferred-items.md`
+  - Phase 38 候補: AI 生成ファイル inline プレビュー + DL + 永続化 — 同上 deferred-items.md
 
 ## Performance Metrics
 

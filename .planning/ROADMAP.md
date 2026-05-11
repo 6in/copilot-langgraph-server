@@ -164,7 +164,7 @@ Plans:
 - [x] 35-04-threadsidebar-migration-PLAN.md — ThreadSidebar isDark 排除 + var() 移行 + drawer state (Wave 1)
 - [x] 35-05-header-migration-PLAN.md — Header isDark 排除 + var() 移行 + hamburger menu (Wave 1)
 - [x] 35-06-dashboard-responsive-PLAN.md — MenuScreen ダッシュボード化 + レスポンシブ @media 集約 (Wave 2)
-- [ ] 35-07-a11y-crossbrowser-handoff-PLAN.md — :focus-visible + cross-browser + Phase 36 Handoff 検証 + PROJECT.md 更新 (Wave 3)
+- [x] 35-07-a11y-crossbrowser-handoff-PLAN.md — :focus-visible + cross-browser + Phase 36 Handoff 検証 + PROJECT.md 更新 (Wave 3) (2026-04-23)
 **UI hint**: yes
 
 ### Phase 36: ファイル入力 — text/code + image multimodal
@@ -229,6 +229,9 @@ Plans:
   3. `tests/test_sse.py::test_sse_done_signal` の hang が修正または削除され、JobStore.register_sse / unregister_sse の dead code が整理されている
   4. v6.0 期間中に発覚した小 UI バグが一覧化され、polish 枠で消化済み or 明示的に v6.1+ defer 判断されている
 **Plans**: TBD
+**Hand-offs from earlier phases (Phase 39 着手時の必読 input):**
+  - **Phase 35 起因 — AskMe button regression (5 chat apps)**: `.planning/todos/pending/2026-04-23-fix-askme-button-regression-in-chat-apps-after-phase-35-inpu.md` 参照。`35-03-messagearea-inputbar-split` で InputBar 分離時に 5 アプリ全てで `<MessageArea onAskMe={...} />` 配線が欠落。1 行追加 ×5 ファイルの軽微 fix
+  - **Phase 36 起因 — 📎 入口段差** (option): `.planning/phases/36-text-code-image-multimodal/deferred-items.md` 参照。`activeThreadId === null` 時の `AttachmentButton` disabled tooltip 文言改善 (Phase 34 lazy auto-create の方が筋なら Phase 34 で扱う)
 **UI hint**: yes
 
 ## Progress
