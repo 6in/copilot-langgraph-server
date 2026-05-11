@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: Phase 35 + 36 main へ squash merge 完了 — 次フェーズ待機中
-stopped_at: Phase 35 + 36 squash merge 完了 (commit e5c2454), Phase 35/36 ブランチ + agent worktree 全削除
-last_updated: "2026-05-11T08:00:00.000Z"
+status: verifying
+stopped_at: Phase 38 context gathered
+last_updated: "2026-05-11T12:02:02.437Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 8
@@ -31,8 +31,9 @@ Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
 Status: Phase 35 + 36 main へ squash merge 完了 (commit e5c2454)、verifier PASS、manual operation check 25/25 PASS、agent worktree 全削除
 Progress: 3/8 phases complete (Phase 35 + Phase 36 + Phase 37) · `[███░░░░░] 38%`
 Last activity: 2026-05-11
-Resume file: .planning/ROADMAP.md (次フェーズ選定)
+Resume file: .planning/phases/38-worker-dl/38-CONTEXT.md
 Hand-offs to next phases:
+
   - Phase 34/39 候補: AskMe button regression (5 chat apps) — `.planning/todos/pending/2026-04-23-fix-askme-button-regression-...md`
   - Phase 34/v6.1 候補: 📎 入口段差 (activeThreadId disabled UX) — `.planning/phases/36-text-code-image-multimodal/deferred-items.md`
   - Phase 38 候補: AI 生成ファイル inline プレビュー + DL + 永続化 — 同上 deferred-items.md
@@ -310,8 +311,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-21 — Phase 37 discuss-phase 完了 (CONTEXT.md + DISCUSSION-LOG.md)
-Last session: 2026-04-23T03:44:23.422Z
-Stopped at: Phase 36 context gathered
+Last session: 2026-05-11T12:02:02.423Z
+Stopped at: Phase 38 context gathered
 Resume file: .planning/phases/37-pdf-office-mcp/37-CONTEXT.md — next action: `/gsd-plan-phase 37`
 
 ## Deferred Items
