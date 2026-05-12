@@ -216,7 +216,21 @@ Plans:
   3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
   4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
   5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
-**Plans**: TBD
+**Plans:** 6 plans
+Plans:
+**Wave 1**
+- [ ] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
+- [ ] 38-02-PLAN.md — outputs route + MCP attachments_list kind/_generated/ + YAML SSoT 再生成 (Wave 1)
+- [ ] 38-03-PLAN.md — execute_python cwd 切替 + claude_code cwd 引数削除 + post-process snapshot-diff rename (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 38-04-PLAN.md — attachments_helper 拡張 + langgraph_handler turn-delta bundle + API legacy 正規化 (Wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 38-05-PLAN.md — AttachmentModal + 4 renderer + AttachmentChipRow kind 拡張 (Wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 38-06-PLAN.md — E2E acceptance + ADR-0052 + patterns.md + VALIDATION close (Wave 4)
 **UI hint**: yes
 
 ### Phase 39: UI バグ潰し + Polish 枠

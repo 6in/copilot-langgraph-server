@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: verifying
-stopped_at: Phase 38 context gathered
-last_updated: "2026-05-11T12:02:02.437Z"
-last_activity: 2026-05-11
+status: executing
+stopped_at: Phase 38 UI-SPEC approved
+last_updated: "2026-05-12T01:35:30.461Z"
+last_activity: 2026-05-12 -- Phase 38 planning complete
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 20
+  total_plans: 26
   completed_plans: 20
-  percent: 100
+  percent: 77
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 Phase: (待機中 — 次フェーズ未着手)
 Plan: -
 Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
-Status: Phase 35 + 36 main へ squash merge 完了 (commit e5c2454)、verifier PASS、manual operation check 25/25 PASS、agent worktree 全削除
+Status: Ready to execute
 Progress: 3/8 phases complete (Phase 35 + Phase 36 + Phase 37) · `[███░░░░░] 38%`
-Last activity: 2026-05-11
-Resume file: .planning/phases/38-worker-dl/38-CONTEXT.md
+Last activity: 2026-05-12 -- Phase 38 planning complete
+Resume file: .planning/phases/38-worker-dl/38-UI-SPEC.md
 Hand-offs to next phases:
 
   - Phase 34/39 候補: AskMe button regression (5 chat apps) — `.planning/todos/pending/2026-04-23-fix-askme-button-regression-...md`
@@ -311,8 +311,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last activity: 2026-04-21 — Phase 37 discuss-phase 完了 (CONTEXT.md + DISCUSSION-LOG.md)
-Last session: 2026-05-11T12:02:02.423Z
-Stopped at: Phase 38 context gathered
+Last session: 2026-05-12T00:21:37.812Z
+Stopped at: Phase 38 UI-SPEC approved
 Resume file: .planning/phases/37-pdf-office-mcp/37-CONTEXT.md — next action: `/gsd-plan-phase 37`
 
 ## Deferred Items
