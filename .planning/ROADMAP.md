@@ -216,10 +216,10 @@ Plans:
   3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
   4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
   5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 Plans:
 **Wave 1**
-- [ ] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
+- [x] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
 - [ ] 38-02-PLAN.md — outputs route + MCP attachments_list kind/_generated/ + YAML SSoT 再生成 (Wave 1)
 - [ ] 38-03-PLAN.md — execute_python cwd 切替 + claude_code cwd 引数削除 + post-process snapshot-diff rename (Wave 1)
 
@@ -294,5 +294,5 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
 | 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
-| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 0/TBD | Not started | - |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 1/6 | In Progress|  |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |
