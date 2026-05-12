@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 48 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 49 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -85,6 +85,7 @@
 | [0032](0032-db-pools-yaml-driven-tuning-params.md) | db_pools.yaml 駆動の接続プールチューニングパラメータ | 2026-04-15 |
 | [0045](0045-phase-31-observability-jsonl.md) | Phase 31 — エージェント実行・MCP ツール利用の observability 基盤 (stdout JSONL + OTEL span-like schema) | 2026-04-18 |
 | [0048](0048-thread-files-folder-convention.md) | thread-files 共有フォルダ規約 (Phase 37) | 2026-04-21 |
+| [0052](0052-worker-generated-outputs-storage-and-preview.md) | Worker Generated Outputs — Storage / Preview / Per-User Persistence | 2026-05-12 |
 
 ## 欠番
 
