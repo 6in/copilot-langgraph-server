@@ -216,7 +216,7 @@ Plans:
   3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
   4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
   5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 Plans:
 **Wave 1**
 - [x] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
@@ -227,7 +227,7 @@ Plans:
 - [x] 38-04-PLAN.md — attachments_helper 拡張 + langgraph_handler turn-delta bundle + API legacy 正規化 (Wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 38-05-PLAN.md — AttachmentModal + 4 renderer + AttachmentChipRow kind 拡張 (Wave 3)
+- [x] 38-05-PLAN.md — AttachmentModal + 4 renderer + AttachmentChipRow kind 拡張 (Wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 38-06-PLAN.md — E2E acceptance + ADR-0052 + patterns.md + VALIDATION close (Wave 4)
@@ -294,5 +294,5 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
 | 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
-| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 4/6 | In Progress|  |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 5/6 | In Progress|  |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |
