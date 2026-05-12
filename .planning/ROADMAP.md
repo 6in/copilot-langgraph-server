@@ -106,7 +106,7 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 - [x] **Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一** — メニュー画面のダッシュボード再設計とモバイル幅・ダークモード・クロスブラウザ対応の統一 (completed 2026-04-23)
 - [x] **Phase 36: ファイル入力 — text/code + image multimodal** — チャット添付からテキスト/コード系ファイル + 画像 (multimodal) を LLM コンテキストへ流し込む基盤 (completed 2026-05-11)
 - [x] **Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照** — PDF / Office ファイルのテキスト抽出と、添付ファイルを execute_python / claude_code 等の MCP ツールから参照可能にする (completed 2026-04-22)
-- [ ] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装
+- [x] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装 (completed 2026-05-12)
 - [ ] **Phase 39: UI バグ潰し + Polish 枠** — Mermaid hang・CollapsibleCodeBlock バルーン・test_sse hang/JobStore dead code を整理し、開発中に発覚した小バグをまとめて潰す
 
 ## Phase Details
@@ -216,7 +216,7 @@ Plans:
   3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
   4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
   5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 Plans:
 **Wave 1**
 - [x] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
@@ -230,7 +230,7 @@ Plans:
 - [x] 38-05-PLAN.md — AttachmentModal + 4 renderer + AttachmentChipRow kind 拡張 (Wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 38-06-PLAN.md — E2E acceptance + ADR-0052 + patterns.md + VALIDATION close (Wave 4)
+- [x] 38-06-PLAN.md — E2E acceptance + ADR-0052 + patterns.md + VALIDATION close (Wave 4)
 **UI hint**: yes
 
 ### Phase 39: UI バグ潰し + Polish 枠
@@ -294,5 +294,5 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
 | 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
-| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 5/6 | In Progress|  |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 6/6 | Complete   | 2026-05-12 |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |
