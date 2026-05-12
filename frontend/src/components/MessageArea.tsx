@@ -19,11 +19,24 @@ import {
 import { MarkdownMessage } from './MarkdownMessage';
 import { QuestionPanel } from './QuestionPanel';
 import { InputBar } from './InputBar';
+import { AttachmentModal } from './AttachmentModal';
 import type { AskUserQuestionPayload, AttachmentMeta, ChatMessage, ContextMessage } from '../types';
 
 const ATTACH_API_BASE = (import.meta.env.VITE_APP_BASE ?? '').replace(/\/$/, '');
 const IMAGE_EXTS_HISTORY = new Set(['png', 'jpg', 'jpeg', 'webp']);
 const HISTORY_THUMB = 48;
+
+// Phase 38 D-05: kind ベース URL 切替。
+// kind === 'generated' → /api/threads/{tid}/outputs/{name} (timestamp prefix 付きの実体名)
+// kind === 'user_upload' → /api/threads/{tid}/attachments/{storage_name}
+// (AttachmentModal.tsx の buildFileUrl と同形 — UI-SPEC §"URL 解決ルール" L485-494)
+function buildChipImageUrl(threadId: string, attachment: AttachmentMeta): string {
+  const segment = attachment.kind === 'generated' ? 'outputs' : 'attachments';
+  // generated は name を URL identity に使う (D-05)、user_upload は storage_name
+  const identity =
+    attachment.kind === 'generated' ? attachment.name : attachment.storage_name || attachment.name;
+  return `${ATTACH_API_BASE}/api/threads/${encodeURIComponent(threadId)}/${segment}/${encodeURIComponent(identity)}`;
+}
 
 interface MessageAreaProps {
   messages: ChatMessage[];
@@ -46,21 +59,29 @@ interface MessageAreaProps {
   activeThreadId?: string | null;
 }
 
-// Phase 36 D-21: メッセージバブル内に表示する添付チップ行 (履歴復元用、読み取り専用)。
-// 画像 (png/jpg/jpeg/webp) は 48×48 サムネ、それ以外は 📄 pill。
-// staging UI の AttachmentChips とは別 component (削除ボタンなし、サーバ URL から img src 直読み)。
+// Phase 36 D-21 / Phase 38 D-13 + D-14: メッセージバブル内に表示する添付チップ行
+// (履歴復元用、読み取り専用)。
+//
+// Phase 38 で以下に拡張:
+// - チップ全体が `<button>` 要素 — クリックで AttachmentModal を開く (UI-SPEC L341-344)
+// - kind 別 micro-badge: kind=='generated' は「✨ AI 生成」、kind=='user_upload' は「📎 添付」
+// - kind ベースの URL 解決: kind=='generated' → /outputs/、それ以外 → /attachments/
+// - 画像 (png/jpg/jpeg/webp) は 48×48 サムネ右下に micro-badge を絶対配置
+// - text/code チップは pill 左端に micro-badge を inline 配置
 function AttachmentChipRow({
   attachments,
   threadId,
+  onOpenModal,
 }: {
   attachments: AttachmentMeta[];
   threadId: string | null;
+  onOpenModal: (a: AttachmentMeta) => void;
 }) {
   if (!attachments || attachments.length === 0) return null;
   return (
     <div
       role="group"
-      aria-label={`添付ファイル ${attachments.length} 件`}
+      aria-label={`添付・AI 生成ファイル ${attachments.length} 件`}
       style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -73,41 +94,118 @@ function AttachmentChipRow({
       {attachments.map((a) => {
         const ext = (a.ext || '').toLowerCase();
         const isImage = IMAGE_EXTS_HISTORY.has(ext);
-        if (isImage && threadId && a.storage_name) {
+        const isGenerated = a.kind === 'generated';
+        const sizeStr = _formatHistorySize(a.size);
+        const tooltip = `${a.name}（${sizeStr}）— クリックでプレビュー`;
+
+        // micro-badge styles (kind による色切替) — UI-SPEC §"kind ラベル" / §"badge の絶対位置"
+        const badgeBg = isGenerated ? 'var(--color-accent-subtle)' : 'var(--color-surface-elevated)';
+        const badgeColor = isGenerated ? 'var(--color-accent)' : 'var(--color-text-muted)';
+        const badgeText = isGenerated ? '✨ AI 生成' : '📎 添付';
+
+        if (isImage && threadId) {
+          const imgUrl = buildChipImageUrl(threadId, a);
+          const ariaLabel = isGenerated
+            ? `AI が生成した画像: ${a.name}（${sizeStr}）`
+            : `添付画像: ${a.name}（${sizeStr}）`;
           return (
-            <img
-              key={a.storage_name}
-              src={`${ATTACH_API_BASE}/api/threads/${encodeURIComponent(threadId)}/attachments/${encodeURIComponent(a.storage_name)}`}
-              alt={a.name}
-              width={HISTORY_THUMB}
-              height={HISTORY_THUMB}
-              title={`${a.name}（${_formatHistorySize(a.size)}）`}
+            <button
+              key={a.storage_name || a.name}
+              type="button"
+              onClick={() => onOpenModal(a)}
+              aria-haspopup="dialog"
+              aria-label={ariaLabel}
+              title={tooltip}
+              className="chat-attach-chip-clickable"
               style={{
+                position: 'relative',
+                width: HISTORY_THUMB,
+                height: HISTORY_THUMB,
+                padding: 0,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--color-border)',
-                objectFit: 'cover',
+                flexShrink: 0,
               }}
-            />
+            >
+              <img
+                src={imgUrl}
+                alt={a.name}
+                width={HISTORY_THUMB}
+                height={HISTORY_THUMB}
+                style={{
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              {/* 右下 micro-badge — UI-SPEC §"badge の絶対位置" L327-333 */}
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  bottom: 2,
+                  right: 2,
+                  padding: '2px var(--space-1)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  background: badgeBg,
+                  color: badgeColor,
+                }}
+              >
+                {badgeText}
+              </span>
+            </button>
           );
         }
+
+        const ariaLabel = isGenerated
+          ? `AI が生成したファイル: ${a.name}（${sizeStr}）`
+          : `添付ファイル: ${a.name}（${sizeStr}）`;
         return (
-          <span
+          <button
             key={a.storage_name || a.name}
-            title={`${a.name}（${_formatHistorySize(a.size)}）`}
+            type="button"
+            onClick={() => onOpenModal(a)}
+            aria-haspopup="dialog"
+            aria-label={ariaLabel}
+            title={tooltip}
+            className="chat-attach-chip-clickable"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
-              padding: '2px 8px',
+              gap: 'var(--space-1)',
+              padding: '2px var(--space-3)',
               borderRadius: 'var(--radius-full)',
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
               fontSize: 12,
               color: 'var(--color-text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
             }}
           >
+            {/* pill 左端 micro-badge — UI-SPEC §"badge の inline 位置" L335-337 */}
+            <span
+              aria-hidden="true"
+              style={{
+                padding: '2px var(--space-1)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 12,
+                fontWeight: 600,
+                lineHeight: 1,
+                background: badgeBg,
+                color: badgeColor,
+              }}
+            >
+              {badgeText}
+            </span>
             📄 {a.name}
-          </span>
+          </button>
         );
       })}
     </div>
@@ -236,6 +334,10 @@ export function MessageArea({
   const messageListRef = useRef<any>(null);
   const elapsed = useElapsedSeconds(isThinking);
 
+  // Phase 38 D-13: チップクリックで開く AttachmentModal の active state。
+  // UI-SPEC §"多重 modal 禁止" L513-516 により MessageArea 内で 1 個だけ持つ。
+  const [activeAttachment, setActiveAttachment] = useState<AttachmentMeta | null>(null);
+
   // Context inclusion: track which messages to exclude (default = all included)
   // Pitfall 8: excludedIndices は MessageArea 側に残す（InputBar に持ち込まない）
   const [excludedIndices, setExcludedIndices] = useState<Set<number>>(new Set());
@@ -340,6 +442,7 @@ export function MessageArea({
                     <AttachmentChipRow
                       attachments={userAttachments!}
                       threadId={activeThreadId}
+                      onOpenModal={setActiveAttachment}
                     />
                   </Message.CustomContent>
                 )}
@@ -405,12 +508,13 @@ export function MessageArea({
                     </div>
                   )}
                   <MarkdownMessage content={msg.content} />
-                  {/* Phase 36 D-21: AI 側にも additional_kwargs.attachments があれば履歴表示
-                      (現状は HumanMessage 側にのみ載るが将来 AI 添付が来ても破綻しないよう描画) */}
+                  {/* Phase 36 D-21 / Phase 38 D-15: AI message に bundle された添付 (kind=generated)
+                      もユーザー添付と同じ UX で表示。チップクリックで AttachmentModal を起動。 */}
                   {msg.additional_kwargs?.attachments && msg.additional_kwargs.attachments.length > 0 && (
                     <AttachmentChipRow
                       attachments={msg.additional_kwargs.attachments}
                       threadId={activeThreadId}
+                      onOpenModal={setActiveAttachment}
                     />
                   )}
                 </div>
@@ -541,6 +645,15 @@ export function MessageArea({
         />
       )}
     </div>
+    {/* Phase 38 D-13: 1 時点に開けるモーダルは 1 つだけ (UI-SPEC §"多重 modal 禁止" L513-516) */}
+    {activeAttachment && activeThreadId && (
+      <AttachmentModal
+        threadId={activeThreadId}
+        attachment={activeAttachment}
+        open
+        onClose={() => setActiveAttachment(null)}
+      />
+    )}
     </div>
   );
 }
