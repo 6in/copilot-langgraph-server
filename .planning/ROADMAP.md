@@ -294,5 +294,5 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
 | 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
-| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 6/6 | Complete   | 2026-05-12 |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 6/6 | Complete    | 2026-05-12 |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |

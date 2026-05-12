@@ -72,12 +72,12 @@ Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとし�
 ### Validated (v6.0)
 
 - ✓ Phase 37: ファイル入力 PDF/Office 抽出 + MCP ツール参照 — `attachments_list` / `attachments_extract` を MCP ツールとして実装、`/shared/thread-files/<login>/<thread_id>/` フォルダ規約 (ADR-0048)、SuperChat / Chat 両経路で per-job MCP client + RPCContext 伝播 (Phase 37.1 in-place fix)、thread 削除時の folder 同期 + path traversal 防御 — v6.0
+- ✓ Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 — `_generated/` サブフォルダ + post-process `{ts}_{name}` rename (Phase 38 D-08/D-10)、`GET /threads/{tid}/outputs/{name}` route (D-05)、`AttachmentMeta.kind` enum 化 (D-30)、4 種 preview renderer (image/markdown/csv/text + PDF unsupported fallback) を Chat 経路 (langgraph_handler) で integration — ADR-0052 — v6.0
 
 ### Active (v6.0 candidates)
 
 - [ ] エージェント別 ツール allowlist — Phase 24 D-02 で defer、エージェントごとに呼び出し可能なツールを制限
 - [ ] MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継し単一 worker から集約アクセス
-- [ ] チャット入力ファイルアップロード — Phase 36/38 で UI 側を統合 (Phase 37 で出力側のフォルダ規約と抽出 MCP ツールは確立済み)
 - [ ] claude_code MCP ツール認証バインド — spirit-room 方式でユーザー別トークン注入
 - [ ] Mermaid View ハング調査 — OS レベル hang の再現手順と回避策
 - [ ] AI が操作しやすい UI — data-ai-role 属性導入、AI 向け操作性向上
@@ -209,4 +209,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-23 — Phase 35 完了 (dashboard 化 + デザイン統一 + レスポンシブ対応 + :focus-visible accessibility baseline)、mobile responsive policy 反転（D-07: タブレット幅まで primary scope、スマホ破綻ゼロ保証）*
+*Last updated: 2026-05-12 — Phase 38 完了 (worker 生成ファイル DL/プレビュー/ユーザー別保持 — `_generated/` + outputs route + AttachmentMeta.kind enum + 4 種 preview renderer / ADR-0052)*

@@ -1,9 +1,11 @@
 ---
 phase: 38-worker-dl
 verified: 2026-05-12T12:00:00Z
-status: human_needed
-score: 5/5 must-haves verified (automated); 7 visual/E2E items require human verification
+human_verified: 2026-05-12T13:00:00Z
+status: passed
+score: 5/5 must-haves verified (automated) + 6/7 human verification passed + 1/7 partial (mobile strict full-screen deferred to v6.1+)
 overrides_applied: 0
+human_uat_result: see 38-HUMAN-UAT.md (status: complete)
 human_verification:
   - test: "FOUT-03 のチャット画面プレビュー (画像/Markdown/CSV/text の各 renderer dispatch 実機動作)"
     expected: "AttachmentModal で kind 別 renderer (image=<img>, markdown=react-markdown, csv=ag-grid, text=Monaco) が破綻なく描画され、PDF/unsupported はフォールバック案内 + DL CTA を出す"
