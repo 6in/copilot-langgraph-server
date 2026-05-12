@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import datetime
 import os
 import resource
 from typing import TYPE_CHECKING
@@ -23,6 +24,12 @@ if TYPE_CHECKING:
 
 # D-08 踏襲: 許可リスト env キー — これ以外はサブプロセスに渡さない
 ALLOWED_ENV_KEYS: frozenset[str] = frozenset({"PATH", "HOME", "LANG", "LC_ALL", "TERM"})
+
+# Phase 38 D-08: AI 生成ファイルの永続化 root (Phase 37 D-04 と同 volume)
+THREAD_FILES_DIR: str = os.environ.get("THREAD_FILES_DIR", "/shared/thread-files")
+
+# Phase 38 D-10 / RESEARCH §Anti-Patterns: post-process rename で除外する中間ファイル拡張子
+_PYC_EXCLUDES: frozenset[str] = frozenset({".pyc"})
 
 # D-03: サブプロセスの最大実行時間 (秒)
 TIMEOUT_SECS: int = 60
@@ -43,6 +50,88 @@ ALLOWLIST_PATH: str = os.environ.get(
 
 # キャッシュ — プロセス起動時に一度だけ読み込む
 _cached_allowlist: frozenset[str] | None = None
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 38 D-08 / D-10 / D-11: sandbox cwd 切替 + post-process rename helpers
+# ─────────────────────────────────────────────────────────────────────────
+
+
+def _utc_ts() -> str:
+    """UTC 現在時刻を `YYYYMMDDTHHMMSS` 形式の文字列で返す (Phase 37 D-02 命名規約)。"""
+    return datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%S")
+
+
+def _resolve_generated_folder(headers: dict | None) -> str:
+    """Phase 38 D-08: ヘッダから `_generated/` folder path を realpath guard 込みで返す。
+
+    `x-thread-id` / `x-github-login` が両方揃えば
+    `{THREAD_FILES_DIR}/<login>/<tid>/_generated` の realpath を返す。
+    片方でも欠落、または path traversal で THREAD_FILES_DIR 配下を逸脱した場合は
+    `/tmp` に fallback (D-08 fallback policy)。
+    """
+    h = headers or {}
+    tid = h.get("x-thread-id") or ""
+    login = h.get("x-github-login") or ""
+    if not tid or not login:
+        return "/tmp"
+    folder = os.path.join(THREAD_FILES_DIR, login, tid, "_generated")
+    real = os.path.realpath(folder)
+    base = os.path.realpath(THREAD_FILES_DIR)
+    if not real.startswith(base + os.sep):
+        return "/tmp"
+    return real
+
+
+def _is_already_prefixed(name: str) -> bool:
+    """Phase 38 D-10: 既に `YYYYMMDDTHHMMSS_` 形式の prefix が付いているか判定。
+
+    AI が D-03 規約に従って自前で prefix を書いたケースや、過去 turn で本 helper が
+    付与した prefix を **二重 prefix** しないための guard (RESEARCH §Pitfall 5)。
+    """
+    return (
+        len(name) >= 16
+        and name[:8].isdigit()
+        and name[8] == "T"
+        and name[9:15].isdigit()
+        and name[15] == "_"
+    )
+
+
+def _rename_new_outputs(folder: str, before: set[str]) -> list[str]:
+    """Phase 38 D-10 / D-11: snapshot diff で新規ファイルを `{ts}_{name}` にリネーム。
+
+    Args:
+        folder: scan 対象ディレクトリ (絶対パス)。
+        before: tool 実行前に取った `set(os.listdir(folder))`。
+
+    Returns:
+        rename 後のファイル名リスト (`after - before` のうち rename を経たもの)。
+        中間ファイル (`.pyc`) は除外。既に prefix 付きのファイルはそのままの名前で含める。
+        folder が存在しなければ空リストを返す。
+    """
+    if not os.path.isdir(folder):
+        return []
+    ts = _utc_ts()
+    after = set(os.listdir(folder))
+    new_files = sorted(after - before)
+    renamed: list[str] = []
+    for name in new_files:
+        # RESEARCH Anti-Patterns: `.pyc` 等の中間ファイルは AI に露出させない
+        ext = os.path.splitext(name)[1].lower()
+        if ext in _PYC_EXCLUDES:
+            continue
+        src = os.path.join(folder, name)
+        # symlink / dir は対象外 (Pitfall: dir entry / 攻撃的 symlink を握り潰す)
+        if os.path.islink(src) or not os.path.isfile(src):
+            continue
+        if _is_already_prefixed(name):
+            renamed.append(name)
+            continue
+        dst_name = f"{ts}_{name}"
+        os.rename(src, os.path.join(folder, dst_name))
+        renamed.append(dst_name)
+    return renamed
 
 
 def _load_allowlist(config_path: str | None = None) -> frozenset[str]:
@@ -147,12 +236,16 @@ async def execute_python(code: str, timeout: int = 60, headers: dict | None = No
         sanitized_env["X_GITHUB_LOGIN"] = _github_login
 
     # 3. サブプロセス実行 (D-01, D-02)
+    # Phase 38 D-08: cwd を `_generated/` 配下に切替。headers 不足時は /tmp に fallback。
+    # RESEARCH §Pitfall 3: makedirs(exist_ok=True) で folder 初回利用を冪等にする。
+    cwd = _resolve_generated_folder(headers)
+    os.makedirs(cwd, exist_ok=True)
     try:
         proc = await asyncio.create_subprocess_exec(
             "python3", "-c", code,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd="/tmp",
+            cwd=cwd,
             env=sanitized_env,
             preexec_fn=_set_limits,
         )
@@ -204,12 +297,23 @@ def register_tools(mcp: "FastMCP") -> None:
 
     Phase 37 D-17: execute_python は CurrentHeaders() DI でヘッダーを受け取り、
     subprocess env に X_THREAD_ID / X_GITHUB_LOGIN を伝搬する。
+    Phase 38 D-10 / D-11: tool 実行後に snapshot diff で `_generated/` の新規
+    ファイルを `{ts}_{name}` に rename し、結果 dict に `generated_files` を追加する。
     """
     from fastmcp.dependencies import CurrentHeaders  # noqa: PLC0415
 
     async def execute_python_with_headers(code: str, timeout: int = 60,
                                           headers: dict = CurrentHeaders()) -> dict:
-        """execute_python の FastMCP tool ラッパー (CurrentHeaders DI 付き)。"""
-        return await execute_python(code=code, timeout=timeout, headers=headers)
+        """execute_python の FastMCP tool ラッパー (CurrentHeaders DI + post-process rename)。"""
+        folder = _resolve_generated_folder(headers)
+        os.makedirs(folder, exist_ok=True)
+        before = set(os.listdir(folder)) if os.path.isdir(folder) else set()
+        result = await execute_python(code=code, timeout=timeout, headers=headers)
+        # Phase 38 D-08 fallback ガード: /tmp 全体の diff になる事故を回避
+        if folder != "/tmp":
+            result["generated_files"] = _rename_new_outputs(folder, before)
+        else:
+            result["generated_files"] = []
+        return result
 
     mcp.tool(execute_python_with_headers, name="execute_python")
