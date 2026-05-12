@@ -119,3 +119,40 @@ revert（`git checkout 729b39b -- app/providers/copilot.py app/api/main.py`）�
 **Suggested action:** v6.0 Phase 38 計画時に本セクションを参照。境界としては
 Phase 37 (添付ファイル MCP ツール参照、読取側) と Phase 38 (AI 生成成果物、書き
 込み + 表示側) が対になる構造。
+
+---
+
+## Phase 38 完了報告 (2026-05-12) + v6.1+ 持ち越し
+
+Phase 38 (ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持) は **FOUT-01..04 充足で完了** (ADR-0052 起票済)。
+本 phase で **意図的にやらなかった項目** は v6.1+ で観察ベース判断 (CONTEXT.md `<deferred>` 参照)。
+Phase 36 → 37 → 38 で確立した「`thread-files` フォルダ規約 (ADR-0048) + `additional_kwargs` envelope (ADR-0050) + kind discriminator (ADR-0052)」の 3 層構造を継承し、後続 phase が同じパターンで再利用できる状態に到達した。
+
+### v6.1+ 持ち越し項目
+
+- **orchestrator_handler の AIMessage bundle 対応**: 本 phase scope は `langgraph_handler` (Chat / Canvas) のみ。SuperChat (OrchestratorGraph) 経由の AI 生成ファイル bundle は、`OrchestratorGraph` 内部の AIMessage 構築タイミングで turn-delta scan を入れる必要があり、実利用観察次第で v6.1+ — 参照: `38-04-PLAN.md` Task 2 action #2、Plan 38-04 SUMMARY "scope 限定" 節
+- **個別ファイル削除 UI** (`DELETE /api/threads/{tid}/outputs/{name}`): D-02 / 38-CONTEXT.md `<deferred>` で却下。thread 削除 hook (ADR-0048 由来) の親フォルダ一括 `rm -rf` で十分の判断 — 観察ベースで誤生成ファイルの個別削除ニーズが定常化した時に再議論
+- **横断「My Files」画面 / Header dropdown**: D-16 / 38-CONTEXT.md `<deferred>` で v6.1+ — ThreadSidebar 経由でスレッドを開き、AI message に bundle されたチップから再取得する UX で v6.0 は十分の判断
+- **一覧 endpoint `GET /api/threads/{tid}/outputs`**: D-17 / 38-CONTEXT.md `<deferred>` で **新設しない否定的決定**。LangGraph checkpointer (`langgraph-checkpoint-postgres`) で永続化された message metadata から UI が直接復元する Phase 36 attachments と同パターンで完結
+- **Phase 38 独自 multi-user isolation 単体テスト**: D-19 / 38-CONTEXT.md `<deferred>` で **新規追加しない否定的決定**。Phase 36 の isolation テストパス (別 user JWT で 401/404 + path traversal 拒否) が outputs route の `_resolve_thread_folder` / `_safe_resolve_file` helper import 再利用経由で自動継承される
+- **PDF preview (pdf.js / iframe)**: D-12 / 38-CONTEXT.md `<deferred>` — bundle サイズと CSP 設計が必要なため v6.1+
+- **HTML preview**: D-12 / 38-CONTEXT.md `<deferred>` — Canvas (Phase 16/18) と用途衝突するため対象外、Canvas との統合が筋なら Phase 16 系で扱う
+- **AI 生成ファイル GC / TTL**: 38-CONTEXT.md `<deferred>` + 38-RESEARCH.md §"Phase 38 で新規出現するセキュリティ懸念" — 観察ベースで quota / 件数上限 / TTL を検討。AI 短時間大量生成 DoS は v6.0 では accept disposition
+- **AttachmentModal サイズ cap の閾値調整**: 38-RESEARCH.md §"Open Question 3" — 暫定 1MB (text/CSV/MD) / 10MB (画像)、観察ベースで再検討
+- **papaparse 追加**: 38-RESEARCH.md §"Standard Stack §Supporting" — embedded comma / multiline quoted cells の edge case 頻出時に検討。v6.0 は state machine 方式の inline パーサで 1MB 範囲内なら十分
+- **`session-state/files/` AI 応答テキスト残留マッピング**: 38-CONTEXT.md `<deferred>` — D-13 で inline 描画しない方針のため不要。AI prompt 側で `_generated/` への path 言及を抑制する hint は planner 判断で SystemMessage に 1 文追加する余地 (38-RESEARCH.md Open Question 1)
+- **AI 生成完了 toast / 通知**: 38-CONTEXT.md `<deferred>` — v6.1+ UI polish
+- **AttachmentChip タップターゲット 28px → 36px 拡大**: Phase 35 D-08 タップターゲット規約 36px を 28px で継続使用中 (Phase 36 で承認済の継続)。v6.1+ で UX 観察次第
+- **画像チップ右下絶対配置 micro-badge の display 競合**: サムネが小さくて badge が隠れる場合の hover 時表示縮退は planner 判断で実装、観察次第で v6.1+ で改善
+- **`+N more` collapse UI**: 38-UI-SPEC.md §Responsive で「採用しない」判断、flex-wrap で折り返し。v6.1+ で件数爆発観察次第で再検討
+
+### Phase 38 由来の繰り越されない (= 本 phase で確定した) 設計
+
+参考のため、後続 phase が議論する出発点として記録:
+
+- **kind discriminator 単一化** (`'user_upload' | 'generated'`): MCP 戻り値 / SystemMessage / AIMessage bundle / AttachmentChip props / URL 解決 で同 enum を通す (D-06 / D-30 案 A / ADR-0052)
+- **snapshot diff 方式 post-process rename**: mtime / inotify を採用せず listdir 差分で命名規約を AI プロンプト依存ゼロで保証 (D-10 / D-11 / ADR-0052)
+- **`_generated/` サブフォルダによる input/output 分離**: 同 volume 内で Phase 36 入力と Phase 38 出力を明示分離 (D-01 / ADR-0052)
+- **handler turn-delta bundle**: tool wrapper rename とは独立し、handler で再 scan + delta merge で二重カウントしない設計 (D-15 / ADR-0052)
+- **4 種 renderer の lazy dispatch**: image / markdown / csv / text を `React.lazy` + Suspense で 1 種類のみロード — 初期バンドル膨張ゼロ (38-UI-SPEC §"Component Contracts" / ADR-0052)
+- **新規 npm dep / 新規 CSS 変数ゼロ**: Phase 35/36 で導入済の `@monaco-editor/react` / `ag-grid-community` / `react-markdown` / `remark-gfm` のみ流用 (38-UI-SPEC §"Design System")
