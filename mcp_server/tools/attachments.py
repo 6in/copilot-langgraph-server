@@ -121,14 +121,20 @@ def _classify_error(exc: BaseException) -> tuple[str, str]:
 # ─────────────────────────────────────────────
 
 async def attachments_list_core(thread_id: str, github_login: str) -> list[dict]:
-    """添付ファイル一覧を返す (core 関数、RPCContext 解決済み引数を受け取る).
+    """添付ファイル + AI 生成ファイル一覧を返す (core 関数、RPCContext 解決済み引数を受け取る).
+
+    Phase 38 D-06: thread フォルダ直下 (user upload) と `_generated/` サブフォルダ
+    (worker / MCP tool が生成) を **flat list** で返し、各エントリに
+    `kind: "user_upload" | "generated"` discriminator を付与する。新規 `outputs_list`
+    tool は作らない (Phase 30 SSoT のツール数膨張回避)。
 
     Args:
         thread_id: スレッド ID (HTTP ヘッダーまたは sandbox env 経由で解決済み)
         github_login: GitHub ログイン名 (同上)
 
     Returns:
-        [{"name": "...", "size": N, "modified_at": <float epoch sec>, "ext": "...", "mime_type": "..."}, ...]
+        [{"name": "...", "size": N, "modified_at": <float epoch sec>, "ext": "...",
+          "mime_type": "...", "kind": "user_upload" | "generated"}, ...]
         ファイルが存在しない場合は []
     """
     if not thread_id or not github_login:
@@ -142,6 +148,7 @@ async def attachments_list_core(thread_id: str, github_login: str) -> list[dict]
     if not os.path.isdir(folder):
         return []
     out: list[dict] = []
+    # ── (1) thread フォルダ直下 = user upload (Phase 36) ──
     for fname in sorted(os.listdir(folder)):
         fpath = os.path.join(folder, fname)
         # LOW-04 (Phase 37 Code Review): シンボリックリンクを除外する。
@@ -160,7 +167,30 @@ async def attachments_list_core(thread_id: str, github_login: str) -> list[dict]
             "modified_at": float(stat.st_mtime),  # S-03 対応: float epoch seconds
             "ext": ext,
             "mime_type": mime_type or "application/octet-stream",
+            "kind": "user_upload",  # D-06: discriminator (input)
         })
+    # ── (2) `_generated/` サブフォルダ = worker / MCP tool 生成 (Phase 38) ──
+    # サブフォルダ 1 段のみ降りる (RESEARCH Pitfall 4 — 再帰しない、`__pycache__/*.pyc`
+    # 等の中間ファイル漏出を防ぐ責務はあるが、フィルタは post-process rename 側で扱う)。
+    gen_folder = os.path.join(folder, "_generated")
+    if os.path.isdir(gen_folder):
+        for fname in sorted(os.listdir(gen_folder)):
+            fpath = os.path.join(gen_folder, fname)
+            if os.path.islink(fpath):  # LOW-04: symlink 除外
+                continue
+            if not os.path.isfile(fpath):
+                continue
+            stat = os.stat(fpath)
+            ext = os.path.splitext(fname)[1].lower()
+            mime_type, _ = mimetypes.guess_type(fname)
+            out.append({
+                "name": fname,
+                "size": stat.st_size,
+                "modified_at": float(stat.st_mtime),
+                "ext": ext,
+                "mime_type": mime_type or "application/octet-stream",
+                "kind": "generated",  # D-06: discriminator (output)
+            })
     return out
 
 

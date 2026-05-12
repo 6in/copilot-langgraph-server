@@ -24,7 +24,7 @@ from redis.asyncio import Redis
 
 from app.api.routes import (
     agents, apps, attachments, auth, canvas, chat, gems, health, hosted_apps,
-    iframe_rpc, jobs, me, models,
+    iframe_rpc, jobs, me, models, outputs,
 )
 from app.auth.manager import CopilotAuthManager
 from app.graph.builder import build_graph
@@ -383,6 +383,8 @@ app.include_router(canvas.router)
 app.include_router(iframe_rpc.router)
 # Phase 36: attachments (POST/GET/DELETE /api/threads/{tid}/attachments) — Plan 03 で実装
 app.include_router(attachments.router)
+# Phase 38 D-05: outputs (GET /api/threads/{tid}/outputs/{name}) — AI 生成ファイル DL/preview
+app.include_router(outputs.router)
 # Phase 36: GET /api/models (TTL 1h cache) — D-07/D-16
 app.include_router(models.router)
 # Phase 19: hosted Canvas apps — dynamic route must be registered BEFORE /apps StaticFiles (D-02)

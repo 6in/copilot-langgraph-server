@@ -1,18 +1,23 @@
-"""Phase 38 Plan 02 / Plan 04: GET /api/threads/{tid}/outputs/{name} route の integration test scaffold.
+"""Phase 38 Plan 02 / Plan 04: GET /api/threads/{tid}/outputs/{name} route の integration test.
 
 VALIDATION.md Task ID マッピング:
-- 38-01-02 → test_isolation_other_user_blocked  (Plan 02 で実装、本 plan は skip scaffold)
-- 38-01-03 → test_path_traversal_rejected       (Plan 02 で実装、本 plan は skip scaffold)
-- 38-04-01 → test_get_output_returns_raw_bytes  (Plan 04 で実装、本 plan は skip scaffold)
-- 38-04-02 → test_get_output_works_for_claude_code (Plan 04 で実装、本 plan は skip scaffold)
+- 38-01-02 → test_isolation_other_user_blocked  (Plan 02 で green 化)
+- 38-01-03 → test_path_traversal_rejected       (Plan 02 で green 化)
+- 38-04-01 → test_get_output_returns_raw_bytes  (Plan 02 で green 化)
+- 38-04-02 → test_get_output_works_for_claude_code (Plan 04 で green 化、本 plan では skip 維持)
 
 Analog: tests/test_attachments_get_delete_route.py (jwt_cookie fixture + tmp_path monkeypatch + ASGI client)
 
-Phase 38-PATTERNS.md §"Plan 06 Tests §tests/test_outputs_route.py" 参照。
-本 plan (38-01) は shape (import + fixture + skip stub) のみ整備し、
-Plan 02/04 の executor が skip マーカーを外して assertion 本体を書く運用。
+D-19 整合スタンス: outputs.py は attachments.py の `_resolve_thread_folder` /
+`_safe_resolve_file` / `_normalize_basename` を import で再利用する。Phase 38 では
+isolation 単体テストを新規追加しない — Plan 01 scaffold の 2 ケース
+(test_path_traversal_rejected / test_isolation_other_user_blocked) は Phase 36 helper
+再利用の smoke 検証として位置づける。
 """
 from __future__ import annotations
+
+import os
+import urllib.parse
 
 import pytest
 from httpx import AsyncClient
@@ -32,38 +37,79 @@ def patch_thread_files_dir(tmp_path, monkeypatch):
     yield
 
 
-@pytest.mark.skip(
-    reason="Plan 04 (38-04) で outputs route 実装と同時に green 化 — 38-04-01"
-)
 @pytest.mark.asyncio
 async def test_get_output_returns_raw_bytes(
     api_client: AsyncClient, jwt_cookie, tmp_path
 ):
-    """38-04-01 — _generated/ に直接置いたファイルを GET → 200 + 内容一致 + Content-Disposition: inline。"""
-    raise AssertionError("Plan 04 で実装")
+    """38-04-01 — _generated/ に直接置いたファイルを GET → 200 + 内容一致 + Content-Disposition: inline。
+
+    `tests/conftest.py::jwt_cookie` の payload は github_login=None のため、folder は
+    `{tmp_path}/unknown/{thread_id}/` で組み立てられる前提 (tests/test_attachments_get_delete_route.py
+    と同形)。
+    """
+    # _generated/ サブフォルダ配下に raw ファイルを直接配置 (worker が生成した想定)
+    thread_dir = tmp_path / "unknown" / "t-o1" / "_generated"
+    thread_dir.mkdir(parents=True)
+    storage_name = "20260512T120000_chart.png"
+    payload_bytes = b"\x89PNG\r\n\x1a\nFAKE_PNG_BYTES"
+    (thread_dir / storage_name).write_bytes(payload_bytes)
+
+    api_client.cookies.set("session", jwt_cookie)
+    resp = await api_client.get(f"/api/threads/t-o1/outputs/{storage_name}")
+    assert resp.status_code == 200, resp.text
+    assert resp.content == payload_bytes
+    # MIME 推定 (mimetypes.guess_type) が image/png を返す想定
+    assert "image/png" in resp.headers["content-type"]
+    # Content-Disposition: inline; filename="..."
+    assert "inline" in resp.headers.get("content-disposition", "")
+    assert storage_name in resp.headers.get("content-disposition", "")
 
 
-@pytest.mark.skip(
-    reason="Plan 02 (38-02) で outputs route + path traversal guard 実装と同時に green 化 — 38-01-03"
-)
 @pytest.mark.asyncio
 async def test_path_traversal_rejected(api_client: AsyncClient, jwt_cookie):
-    """38-01-03 — `../../../etc/passwd` を URL-encode した name で GET → 400 / 404 / 405 (200 は NG)。"""
-    raise AssertionError("Plan 02 で実装")
+    """38-01-03 — `../../../etc/passwd` を URL-encode した name で GET → 400 / 404 / 405 (200 は NG)。
 
-
-@pytest.mark.skip(
-    reason="Plan 02 (38-02) で multi-user isolation (Phase 36 helper 再利用) を outputs route に適用 — 38-01-02"
-)
-@pytest.mark.asyncio
-async def test_isolation_other_user_blocked(api_client: AsyncClient):
-    """38-01-02 — 別 user JWT で他人の _generated/ にアクセス → 401/404 (FOUT-04 sc5)。
-
-    Phase 36 で確立した `_resolve_thread_folder` の realpath guard + JWT payload の
-    github_login → folder path 解決経路をそのまま流用すれば、
-    新規実装ゼロで isolation が担保される (CONTEXT.md D-19)。
+    D-19 smoke 検証: attachments.py の `_safe_resolve_file` が basename 抽出 + realpath
+    prefix guard で path traversal を弾く挙動を outputs route が継承していることを確認。
     """
-    raise AssertionError("Plan 02 で実装")
+    api_client.cookies.set("session", jwt_cookie)
+    name = urllib.parse.quote("../../../etc/passwd", safe="")
+    resp = await api_client.get(f"/api/threads/t-o2/outputs/{name}")
+    # 400 (basename guard 経由) / 404 (file not found) / 405 (path normalization で route 外)
+    # のいずれかで防御。絶対に 200 は返さない。
+    assert resp.status_code in (400, 404, 405), resp.text
+    assert resp.status_code != 200
+
+
+@pytest.mark.asyncio
+async def test_isolation_other_user_blocked(api_client: AsyncClient, jwt_cookie, tmp_path):
+    """38-01-02 — 別 user の _generated/ にアクセス → 404 (FOUT-04 sc5)。
+
+    Phase 36 で確立した `_resolve_thread_folder(github_login, thread_id)` の経路上、
+    JWT payload の `github_login` で folder path が組み立てられる。別 user 名の
+    folder が存在しても、ログイン user 名が違えば物理パスが別 segment になり 404 になる
+    (D-19 — Phase 38 では isolation 単体テストを新規追加しない、helper 再利用が
+    唯一の防御経路であることを smoke で確認)。
+    """
+    # 別 user の thread フォルダにファイルを置く (login が違うのでアクセス不可)
+    other_user_dir = tmp_path / "other-user" / "t-o3" / "_generated"
+    other_user_dir.mkdir(parents=True)
+    storage_name = "20260512T120000_secret.txt"
+    (other_user_dir / storage_name).write_bytes(b"secret")
+
+    # jwt_cookie は github_login=None なので unknown/ folder にアクセスする想定
+    api_client.cookies.set("session", jwt_cookie)
+    # 別 user のフォルダにあるファイルへの GET を試みる
+    resp = await api_client.get(f"/api/threads/t-o3/outputs/{storage_name}")
+    # 物理的に unknown/t-o3/_generated/ には存在しないので 404 (helper 再利用による
+    # path-segment 隔離が効いている証拠)
+    assert resp.status_code in (401, 404), resp.text
+    assert resp.status_code != 200
+
+    # 認証なし時は 401
+    api_client.cookies.clear()
+    resp2 = await api_client.get(f"/api/threads/t-o3/outputs/{storage_name}")
+    assert resp2.status_code == 401
 
 
 @pytest.mark.skip(
