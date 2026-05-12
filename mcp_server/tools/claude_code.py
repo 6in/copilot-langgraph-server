@@ -82,7 +82,7 @@ async def claude_code(prompt: str, headers: dict | None = None) -> dict:
         sanitized_env["X_GITHUB_LOGIN"] = _req_headers["x-github-login"]
 
     # Phase 38 D-09: cwd を `_generated/` に固定 (execute_python の helper を import 再利用 / DRY)
-    from mcp_server.tools.execute_python import _resolve_generated_folder  # noqa: PLC0415
+    from tools.execute_python import _resolve_generated_folder  # noqa: PLC0415
 
     cwd = _resolve_generated_folder(headers)
     os.makedirs(cwd, exist_ok=True)
@@ -162,7 +162,7 @@ def register_tools(mcp: "FastMCP") -> None:
     """
     from fastmcp.dependencies import CurrentHeaders  # noqa: PLC0415
 
-    from mcp_server.tools.execute_python import (  # noqa: PLC0415
+    from tools.execute_python import (  # noqa: PLC0415
         _rename_new_outputs,
         _resolve_generated_folder,
     )
