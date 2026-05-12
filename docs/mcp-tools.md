@@ -17,7 +17,7 @@
 | `claude_code` | yes | — | Claude Code CLI をサブプロセスとして実行（env サニタイズ + 60 秒タイムアウト + 4000 文字切り詰め） |
 | `execute_python` | yes | — | Python コードをサンドボックス内で実行し stdout/stderr/exit_code を返す（AST allowlist + 512MB + 60 秒タイムアウト） |
 | `get_current_datetime` | no | `mcp_helper.get_datetime()` | 現在の日時を JST で返す（日付・時刻・曜日・タイムゾーン情報を含む dict） |
-| `attachments_list` | no | `mcp_helper.list_attachments()` | 現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す |
+| `attachments_list` | no | `mcp_helper.list_attachments()` | 現在の thread に添付されたファイル + AI 生成ファイルの一覧を返す |
 | `attachments_extract` | no | `mcp_helper.extract_attachment()` | 指定ファイル (PDF/docx/xlsx/pptx) のテキストを MarkItDown で抽出して返す (最大 50,000 文字、60 秒タイムアウト) |
 
 ## `ping`
@@ -123,22 +123,27 @@ Example:
 
 ## `attachments_list`
 
-現在の thread に添付されたファイルの一覧 (名前・サイズ・更新日時・拡張子) を返す
+現在の thread に添付されたファイル + AI 生成ファイルの一覧を返す
 
 **Sandbox Helper:** `def list_attachments() -> list[dict]`
 
 ```
-添付ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+添付ファイル + AI 生成ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+
+各エントリには kind フィールドが付与され、user upload と worker 生成を判別できる。
+- kind: "user_upload"  → ユーザーがアップロードした添付 (Phase 36)
+- kind: "generated"    → execute_python / claude_code が生成した出力 (Phase 38)
 
 Returns:
-    [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>, "ext": ".pdf", "mime_type": "..."}, ...]
+    [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>,
+      "ext": ".pdf", "mime_type": "...", "kind": "user_upload" | "generated"}, ...]
     ファイルが存在しない場合は []
 
 Example:
     from mcp_helper import list_attachments
     files = list_attachments()
     for f in files:
-        print(f["name"], f["size"])
+        print(f["name"], f["kind"], f["size"])
 ```
 
 ## `attachments_extract`
