@@ -42,7 +42,8 @@ async def test_upload_single_text_file(api_client: AsyncClient, jwt_cookie, tmp_
     payload = resp.json()
     assert len(payload["attachments"]) == 1
     a = payload["attachments"][0]
-    assert a["kind"] == "file"
+    # Phase 38 D-30 (案 A): 新規 upload は 'user_upload' で永続化される
+    assert a["kind"] == "user_upload"
     assert a["name"] == "hello.txt"
     assert a["size"] == 11
     assert a["ext"] == "txt"
