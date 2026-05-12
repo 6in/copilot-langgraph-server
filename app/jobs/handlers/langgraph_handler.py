@@ -240,6 +240,31 @@ class LangGraphHandler(TaskHandler):
                     # フォールバック: astream_events がルート出力を返さなかった場合
                     final_state = await graph.ainvoke(state_input, config=config)
 
+                # === Phase 38 D-15: turn 完了で AI 最終 message に generated delta を bundle ===
+                # RESEARCH Pattern 2: handler レベルで再 scan して kind='generated' だけ抽出する
+                # (tool wrapper 側の rename と二重カウントしない設計 — Pitfall 5)。
+                # AsyncPostgresSaver は次の checkpoint で additional_kwargs を JSONB へ
+                # 透過保存する (Wave 0 で round-trip 検証済 — patterns.md L79-85)。
+                post_turn_meta = scan_thread_attachments(thread_id, github_login)
+                prev_generated_names = {
+                    a["name"]
+                    for a in (attachments_meta or [])
+                    if isinstance(a, dict) and a.get("kind") == "generated"
+                }
+                turn_generated = [
+                    m
+                    for m in post_turn_meta
+                    if m.get("kind") == "generated"
+                    and m["name"] not in prev_generated_names
+                ]
+                if turn_generated:
+                    final_msg = final_state["messages"][-1]
+                    # Pitfall 2: None-guard + dict union で既存 additional_kwargs を潰さない。
+                    existing_kw = getattr(final_msg, "additional_kwargs", None) or {}
+                    final_msg.additional_kwargs = existing_kw | {
+                        "attachments": turn_generated,
+                    }
+
                 final_text = final_state["messages"][-1].content
 
                 # Canvas Gem の場合: HTML 抽出 + canvas_apps upsert + JSON result
