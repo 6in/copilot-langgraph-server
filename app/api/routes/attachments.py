@@ -157,7 +157,9 @@ async def upload_attachments(
 
         mime = uf.content_type or mimetypes.guess_type(base)[0] or "application/octet-stream"
         saved.append({
-            "kind": "file",
+            # Phase 38 D-30 (案 A): 新規 upload は最新型 'user_upload' で永続化。
+            # legacy 'file' 行は API _messages_to_response 側で正規化される。
+            "kind": "user_upload",
             "name": base,
             "storage_name": storage_name,
             "path": dest,

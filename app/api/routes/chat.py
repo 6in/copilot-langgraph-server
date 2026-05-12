@@ -485,7 +485,19 @@ async def get_thread_messages(thread_id: str, request: Request, payload: dict = 
                 public_kw: dict = {}
                 atts = kw.get("attachments")
                 if isinstance(atts, list) and atts:
-                    public_kw["attachments"] = atts
+                    # Phase 38 D-30 (案 A): legacy `kind: 'file'` を `'user_upload'` に
+                    # 正規化する。frontend には `'user_upload' | 'generated'` の union
+                    # 型だけを流す。元の dict は mutate しない (LangGraph state を破壊しない)。
+                    normalized_atts = []
+                    for a in atts:
+                        if isinstance(a, dict):
+                            a_copy = dict(a)
+                            if a_copy.get("kind") == "file":
+                                a_copy["kind"] = "user_upload"
+                            normalized_atts.append(a_copy)
+                        else:
+                            normalized_atts.append(a)
+                    public_kw["attachments"] = normalized_atts
                 if public_kw:
                     entry["additional_kwargs"] = public_kw
             messages.append(entry)
