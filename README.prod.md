@@ -148,18 +148,28 @@ services:
 
 ### 初回ビルド + 起動
 
+`build-prod.sh` ラッパーが override ファイルを自動検出して連結する:
+
 ```bash
 cd ~/copilot-langgraph
+./build-prod.sh -d
+```
+
+直接コマンドを叩く場合 (どちらでも可):
+
+```bash
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml up --build -d
 ```
 
 ビルドは 5〜10 分目安 (frontend Vite build + uv sync + MarkItDown/magika ダウンロード)。
 
+> **project name の分離**: `docker-compose.prod.yml` には `name: copilot-langgraph-prod` を top level に宣言済み。`docker-compose.yml` (dev, name=`copilot-langgraph`) とは別 namespace で動作するので、開発機でローカル prod テストする時も dev コンテナを巻き込まず分離して `up`/`down` できる。volume も `copilot-langgraph-prod_*` 名前空間に隔離される。
+
 ### 起動確認
 
 ```bash
 # 全コンテナが healthy か
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml ps
+./build-prod.sh ps
 
 # 内部から SPA 配信が正しいか (404 / 5xx でないこと)
 curl -sI http://127.0.0.1:18080/orochi/
@@ -330,18 +340,20 @@ sudo systemctl status copilot-langgraph
 cd ~/copilot-langgraph
 
 # 全体
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml logs -f
+./build-prod.sh logs
 
 # サービス単体
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml logs -f api
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml logs -f worker
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml logs -f mcp-server
+./build-prod.sh logs api
+./build-prod.sh logs worker
+./build-prod.sh logs mcp-server
 ```
 
 ### 再起動
 
 ```bash
-# 全サービス再起動 (ダウンタイム数秒〜数十秒)
+cd ~/copilot-langgraph
+
+# 全サービス再起動 (ダウンタイム数秒〜数十秒) — wrapper では未提供のため raw コマンド
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml restart
 
 # 特定サービスだけ
@@ -356,22 +368,22 @@ git fetch origin
 git checkout main
 git pull --ff-only origin main
 
-# frontend が変わった場合はビルドし直し
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml up -d --build
+# frontend / 依存が変わった場合はビルドし直し
+./build-prod.sh -d
 ```
 
 > **無停止デプロイは未サポート**。ビルド時間 + コンテナ再生成で数十秒〜1 分のダウンタイムが発生する。社内 200 名規模であれば許容範囲だが、必要なら blue/green 構成は別途検討。
 
 ### ボリュームバックアップ
 
-永続データは 4 つの named volume にある:
+永続データは 4 つの named volume にある (project name `copilot-langgraph-prod` 配下):
 
 | volume | 内容 | サイズ目安 |
 |--------|------|-----------|
-| `copilot-langgraph_postgres-data-prod` | thread / message / canvas_apps / gems | スレッド数依存 |
-| `copilot-langgraph_redis-data-prod` | arq ジョブキュー (一時) | 小 |
-| `copilot-langgraph_thread-files-prod` | アップロード添付 + AI 生成ファイル | 添付サイズ次第で大 |
-| `copilot-langgraph_claude-code-outputs-prod` | claude_code overflow output (debug 用) | 小 |
+| `copilot-langgraph-prod_postgres-data-prod` | thread / message / canvas_apps / gems | スレッド数依存 |
+| `copilot-langgraph-prod_redis-data-prod` | arq ジョブキュー (一時) | 小 |
+| `copilot-langgraph-prod_thread-files-prod` | アップロード添付 + AI 生成ファイル | 添付サイズ次第で大 |
+| `copilot-langgraph-prod_claude-code-outputs-prod` | claude_code overflow output (debug 用) | 小 |
 
 ```bash
 # postgres を SQL ダンプ
@@ -380,7 +392,7 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml ex
 
 # thread-files を tar 化 (バックアップ用ホストパスにマウントするか tar over stdin で取得)
 docker run --rm \
-  -v copilot-langgraph_thread-files-prod:/data:ro \
+  -v copilot-langgraph-prod_thread-files-prod:/data:ro \
   -v $(pwd):/backup \
   alpine \
   tar czf /backup/thread-files-$(date +%Y%m%d).tar.gz -C /data .
@@ -390,7 +402,7 @@ docker run --rm \
 
 ```bash
 # 通常停止 (volume は残る)
-docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml down
+./build-prod.sh --down
 
 # volume ごと削除 (注意: ユーザデータが消える)
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml down -v
@@ -440,9 +452,9 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml \
 # Docker 全体
 docker system df
 
-# このプロジェクトの volume サイズ
+# このプロジェクトの volume サイズ (prod は copilot-langgraph-prod_* の prefix)
 docker volume ls -q | xargs -I{} docker volume inspect {} --format '{{.Name}} {{.Mountpoint}}'
-sudo du -sh /var/lib/docker/volumes/copilot-langgraph_*
+sudo du -sh /var/lib/docker/volumes/copilot-langgraph-prod_*
 
 # 古いイメージ削除 (build キャッシュも含めて掃除)
 docker system prune -a --volumes  # ← 注意: volume も消える、必要なら除外

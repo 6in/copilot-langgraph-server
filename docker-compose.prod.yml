@@ -1,5 +1,11 @@
 # 本番モード compose — nginx + ビルド済みフロント + API + worker + MCP
 # 起動: docker compose -f docker-compose.prod.yml up --build
+#
+# project name を明示することで dev (docker-compose.yml, name=copilot-langgraph)
+# と分離する。これにより `down` で dev のコンテナを巻き込まず、volume も
+# `copilot-langgraph-prod_*` 名前空間に隔離される。
+name: copilot-langgraph-prod
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
