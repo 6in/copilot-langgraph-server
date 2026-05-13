@@ -10,9 +10,14 @@ import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
 import { CanvasPane } from './CanvasPane';
+import { AttachmentButton } from './AttachmentButton';
+import { AttachmentChips } from './AttachmentChips';
+import { VisionWarningBanner } from './VisionWarningBanner';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useCanvas } from '../hooks/useCanvas';
+import { useAttachments } from '../hooks/useAttachments';
+import { useModels } from '../hooks/useModels';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { renameThread, getCanvasGemId } from '../api/client';
 
@@ -24,12 +29,14 @@ const CANVAS_PANE_DEFAULT = 400; // 初期幅（ピクセル）
 
 // Phase 25: canvasGemId と initialThreadId props を廃止
 // App.tsx 側は selectedModel と onBack のみ渡す
+// Phase 40-04: VisionWarningBanner CTA でモデルを切り替えるために onModelChange を受ける
 interface CanvasChatAppProps {
   selectedModel: string;
   onBack: () => void;
+  onModelChange?: (model: string) => void;
 }
 
-export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
+export function CanvasChatApp({ selectedModel, onBack, onModelChange }: CanvasChatAppProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -77,6 +84,100 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
       switchThread(urlThreadId);
     }
   }, [urlThreadId, activeThreadId, switchThread]);
+
+  // Phase 40 UI-INIT-THREAD (#10 拡張): Canvas Chat も Chat/SuperChat と同形の
+  // 初回 mount 時 auto-create を行い、AttachmentButton が「+ 新しいチャットを開始」直後
+  // から有効化されるようにする。canvasGemId が未取得の間は待機 (skip しても次 render で再評価)。
+  const initThreadInFlightRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (initThreadInFlightRef.current) return;
+    if (urlThreadId !== undefined) return; // URL に既に thread がある
+    if (activeThreadId !== null) return; // 既存 thread がアクティブ
+    if (messages.length !== 0) return; // 既存メッセージが残っている
+    if (canvasGemId === null) return; // canvasGemId 取得待ち
+    initThreadInFlightRef.current = true;
+    (async () => {
+      try {
+        const tid = await createNewThread();
+        navigate(`/canvaschat/${tid}`, { replace: true });
+      } finally {
+        initThreadInFlightRef.current = false;
+      }
+    })();
+  }, [urlThreadId, activeThreadId, messages.length, canvasGemId, createNewThread, navigate]);
+
+  // Phase 40-04: model info を /api/models から取得し、useAttachments の vision_limits pre-validate を有効化
+  const { modelById, suggestedVisionModel } = useModels();
+  const currentModelInfo = modelById(selectedModel);
+
+  // Phase 40-04: staging attachments
+  const attachments = useAttachments(activeThreadId, currentModelInfo ?? null);
+
+  // Phase 40-04: vision 警告バナー dismiss state (モデル変更時にリセット)
+  const [warningDismissed, setWarningDismissed] = useState(false);
+  useEffect(() => {
+    setWarningDismissed(false);
+  }, [selectedModel]);
+
+  const hasStagedImages = attachments.items.some(
+    (it) => ['png', 'jpg', 'jpeg', 'webp'].includes(it.ext.toLowerCase()),
+  );
+  const showVisionWarning = !!(
+    hasStagedImages
+    && currentModelInfo
+    && currentModelInfo.vision === false
+    && suggestedVisionModel
+    && !warningDismissed
+  );
+
+  const handleSwitchModel = useCallback(() => {
+    if (suggestedVisionModel && onModelChange) {
+      onModelChange(suggestedVisionModel);
+    }
+  }, [suggestedVisionModel, onModelChange]);
+
+  // Phase 40-04: drop zone overlay state + paste listener (CanvasPane との競合は zIndex 100 で吸収)
+  const [dragOver, setDragOver] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget === e.target) setDragOver(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) attachments.upload(files);
+  }, [attachments]);
+
+  // Ctrl+V / Cmd+V で image blob を paste する (document level listener)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const imageFiles: File[] = [];
+      for (let i = 0; i < e.clipboardData.items.length; i++) {
+        const item = e.clipboardData.items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) imageFiles.push(f);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        attachments.upload(imageFiles);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [attachments]);
 
   // サイドバー幅
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -151,6 +252,9 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
     setMessages,
     refreshThreads,
     onCanvasResponse: (app) => { setCanvasApp(app); setCurrentHtml(app.html); },
+    // Phase 40-04: attachments pipeline
+    getReadyAttachments: attachments.getReadyItems,
+    onAttachmentsSent: attachments.clearAll,
   });
 
   const handleSend = async (text: string) => {
@@ -225,7 +329,72 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div
+      ref={rootRef}
+      style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {/* Phase 40-04: drop overlay (drag-over 中のみ表示、zIndex: 100 で CanvasPane 上にも被さる) */}
+      {dragOver && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 100,
+            background: 'var(--color-accent-subtle)',
+            border: '2px dashed var(--color-accent)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 'var(--space-2)',
+            pointerEvents: 'none',
+            opacity: 0.9,
+          }}
+        >
+          <div style={{
+            fontFamily: "'Rajdhani', sans-serif",
+            fontSize: '20px',
+            fontWeight: 600,
+            color: 'var(--color-text)',
+          }}>ファイルをドロップして添付</div>
+          <div style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+            テキスト・コード・画像（PNG / JPG / WebP）に対応
+          </div>
+        </div>
+      )}
+
+      {/* Phase 40-04: validation error banner */}
+      {attachments.validationError && (
+        <div style={{
+          padding: 'var(--space-2) var(--space-3)',
+          borderBottom: '1px solid var(--color-destructive)',
+          background: 'var(--color-surface)',
+          fontSize: 14,
+          color: 'var(--color-destructive)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          position: 'relative',
+          zIndex: 50,
+        }}>
+          <span aria-hidden="true">⚠</span>
+          <span style={{ flex: 1 }}>{attachments.validationError.reason}</span>
+          <button
+            onClick={attachments.dismissValidationError}
+            aria-label="エラーを閉じる"
+            style={{
+              border: 'none', background: 'transparent',
+              color: 'var(--color-text-muted)', cursor: 'pointer',
+              fontSize: '16px', lineHeight: 1, padding: 0,
+            }}
+          >×</button>
+        </div>
+      )}
+
       {/* ドラッグ中オーバーレイ: iframe がマウスイベントを奪うのを防ぐ */}
       {isResizing && (
         <div style={{
@@ -311,6 +480,32 @@ export function CanvasChatApp({ selectedModel, onBack }: CanvasChatAppProps) {
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
               onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
+              activeThreadId={activeThreadId}
+              // Phase 40-04: AttachmentButton / AttachmentChips を InputBar slot に差し込む
+              inputToolbarSlot={
+                <AttachmentButton
+                  onFilesSelected={(files) => attachments.upload(files)}
+                  disabled={isThinking || !activeThreadId}
+                  disabledReason={!activeThreadId ? 'no-thread' : 'thinking'}
+                />
+              }
+              inputPreviewSlot={
+                <AttachmentChips
+                  items={attachments.items}
+                  onRemove={attachments.removeItem}
+                />
+              }
+              // Phase 40-04: vision 非対応モデル選択中に画像 staging があれば警告 + ワンクリック切替 CTA
+              inputWarningSlot={
+                showVisionWarning && suggestedVisionModel ? (
+                  <VisionWarningBanner
+                    currentModel={currentModelInfo!.name}
+                    suggestedModel={modelById(suggestedVisionModel)?.name ?? suggestedVisionModel}
+                    onSwitchModel={handleSwitchModel}
+                    onDismiss={() => setWarningDismissed(true)}
+                  />
+                ) : undefined
+              }
             />
           )}
 

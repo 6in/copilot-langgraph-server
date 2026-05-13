@@ -57,6 +57,8 @@ export function ChatApp({ selectedModel, onModelChange }: ChatAppProps) {
 
   // 25-RESEARCH.md Pitfall 5 対策: URL を single source of truth とする
   // URL の threadId が変わったら useThreads の activeThreadId を同期する
+  // Phase 40: 初回 mount で urlThreadId === undefined && activeThreadId === null の場合は
+  // 次の useEffect (auto-create) が起動し、自動的に新規 thread を作成する。
   useEffect(() => {
     if (urlThreadId && urlThreadId !== activeThreadId) {
       switchThread(urlThreadId);
@@ -64,6 +66,27 @@ export function ChatApp({ selectedModel, onModelChange }: ChatAppProps) {
     // urlThreadId が undefined(/chat) の場合は activeThreadId をクリアしない
     // (新規スレッド作成時に /chat → /chat/:tid の遷移で消えないように)
   }, [urlThreadId, activeThreadId, switchThread]);
+
+  // Phase 40 UI-INIT-THREAD (#10): URL に threadId なし / activeThreadId null / messages 空 の
+  // AND 条件でのみ新規 thread を自動作成。inFlightRef でリロード・ブラウザバック時の二重発火を防止。
+  // useThreads.createNewThread が activeThreadId を更新するため、自動作成後の再 render では
+  // activeThreadId !== null となり再発火しない。
+  const initThreadInFlightRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (initThreadInFlightRef.current) return;
+    if (urlThreadId !== undefined) return; // URL に既に thread がある
+    if (activeThreadId !== null) return; // 既存 thread がアクティブ
+    if (messages.length !== 0) return; // 既存メッセージが残っている
+    initThreadInFlightRef.current = true;
+    (async () => {
+      try {
+        const tid = await createNewThread();
+        navigate(`/chat/${tid}`, { replace: true });
+      } finally {
+        initThreadInFlightRef.current = false;
+      }
+    })();
+  }, [urlThreadId, activeThreadId, messages.length, createNewThread, navigate]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);

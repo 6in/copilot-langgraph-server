@@ -37,3 +37,12 @@ TBD。検討案:
 - 既存 todo `2026-04-17-file-upload-download-chat-ui.md` — feature 全体の追跡 (一部 Phase 36 で実装済)
 - Phase 39 Code Review WR-11 等 (もし関連指摘あれば)
 - Phase 39 deferred-items.md にも記録されている可能性あり (要確認)
+
+---
+
+## Resolved 2026-05-13 — Phase 40 Plan 04
+
+- Implemented in: .planning/phases/40-ui-polish-round-2-frontend-only/40-04-PLAN.md / 40-04-SUMMARY.md
+- ROADMAP Success Criteria: 4 (UI-ATTACHBTN)
+- Commits: bf61423, fcece63, aecf29d
+- Note: Debate Chat は backend `debate_handler.py` が ChatRequest.attachments を読まないため意図的に除外 (Phase 41 Debate Document Review へ defer)

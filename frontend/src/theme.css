@@ -176,6 +176,17 @@
   width: 100%;
 }
 
+/* Phase 40 UIFIX: chatscope デフォルト薄青 bubble を透明化。Debate Chat (senderName 付き) の
+   agentBgColor wrapper との 2 層重ねを解消。Chat/SuperChat/Gem/Canvas 側は MessageArea.tsx
+   L486-491 の wrapper が senderName 無し時に発生しない (background style 自体が undefined)
+   ため、外側透明化で MessageList の bg がそのまま見える形になる。dark mode override
+   (L197-200) は本 rule の後に定義されているため、specificity 同等で後勝ちとなり
+   data-theme="dark" 環境では --color-surface 背景が維持される。 */
+.cs-message--incoming .cs-message__content {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 /* ============================================================
    DARK MODE — chatscope container overrides
    (verify class names on @chatscope upgrade)

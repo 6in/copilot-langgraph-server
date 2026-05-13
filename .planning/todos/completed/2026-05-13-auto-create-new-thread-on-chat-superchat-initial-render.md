@@ -42,3 +42,11 @@ TBD。検討案:
 関連:
 - 既存 todo に同等の項目なし
 - Phase 25 (URL routing) / Phase 39 UIFIX 範囲外
+
+---
+
+## Resolved 2026-05-13 — Phase 40 Plan 05
+
+- Implemented in: .planning/phases/40-ui-polish-round-2-frontend-only/40-05-PLAN.md / 40-05-SUMMARY.md
+- ROADMAP Success Criteria: 2 (UI-INIT-THREAD)
+- Commits: 9022584, 3b79019

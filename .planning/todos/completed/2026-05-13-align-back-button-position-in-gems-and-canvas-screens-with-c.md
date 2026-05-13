@@ -33,3 +33,11 @@ TBD。検討案:
 関連: Phase 35 dashboard design system / Phase 39 UIFIX-04 で polish 枠を確保したが、本件は scope 外として後追い対応。
 
 Phase 39 Code Review WR-02 (Header の dark mode 漏れ) と一緒に修正すると効率的。
+
+---
+
+## Resolved 2026-05-13 — Phase 40 Plan 01
+
+- Implemented in: .planning/phases/40-ui-polish-round-2-frontend-only/40-01-PLAN.md / 40-01-SUMMARY.md
+- ROADMAP Success Criteria: 1 (UI-BACKBUTTON)
+- Commits: ac7feb7, daba1af

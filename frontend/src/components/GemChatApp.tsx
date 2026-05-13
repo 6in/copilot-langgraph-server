@@ -9,8 +9,13 @@ import { useParams, useNavigate } from 'react-router';
 import { MainContainer } from '@chatscope/chat-ui-kit-react';
 import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
+import { AttachmentButton } from './AttachmentButton';
+import { AttachmentChips } from './AttachmentChips';
+import { VisionWarningBanner } from './VisionWarningBanner';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
+import { useAttachments } from '../hooks/useAttachments';
+import { useModels } from '../hooks/useModels';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { renameThread } from '../api/client';
 import type { GemInfo } from '../types';
@@ -23,9 +28,11 @@ interface GemChatAppProps {
   gem: GemInfo;
   selectedModel: string;
   onBack: () => void;
+  // Phase 40-04: VisionWarningBanner CTA でモデルを切り替えるために onModelChange を受ける
+  onModelChange?: (model: string) => void;
 }
 
-export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
+export function GemChatApp({ gem, selectedModel, onBack, onModelChange }: GemChatAppProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -56,6 +63,100 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     }
   }, [urlThreadId, activeThreadId, switchThread]);
 
+  // Phase 40 UI-INIT-THREAD (#10 拡張): Gem Chat も Chat/SuperChat と同形の初回 mount auto-create。
+  // Menu → Gems → Gem 選択で /gemchat/{gemId} (thread ID なし) に遷移したとき、
+  // AttachmentButton を即座に有効化するため自動で新規 thread を作成する。
+  const initThreadInFlightRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (initThreadInFlightRef.current) return;
+    if (urlThreadId !== undefined) return; // URL に既に thread がある
+    if (activeThreadId !== null) return; // 既存 thread がアクティブ
+    if (messages.length !== 0) return; // 既存メッセージが残っている
+    if (!gemId) return; // gemId が URL params から取れる前は待機
+    initThreadInFlightRef.current = true;
+    (async () => {
+      try {
+        const tid = await createNewThread();
+        navigate(`/gemchat/${gemId}/${tid}`, { replace: true });
+      } finally {
+        initThreadInFlightRef.current = false;
+      }
+    })();
+  }, [urlThreadId, activeThreadId, messages.length, gemId, createNewThread, navigate]);
+
+  // Phase 40-04: model info を /api/models から取得し、useAttachments の vision_limits pre-validate を有効化
+  const { modelById, suggestedVisionModel } = useModels();
+  const currentModelInfo = modelById(selectedModel);
+
+  // Phase 40-04: staging attachments
+  const attachments = useAttachments(activeThreadId, currentModelInfo ?? null);
+
+  // Phase 40-04: vision 警告バナー dismiss state (モデル変更時にリセット)
+  const [warningDismissed, setWarningDismissed] = useState(false);
+  useEffect(() => {
+    setWarningDismissed(false);
+  }, [selectedModel]);
+
+  const hasStagedImages = attachments.items.some(
+    (it) => ['png', 'jpg', 'jpeg', 'webp'].includes(it.ext.toLowerCase()),
+  );
+  const showVisionWarning = !!(
+    hasStagedImages
+    && currentModelInfo
+    && currentModelInfo.vision === false
+    && suggestedVisionModel
+    && !warningDismissed
+  );
+
+  const handleSwitchModel = useCallback(() => {
+    if (suggestedVisionModel && onModelChange) {
+      onModelChange(suggestedVisionModel);
+    }
+  }, [suggestedVisionModel, onModelChange]);
+
+  // Phase 40-04: drop zone overlay state + paste listener
+  const [dragOver, setDragOver] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget === e.target) setDragOver(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) attachments.upload(files);
+  }, [attachments]);
+
+  // Ctrl+V / Cmd+V で image blob を paste する (document level listener)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const imageFiles: File[] = [];
+      for (let i = 0; i < e.clipboardData.items.length; i++) {
+        const item = e.clipboardData.items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) imageFiles.push(f);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        attachments.upload(imageFiles);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [attachments]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
 
@@ -84,6 +185,9 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
     gemId: gem.gem_id,
     setMessages,
     refreshThreads,
+    // Phase 40-04: attachments pipeline
+    getReadyAttachments: attachments.getReadyItems,
+    onAttachmentsSent: attachments.clearAll,
   });
 
   const handleSend = async (text: string) => {
@@ -167,7 +271,72 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
       </div>
 
       {/* MainContainer (ChatApp.tsx と同パターン) */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div
+        ref={rootRef}
+        style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {/* Phase 40-04: drop overlay (drag-over 中のみ表示) */}
+        {dragOver && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 100,
+              background: 'var(--color-accent-subtle)',
+              border: '2px dashed var(--color-accent)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-2)',
+              pointerEvents: 'none',
+              opacity: 0.9,
+            }}
+          >
+            <div style={{
+              fontFamily: "'Rajdhani', sans-serif",
+              fontSize: '20px',
+              fontWeight: 600,
+              color: 'var(--color-text)',
+            }}>ファイルをドロップして添付</div>
+            <div style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+              テキスト・コード・画像（PNG / JPG / WebP）に対応
+            </div>
+          </div>
+        )}
+
+        {/* Phase 40-04: validation error banner */}
+        {attachments.validationError && (
+          <div style={{
+            padding: 'var(--space-2) var(--space-3)',
+            borderBottom: '1px solid var(--color-destructive)',
+            background: 'var(--color-surface)',
+            fontSize: 14,
+            color: 'var(--color-destructive)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            position: 'relative',
+            zIndex: 50,
+          }}>
+            <span aria-hidden="true">⚠</span>
+            <span style={{ flex: 1 }}>{attachments.validationError.reason}</span>
+            <button
+              onClick={attachments.dismissValidationError}
+              aria-label="エラーを閉じる"
+              style={{
+                border: 'none', background: 'transparent',
+                color: 'var(--color-text-muted)', cursor: 'pointer',
+                fontSize: '16px', lineHeight: 1, padding: 0,
+              }}
+            >×</button>
+          </div>
+        )}
+
         <MainContainer style={{ overflow: 'hidden' }}>
           <ThreadSidebar
             threads={threads}
@@ -213,6 +382,32 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
               onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
+              activeThreadId={activeThreadId}
+              // Phase 40-04: AttachmentButton / AttachmentChips を InputBar slot に差し込む
+              inputToolbarSlot={
+                <AttachmentButton
+                  onFilesSelected={(files) => attachments.upload(files)}
+                  disabled={isThinking || !activeThreadId}
+                  disabledReason={!activeThreadId ? 'no-thread' : 'thinking'}
+                />
+              }
+              inputPreviewSlot={
+                <AttachmentChips
+                  items={attachments.items}
+                  onRemove={attachments.removeItem}
+                />
+              }
+              // Phase 40-04: vision 非対応モデル選択中に画像 staging があれば警告 + ワンクリック切替 CTA
+              inputWarningSlot={
+                showVisionWarning && suggestedVisionModel ? (
+                  <VisionWarningBanner
+                    currentModel={currentModelInfo!.name}
+                    suggestedModel={modelById(suggestedVisionModel)?.name ?? suggestedVisionModel}
+                    onSwitchModel={handleSwitchModel}
+                    onDismiss={() => setWarningDismissed(true)}
+                  />
+                ) : undefined
+              }
             />
           )}
         </MainContainer>

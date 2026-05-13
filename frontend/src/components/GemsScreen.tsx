@@ -41,7 +41,10 @@ function SkeletonCard({ cardBg }: SkeletonCardProps) {
   );
 }
 
-export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
+// Phase 40 Plan 01: 共有 Header の戻るボタンに統一したため画面内 Back を撤去。
+// onBack は GemsScreenProps の型シグネチャ上は残るが (呼び出し元 App.tsx 互換性維持)、
+// このコンポーネント内では使用しない。
+export function GemsScreen({ onSelectGem }: GemsScreenProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -276,7 +279,7 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
       `}</style>
 
       <div style={{ maxWidth: '640px', width: '100%' }}>
-        {/* ヘッダー行: Back ボタン + 見出し "Gems" */}
+        {/* ヘッダー行: 見出し "Gems" のみ (Back ボタンは共有 Header に統一 — Phase 40 Plan 01) */}
         <div
           style={{
             display: 'flex',
@@ -285,20 +288,6 @@ export function GemsScreen({ onSelectGem, onBack }: GemsScreenProps) {
             marginBottom: '16px',
           }}
         >
-          <button
-            onClick={onBack}
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '4px',
-              border: '1px solid #555',
-              background: 'transparent',
-              color: textColor,
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            ← Back
-          </button>
           <h1
             style={{
               fontSize: '2rem',

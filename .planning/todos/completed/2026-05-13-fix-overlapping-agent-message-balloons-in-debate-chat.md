@@ -71,3 +71,11 @@ Chat/SuperChat は chatscope 使用、Debate Chat は独自レイアウト (time
 ### 補助発見 (別 TODO 候補)
 
 DebateChatApp は **`/orochi/debate/{threadId}` で URL に thread ID があっても、ローカル React state `config === null` の間は必ず設定画面に戻る** 構造 (`DebateChatApp.tsx:821-829`)。リロード時や直接 URL アクセス時に既存スレッドの履歴が表示されず、毎回参加者を選び直して "討論を開始" を押さないと過去ログが見えない。本 todo とは別の issue だが要 capture。
+
+---
+
+## Resolved 2026-05-13 — Phase 40 Plan 02
+
+- Implemented in: .planning/phases/40-ui-polish-round-2-frontend-only/40-02-PLAN.md / 40-02-SUMMARY.md
+- ROADMAP Success Criteria: 3 (UI-BALLOON)
+- Commits: 9029c77

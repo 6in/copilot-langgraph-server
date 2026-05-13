@@ -12,13 +12,19 @@ import { ThreadSidebar } from './ThreadSidebar';
 import { MessageArea } from './MessageArea';
 import { CanvasPane } from './CanvasPane';
 import { GemSelector } from './GemSelector';
+import { AttachmentButton } from './AttachmentButton';
+import { AttachmentChips } from './AttachmentChips';
+import { VisionWarningBanner } from './VisionWarningBanner';
 import { useThreads } from '../hooks/useThreads';
 import { useChat } from '../hooks/useChat';
 import { useAgents } from '../hooks/useAgents';
 import { useCanvas } from '../hooks/useCanvas';
+import { useAttachments } from '../hooks/useAttachments';
+import { useModels } from '../hooks/useModels';
 import { useCurrentTheme } from '../contexts/ThemeContext';
 import { agentAccentColor } from '../utils/agentColor';
 import { renameThread } from '../api/client';
+import { buildSuperChatPath, isUuidLike, DEFAULT_SUPERCHAT_SLUG } from '../App';
 import type { AgentInfo, CanvasAppInfo, ContextMessage } from '../types';
 
 const SIDEBAR_MIN = 160;
@@ -30,6 +36,8 @@ interface SuperChatAppProps {
   appId: string;
   appName: string;
   appAgents?: string[];
+  // Phase 40-04: VisionWarningBanner CTA でモデルを切り替えるために onModelChange を受ける
+  onModelChange?: (model: string) => void;
 }
 
 interface AgentChipProps {
@@ -118,10 +126,13 @@ function AgentSelector({ agents, selectedAgents, onToggle, isLoading, isDark }: 
   );
 }
 
-export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgents }: SuperChatAppProps) {
+export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgents, onModelChange }: SuperChatAppProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
-  const { appSlug, threadId: urlThreadId } = useParams<{ appSlug: string; threadId?: string }>();
+  // Phase 40-03: Route param 名が slugOrThreadId / threadId に変更。
+  // 単独 segment が UUID なら default app の threadId、それ以外なら 3 段目の threadId を採用する。
+  const { slugOrThreadId, threadId: routeThreadId } = useParams<{ slugOrThreadId?: string; threadId?: string }>();
+  const urlThreadId = isUuidLike(slugOrThreadId) ? slugOrThreadId : routeThreadId;
   const navigate = useNavigate();
 
   const {
@@ -138,11 +149,108 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
   } = useThreads(appId || 'superchat');
 
   // Phase 25: URL を single source of truth として switchThread と同期
+  // Phase 40: 初回 mount で urlThreadId === undefined && activeThreadId === null の場合は
+  // 次の useEffect (auto-create) が起動し、自動的に新規 thread を作成する。
   useEffect(() => {
     if (urlThreadId && urlThreadId !== activeThreadId) {
       switchThread(urlThreadId);
     }
   }, [urlThreadId, activeThreadId, switchThread]);
+
+  // Phase 40 UI-INIT-THREAD (#10): Chat 側と同形。buildSuperChatPath で default app 短縮形
+  // (/superchat/{uuid}) を維持する。AND 3 条件 + inFlight gate で初回 mount 直後の
+  // 中ぶらりん状態だけが通過する。useThreads.createNewThread が activeThreadId を更新するため、
+  // 自動作成後の再 render では activeThreadId !== null となり再発火しない。
+  const initThreadInFlightRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (initThreadInFlightRef.current) return;
+    if (urlThreadId !== undefined) return; // URL に既に thread がある
+    if (activeThreadId !== null) return; // 既存 thread がアクティブ
+    if (messages.length !== 0) return; // 既存メッセージが残っている
+    initThreadInFlightRef.current = true;
+    (async () => {
+      try {
+        const tid = await createNewThread();
+        navigate(buildSuperChatPath(appId || DEFAULT_SUPERCHAT_SLUG, tid), { replace: true });
+      } finally {
+        initThreadInFlightRef.current = false;
+      }
+    })();
+  }, [urlThreadId, activeThreadId, messages.length, createNewThread, navigate, appId]);
+
+  // Phase 40-04: model info を /api/models から取得し、useAttachments の vision_limits pre-validate を有効化
+  const { modelById, suggestedVisionModel } = useModels();
+  const currentModelInfo = modelById(selectedModel);
+
+  // Phase 40-04: staging attachments — selectedModelInfo を渡すと vision_limits pre-validate が有効化される
+  const attachments = useAttachments(activeThreadId, currentModelInfo ?? null);
+
+  // Phase 40-04: vision 警告バナー dismiss state (モデル変更時にリセット)
+  const [warningDismissed, setWarningDismissed] = useState(false);
+  useEffect(() => {
+    setWarningDismissed(false);
+  }, [selectedModel]);
+
+  // 画像 staging アイテムがあるかつモデルが vision=false なら表示
+  const hasStagedImages = attachments.items.some(
+    (it) => ['png', 'jpg', 'jpeg', 'webp'].includes(it.ext.toLowerCase()),
+  );
+  const showVisionWarning = !!(
+    hasStagedImages
+    && currentModelInfo
+    && currentModelInfo.vision === false
+    && suggestedVisionModel
+    && !warningDismissed
+  );
+
+  const handleSwitchModel = useCallback(() => {
+    if (suggestedVisionModel && onModelChange) {
+      onModelChange(suggestedVisionModel);
+    }
+  }, [suggestedVisionModel, onModelChange]);
+
+  // Phase 40-04: drop zone overlay state + paste listener
+  const [dragOver, setDragOver] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget === e.target) setDragOver(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) attachments.upload(files);
+  }, [attachments]);
+
+  // Ctrl+V / Cmd+V で image blob を paste する (document level listener)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const imageFiles: File[] = [];
+      for (let i = 0; i < e.clipboardData.items.length; i++) {
+        const item = e.clipboardData.items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) imageFiles.push(f);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        attachments.upload(imageFiles);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [attachments]);
 
   // Fetch all agents then filter client-side to the app's declared agents (Option A)
   const { agents: allAgents, selectedAgents, toggleAgent, isLoading: agentsLoading } = useAgents();
@@ -191,15 +299,18 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     onCanvasResponse: (app: CanvasAppInfo) => setCanvasApp(app),
     setMessages,
     refreshThreads,
+    // Phase 40-04: attachments pipeline — ChatRequest.attachments への載せ替えと送信成功時のクリア
+    getReadyAttachments: attachments.getReadyItems,
+    onAttachmentsSent: attachments.clearAll,
   });
 
   const handleNewChat = async () => {
     const tid = await createNewThread();
-    navigate(`/superchat/${appSlug}/${tid}`, { replace: true });
+    navigate(buildSuperChatPath(appId || DEFAULT_SUPERCHAT_SLUG, tid), { replace: true });
   };
 
   const handleSelectThread = async (threadId: string) => {
-    navigate(`/superchat/${appSlug}/${threadId}`);
+    navigate(buildSuperChatPath(appId || DEFAULT_SUPERCHAT_SLUG, threadId));
   };
 
   const handleRenameThread = async (threadId: string, label: string) => {
@@ -211,7 +322,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
     let threadId = activeThreadId;
     if (!threadId) {
       threadId = await createNewThread();
-      navigate(`/superchat/${appSlug}/${threadId}`, { replace: true });
+      navigate(buildSuperChatPath(appId || DEFAULT_SUPERCHAT_SLUG, threadId), { replace: true });
     }
     await sendMessage(text, threadId, contextMessages);
     await refreshThreads();
@@ -240,7 +351,72 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
   }, [sidebarWidth]);
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div
+      ref={rootRef}
+      style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {/* Phase 40-04: drop overlay (drag-over 中のみ表示) */}
+      {dragOver && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 100,
+            background: 'var(--color-accent-subtle)',
+            border: '2px dashed var(--color-accent)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 'var(--space-2)',
+            pointerEvents: 'none',
+            opacity: 0.9,
+          }}
+        >
+          <div style={{
+            fontFamily: "'Rajdhani', sans-serif",
+            fontSize: '20px',
+            fontWeight: 600,
+            color: 'var(--color-text)',
+          }}>ファイルをドロップして添付</div>
+          <div style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+            テキスト・コード・画像（PNG / JPG / WebP）に対応
+          </div>
+        </div>
+      )}
+
+      {/* Phase 40-04: validation error banner */}
+      {attachments.validationError && (
+        <div style={{
+          padding: 'var(--space-2) var(--space-3)',
+          borderBottom: '1px solid var(--color-destructive)',
+          background: 'var(--color-surface)',
+          fontSize: 14,
+          color: 'var(--color-destructive)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          position: 'relative',
+          zIndex: 50,
+        }}>
+          <span aria-hidden="true">⚠</span>
+          <span style={{ flex: 1 }}>{attachments.validationError.reason}</span>
+          <button
+            onClick={attachments.dismissValidationError}
+            aria-label="エラーを閉じる"
+            style={{
+              border: 'none', background: 'transparent',
+              color: 'var(--color-text-muted)', cursor: 'pointer',
+              fontSize: '16px', lineHeight: 1, padding: 0,
+            }}
+          >×</button>
+        </div>
+      )}
+
       <MainContainer style={{ overflow: 'hidden' }}>
         <ThreadSidebar
           threads={threads}
@@ -301,6 +477,32 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
               onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
+              activeThreadId={activeThreadId}
+              // Phase 40-04: AttachmentButton / AttachmentChips を InputBar slot に差し込む
+              inputToolbarSlot={
+                <AttachmentButton
+                  onFilesSelected={(files) => attachments.upload(files)}
+                  disabled={isThinking || !activeThreadId}
+                  disabledReason={!activeThreadId ? 'no-thread' : 'thinking'}
+                />
+              }
+              inputPreviewSlot={
+                <AttachmentChips
+                  items={attachments.items}
+                  onRemove={attachments.removeItem}
+                />
+              }
+              // Phase 40-04: vision 非対応モデル選択中に画像 staging があれば警告 + ワンクリック切替 CTA
+              inputWarningSlot={
+                showVisionWarning && suggestedVisionModel ? (
+                  <VisionWarningBanner
+                    currentModel={currentModelInfo!.name}
+                    suggestedModel={modelById(suggestedVisionModel)?.name ?? suggestedVisionModel}
+                    onSwitchModel={handleSwitchModel}
+                    onDismiss={() => setWarningDismissed(true)}
+                  />
+                ) : undefined
+              }
             />
           )}
         </div>

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: executing
+status: milestone_complete
 stopped_at: Phase 39 complete (UIFIX-01..04 すべて [x]、ROADMAP/REQUIREMENTS/STATE 同期済、39-VERIFICATION.md PASS)
-last_updated: "2026-05-13T08:53:06.856Z"
-last_activity: 2026-05-13 -- Phase 40 planning complete
+last_updated: "2026-05-13T09:05:18.638Z"
+last_activity: 2026-05-13 -- Phase 40 execution started
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 41
   completed_plans: 35
-  percent: 85
+  percent: 67
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** Phase 39 closed — next: Phase 32 (AI-UI 操作基盤) or v6.0 残 phase (32/33/34) 着手判断
+**Current focus:** Phase 40 — UI Polish Round 2 (frontend-only)
 
 ## Current Position
 
-Phase: 39
+Phase: 40
 Plan: Not started
 Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs) — 5/8 v6.0 phases complete (35/36/37/38/39)
-Status: Ready to execute
+Status: Milestone complete
 Progress: 38/40 phases complete · `[████████░] 95%`
-Last activity: 2026-05-13 -- Phase 40 planning complete
+Last activity: 2026-05-13
 Resume file: .planning/ROADMAP.md (next: Phase 32 or 33 or 34 を選んで /gsd-discuss-phase 起動)
 Hand-offs to next phases:
 
@@ -41,7 +41,7 @@ Hand-offs to next phases:
 
 **Velocity:**
 
-- Total plans completed: 47 (v5.0)
+- Total plans completed: 53 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -56,6 +56,7 @@ Hand-offs to next phases:
 | 35 | 8 | - | - |
 | 38 | 6 | - | - |
 | 39 | 9 | - | - |
+| 40 | 6 | - | - |
 
 **Recent Trend:**
 
@@ -271,15 +272,10 @@ Recent decisions affecting current work:
 - MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
 - エージェント実行・MCP ツール利用の observability 基盤 — api
 - Docker 外部から trace ログを検索できるラッパースクリプトを整備 — tooling
-- Gems/Canvas 画面の戻るボタン位置を Chat/SuperChat と揃える — ui
-- AttachmentButton を SuperChat/Gem/Canvas/Debate にも展開 — ui
-- Chat/SuperChat 初回表示時に「新しいチャット」と同じ初期化を自動実行 — ui
 - Canvas Editor に「現在 HTML vs デプロイ済 HTML」の Diff タブを追加 — ui
-- Debate Chat の各エージェント会話バルーンが重なって表示される — ui
 - Debate Chat で URL 直接アクセス時に過去スレッドの履歴を復元する — ui
-- SuperChat の URL から冗長な default app slug を省く (/superchat/superchat → /superchat) — ui
 
-<!-- 15/15 pending (resolved: 2026-04-16 Mermaid View OS hang → Phase 39 Plan 39-02 で ADR-0053 化、v6.1+ spike defer; 2026-04-23 AskMe regression → Phase 39 Plan 39-05 commit fcd4534) -->
+<!-- 10/15 pending (resolved 2026-05-13 via Phase 40: #9 戻るボタン位置 / #10 初回 thread 自動作成 / #12 Debate balloon 重なり / #13 AttachmentButton 展開 (Debate 除外) / #15 SuperChat URL 短縮) -->
 
 ### Quick Tasks Completed
 

@@ -305,18 +305,28 @@ Plans:
   - `simplify-superchat-url-to-omit-redundant-default-app-slug.md` (#15, 後方互換性なし)
 
 **Success Criteria** (what must be TRUE):
-  1. [ ] Gems / Canvas Screen の戻るボタンが Chat/SuperChat の Header と同位置・同スタイルに揃っている
-  2. [ ] Chat / SuperChat 初回表示時 (URL に threadId なし & activeThreadId null & messages 空) に新しい thread が自動作成され、リロード / 戻る / 既存スレッド開閉時に新規 thread が二重作成されない
-  3. [ ] Debate Chat のエージェントメッセージで chatscope デフォルト bubble (薄青) と Phase 35 エージェント別カラー wrapper の 2 層重ねが解消されている
-  4. [ ] SuperChat / Gem / Canvas に AttachmentButton が追加され、Phase 36 の既存 attachments パイプラインで動作する (Debate は Phase 41 へ defer 明記)
-  5. [ ] SuperChat URL が `/superchat` (default app) と `/superchat/<other-slug>` の 2 パターンで動き、`/superchat/superchat` の二段は新規生成されない (古い URL の互換性は不要)
+  1. [x] Gems / Canvas Screen の戻るボタンが Chat/SuperChat の Header と同位置・同スタイルに揃っている
+  2. [x] Chat / SuperChat 初回表示時 (URL に threadId なし & activeThreadId null & messages 空) に新しい thread が自動作成され、リロード / 戻る / 既存スレッド開閉時に新規 thread が二重作成されない
+  3. [x] Debate Chat のエージェントメッセージで chatscope デフォルト bubble (薄青) と Phase 35 エージェント別カラー wrapper の 2 層重ねが解消されている
+  4. [x] SuperChat / Gem / Canvas に AttachmentButton が追加され、Phase 36 の既存 attachments パイプラインで動作する (Debate は Phase 41 へ defer 明記)
+  5. [x] SuperChat URL が `/superchat` (default app) と `/superchat/<other-slug>` の 2 パターンで動き、`/superchat/superchat` の二段は新規生成されない (古い URL の互換性は不要)
+
+**Plans:**
+  - [x] 40-01-PLAN.md — Gems/Canvas 戻るボタンを共有 Header に統一
+  - [x] 40-02-PLAN.md — Debate Chat の chatscope 薄青 bubble 2 層重ね解消 (theme.css 1 ルール)
+  - [x] 40-03-PLAN.md — SuperChat URL `/superchat[/{slug}]` 2 パターン正規化 + buildSuperChatPath helper
+  - [x] 40-04-PLAN.md — AttachmentButton を SuperChat / Gem / Canvas に展開 (Debate 除外)
+  - [x] 40-05-PLAN.md — Chat/SuperChat 初回表示で新規 thread auto-create + 二重作成防止
+  - [x] 40-06-PLAN.md — 40-VERIFICATION.md + 5 todos resolve + Phase クローズ
 
 **Out of Scope**:
   - Backend schema 変更 (Canvas deployed_html / Debate config 永続化 → Phase 41+ で個別検討)
   - Debate Chat 添付対応 (PDF/PPTX content extraction を含む大きめスコープなので独立 Phase 41 Debate Document Review として後追い)
   - 既存 URL `/superchat/superchat/<uuid>` への redirect (ユーザー判断で互換性不要)
+  - Sidebar 削除後 `/chat` への navigate — Plan 40-05 must_haves.truths #6 で記載されていたが、ROADMAP success criteria 2 には含まれないため defer (Phase 41+)
 
 **UI hint**: yes (純粋 UI / routing / CSS のみ)
+**Completed**: 2026-05-13
 
 ## Progress
 
@@ -366,3 +376,4 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
 | 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 6/6 | Complete    | 2026-05-12 |
 | 39. UI バグ潰し + Polish 枠 | v6.0 | 9/9 | Complete    | 2026-05-13 |
+| 40. UI Polish Round 2 (frontend-only) | v6.0 | 6/6 | Complete    | 2026-05-13 |

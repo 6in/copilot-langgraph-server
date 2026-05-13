@@ -111,7 +111,10 @@ function CanvasAppCard({ app, cardBg, cardBorder, textColor, onClick }: CanvasAp
   );
 }
 
-export function CanvasScreen({ onBack, onStartChat }: CanvasScreenProps) {
+// Phase 40 Plan 01: 共有 Header の戻るボタンに統一したため画面内 Back を撤去。
+// onBack は CanvasScreenProps の型シグネチャ上は残るが (呼び出し元 App.tsx 互換性維持)、
+// このコンポーネント内では使用しない。
+export function CanvasScreen({ onStartChat }: CanvasScreenProps) {
   const theme = useCurrentTheme();
   const isDark = theme === 'dark';
 
@@ -153,23 +156,8 @@ export function CanvasScreen({ onBack, onStartChat }: CanvasScreenProps) {
       <style>{`button:focus-visible { outline: 2px solid #7c6ff7; outline-offset: 2px; }`}</style>
       <div style={{ maxWidth: '640px', width: '100%' }}>
 
-        {/* ヘッダー行 */}
+        {/* ヘッダー行: 見出し "Canvas Apps" のみ (Back ボタンは共有 Header に統一 — Phase 40 Plan 01) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <button
-            onClick={onBack}
-            aria-label="Back to menu"
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '4px',
-              border: '1px solid #555',
-              background: 'transparent',
-              color: textColor,
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            ← Back
-          </button>
           <h1 style={{ fontSize: '2rem', fontWeight: 600, color: textColor, margin: 0 }}>
             Canvas Apps
           </h1>

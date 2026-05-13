@@ -100,3 +100,11 @@ const threadId = looksLikeUuid(rawSlug) ? rawSlug : rawThread;
 
 - Phase 25 で導入された multi-app 構造の前提を踏襲
 - 関連 ADR: `docs/adr/0051-multi-app-rollout-process-patterns.md` を確認すること (multi-app rollout)
+
+---
+
+## Resolved 2026-05-13 — Phase 40 Plan 03
+
+- Implemented in: .planning/phases/40-ui-polish-round-2-frontend-only/40-03-PLAN.md / 40-03-SUMMARY.md
+- ROADMAP Success Criteria: 5 (UI-SUPERCHAT-URL)
+- Commits: 1a2f7e6, f65d2a2
