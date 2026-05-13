@@ -274,8 +274,9 @@ Recent decisions affecting current work:
 - Docker 外部から trace ログを検索できるラッパースクリプトを整備 — tooling
 - Canvas Editor に「現在 HTML vs デプロイ済 HTML」の Diff タブを追加 — ui
 - Debate Chat で URL 直接アクセス時に過去スレッドの履歴を復元する — ui
+- チャットシステムで何が実行可能なのかを整理 — ツール・エージェント・各アプリの概要 — docs
 
-<!-- 10/15 pending (resolved 2026-05-13 via Phase 40: #9 戻るボタン位置 / #10 初回 thread 自動作成 / #12 Debate balloon 重なり / #13 AttachmentButton 展開 (Debate 除外) / #15 SuperChat URL 短縮) -->
+<!-- 11/15 pending (resolved 2026-05-13 via Phase 40: #9 戻るボタン位置 / #10 初回 thread 自動作成 / #12 Debate balloon 重なり / #13 AttachmentButton 展開 (Debate 除外) / #15 SuperChat URL 短縮) -->
 
 ### Quick Tasks Completed
 
