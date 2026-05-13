@@ -43,6 +43,11 @@ services:
     build:
       context: ./mcp_server
       dockerfile: Dockerfile
+      args:
+        # HTTP プロキシ build args — ホスト側で未設定なら空文字 (no-op)
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
     working_dir: /mcp_server
     volumes:
       - ./mcp_server:/mcp_server
@@ -54,6 +59,13 @@ services:
       - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml
       - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — 未設定なら空文字 (no-op)、Tavily / npm 等が honor
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,6 +94,13 @@ services:
       - APP_DIR=/app/apps
       - APP_PREFIX=/orochi
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — uv sync / httpx 経由のリクエストが honor
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
@@ -111,6 +130,15 @@ services:
       - APP_DIR=/app/apps
       - MCP_SERVER_URL=http://mcp-server:8001
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — Copilot SDK subprocess に env=os.environ で伝搬され、
+      # bundled CLI バイナリ (undici EnvHttpProxyAgent) が GitHub Copilot エンドポイントに
+      # 対して HTTP_PROXY/HTTPS_PROXY/NO_PROXY を honor する
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
@@ -138,6 +166,11 @@ services:
       target: prod
       args:
         VITE_APP_BASE: /orochi
+        # HTTP プロキシ build args — builder ステージで bun install が honor、
+        # 最終 prod ステージ (nginx 静的配信) は外部接続不要のため runtime env は不要
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx}
     depends_on:
       - api
     logging:

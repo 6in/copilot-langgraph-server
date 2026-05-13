@@ -118,9 +118,51 @@ VITE_APP_BASE=/orochi
 
 # Tavily API キー (web_search ツール用、未使用なら空のままで可)
 TAVILY_API_KEY=tvly-xxx...
+
+# プロキシ配下の場合 (§3.4 参照) — 不要なら未設定のままで可
+# HTTP_PROXY=http://proxy.example.com:8080
+# HTTPS_PROXY=http://proxy.example.com:8080
+# NO_PROXY=localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx
 ```
 
 > **JWT 署名鍵について**: 本番運用では `JWT_SECRET` 環境変数を `.env` に追加して固定値にすることを推奨 (未設定だと再起動ごとに署名鍵が変わり全ユーザがログアウトする)。実装は `app/auth/jwt_utils.py` を参照。
+
+### 3.4 HTTP プロキシ配下の場合のみ — proxy 設定
+
+社内 HTTP プロキシ (Squid / Forcepoint / Zscaler 等) の背後にあるサーバへデプロイする場合のみ必要。直接インターネット接続できる環境では本節をスキップしてよい。
+
+`.env` に以下を追加:
+
+```bash
+HTTP_PROXY=http://proxy.example.com:8080
+HTTPS_PROXY=http://proxy.example.com:8080
+NO_PROXY=localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker,nginx
+```
+
+これだけで以下が **build 時 + runtime 時の両方で** proxy を経由する:
+
+| タイミング | 対象 | 経路 |
+|----------|------|------|
+| `docker build` | apt-get / curl (Node.js DL) / npm install (Claude Code CLI) / bun install | Dockerfile `ARG HTTP_PROXY` → `ENV` |
+| `docker build` (frontend builder ステージ) | bun install + Vite build | 同上 |
+| 起動後 | uv sync (依存ダウンロード) / httpx / Tavily SDK | container ENV |
+| 起動後 (worker) | **Copilot SDK バイナリの GitHub Copilot エンドポイント通信** | SDK が `os.environ` を Popen に伝搬 → undici `EnvHttpProxyAgent` が honor |
+
+**`NO_PROXY` 必須項目**: Docker 内部 service 名 (`postgres`, `redis`, `mcp-server`, `api`, `frontend`, `worker`, `nginx`) は必ず含める。さもないと内部通信も proxy 経由になり、proxy が internal hostname を解決できず疎通失敗する。compose 側にデフォルトの NO_PROXY が組み込まれているが、社内固有 host を足したい場合は明示上書きを推奨。
+
+**動作確認**:
+
+```bash
+# Container 内で proxy env が設定されているか
+docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml \
+  exec worker env | grep -iE 'proxy'
+
+# Copilot SDK のバイナリが proxy を honor しているか (実通信ログを確認)
+docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml \
+  logs worker --tail 50 | grep -iE 'proxy|connect|githubcopilot'
+```
+
+**未設定環境 (proxy なし)**: 全 env が空文字として渡されるが、undici / httpx / apt / curl はいずれも空文字を「proxy 未指定」として扱うため、proxy 環境と非 proxy 環境で同じ compose / Dockerfile が動作する。
 
 ---
 
@@ -411,6 +453,17 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml do
 ---
 
 ## 10. トラブルシュート
+
+### proxy 関連 (§3.4 を設定した場合)
+
+| 症状 | 原因の可能性 / 確認方法 |
+|------|------------------------|
+| build 時に `apt-get update` / `bun install` / `npm install` が timeout | `--build-arg` が compose 経由で渡っていない。`docker compose ... build --no-cache` で再ビルド + `.env` の `HTTP_PROXY` 値を再確認 |
+| 起動後にログインで「Copilot 認証に失敗」 | worker に `HTTPS_PROXY` が渡っていない、もしくは proxy が `githubcopilot.com` へのアクセスを許可していない。`docker compose ... exec worker env \| grep -i proxy` で env を確認、proxy 管理者に GitHub Copilot ドメイン許可を依頼 |
+| 内部通信エラー (`postgres: timeout` / `redis: name resolution`) | `NO_PROXY` に内部 service 名が含まれていない → proxy 経由で名前解決を試みて失敗。`.env` の `NO_PROXY` に `postgres,redis,mcp-server,api,frontend,worker,nginx` を含めること |
+| 一部リクエストだけ proxy を経由しない | 小文字版 (`http_proxy`) が一部ライブラリで優先される/されない齟齬。compose 側で大文字小文字両方をセット済み — `.env` で上書きする場合も両方書く |
+
+
 
 ### ブラウザで開けない
 

@@ -37,6 +37,11 @@ services:
     build:
       context: ./mcp_server
       dockerfile: Dockerfile
+      args:
+        # HTTP プロキシ build args — ホスト側で未設定なら空文字 (no-op)
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     working_dir: /mcp_server
     volumes:
       - ./mcp_server:/mcp_server
@@ -48,6 +53,13 @@ services:
       - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml  # Phase 23 追加
       - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs   # Phase 23 Plan 02 追加
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — 未設定なら空文字 (no-op)、Tavily / npm install / curl 等が honor
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     # D-06: ホストポートは公開しない（内部ネットワーク専用）
     # worker からは mcp-server:8001 でアクセス
     depends_on:
@@ -85,6 +97,13 @@ services:
       - APP_DIR=/app/apps
       - VITE_APP_BASE=${VITE_APP_BASE:-}
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — uv sync / httpx / Copilot SDK 経由 (subprocess に伝搬) 用
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     ports:
       - "8000:8000"
     volumes:
@@ -116,6 +135,15 @@ services:
       - APP_DIR=/app/apps
       - MCP_SERVER_URL=http://mcp-server:8001
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # HTTP プロキシ runtime env — Copilot SDK subprocess に env=os.environ で伝搬され、
+      # bundled CLI バイナリ (undici EnvHttpProxyAgent) が GitHub Copilot エンドポイントに
+      # 対して HTTP_PROXY/HTTPS_PROXY/NO_PROXY を honor する
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
@@ -141,6 +169,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: dev        # dev ステージを明示（multi-stage Dockerfile 対応）
+      args:
+        # HTTP プロキシ build args — bun install 経由でレジストリにアクセスする際に使用
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     ports:
       - "5173:5173"
     volumes:
@@ -149,6 +182,13 @@ services:
     environment:
       - API_TARGET=http://api:8000
       - VITE_APP_BASE=${VITE_APP_BASE:-}
+      # HTTP プロキシ runtime env — dev mode で bun run dev の hot install 経由など
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-localhost,127.0.0.1,postgres,redis,mcp-server,api,frontend,worker}
     depends_on:
       - api
     logging:
