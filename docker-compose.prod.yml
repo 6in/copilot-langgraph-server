@@ -42,10 +42,12 @@ services:
       - ./mcp_server:/mcp_server
       - ./config:/mcp_server/config:ro
       - claude-code-outputs-prod:/shared/claude-code-outputs
+      - thread-files-prod:/shared/thread-files   # Phase 37 D-04 / Phase 38 ADR-0052 D-04: RW
     environment:
       - TAVILY_API_KEY=${TAVILY_API_KEY}
       - DB_POOLS_CONFIG=/mcp_server/config/db_pools.yaml
       - CLAUDE_CODE_OUTPUT_DIR=/shared/claude-code-outputs
+      - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +56,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s   # Phase 37: MarkItDown + magika/onnxruntime init 吸収 (30s → 60s)
     logging:
       driver: "json-file"
       options:
@@ -73,10 +75,12 @@ services:
       - MENU_DIR=/app/menus
       - APP_DIR=/app/apps
       - APP_PREFIX=/orochi
+      - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
       - ./config:/app/config:ro
+      - thread-files-prod:/shared/thread-files   # Phase 37 D-04: RW (削除 + 将来のアップロード)
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,11 +104,13 @@ services:
       - MENU_DIR=/app/menus
       - APP_DIR=/app/apps
       - MCP_SERVER_URL=http://mcp-server:8001
+      - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
     volumes:
       - .:/app
       - ~/.copilot_sdk:/root/.copilot_sdk
       - ./config:/app/config:ro
       - claude-code-outputs-prod:/shared/claude-code-outputs:ro
+      - thread-files-prod:/shared/thread-files:ro   # Phase 37 D-04 / Phase 38 ADR-0052 D-04: RO
     depends_on:
       postgres:
         condition: service_healthy
@@ -155,3 +161,4 @@ volumes:
   redis-data-prod:
   postgres-data-prod:
   claude-code-outputs-prod:
+  thread-files-prod:        # Phase 37 D-04 / Phase 38 ADR-0052 D-04: api (RW) / mcp-server (RW) / worker (RO)
