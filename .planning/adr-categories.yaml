@@ -64,6 +64,7 @@ adr_categories:
   "0053": { primary: "Frontend・UI" }
   "0054": { primary: "Infra・Deploy" }
   "0055": { primary: "Infra・Deploy" }
+  "0056": { primary: "Auth", secondary: "Infra・Deploy" }
 
 missing:
   - "0015"

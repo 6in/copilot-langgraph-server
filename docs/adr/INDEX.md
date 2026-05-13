@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 52 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 53 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -9,6 +9,7 @@
 | No. | タイトル | Date |
 |-----|---------|------|
 | [0014](0014-phase17-security-hardening-jwt-blocklist-redis-and-endpoint-auth.md) | Phase 17 セキュリティ強化 — JWT ブロックリスト Redis 移行と未認証エンドポイントの修正 | 2026-04-07 |
+| [0056](0056-jwt-secret-generation-spec-and-docker-env-override.md) | JWT_SECRET の生成規格と Docker 環境での env 明示指定 | 2026-05-13 |
 
 ## LangGraph・Graph
 

@@ -83,6 +83,7 @@ cp .env.example .env
 |------|------|------|
 | `VITE_APP_BASE` | 任意 | Vite のベースパス。nginx リバースプロキシの URL プレフィックス（例: `/orochi`）に合わせる |
 | `TAVILY_API_KEY` | 任意 | `web_search` MCP ツールに使用（未設定でもアプリ自体は起動する） |
+| `JWT_SECRET` | 推奨 | JWT HS256 署名キー。32 バイト (hex 64 文字) のランダム値。未設定なら `~/.copilot_sdk/.jwt_secret` に自動生成されるが、Docker 環境ではコンテナ再作成で消えるため env で明示指定推奨。生成: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
 
 ### 2. 起動
 

@@ -14,6 +14,12 @@ httpOnly cookie に格納した JWT の logout 無効化は Redis ブロック�
 インメモリ実装は再起動で無効化できないため Redis へ移行した。
 関連 ADR: [0014](../docs/adr/0014-phase17-security-hardening-jwt-blocklist-redis-and-endpoint-auth.md)
 
+### JWT_SECRET の生成規格と Docker 環境での env 明示指定
+HS256 用キーは `secrets.token_hex(32)` = 32 バイト (hex 64 文字) を生成規格とする。
+Docker 環境ではコンテナ再作成で消える file fallback (`~/.copilot_sdk/.jwt_secret`) に依存せず、
+`JWT_SECRET` 環境変数を明示指定する運用ガイドライン。ローテーションは全ユーザー強制ログアウトを伴う。
+関連 ADR: [0056](../docs/adr/0056-jwt-secret-generation-spec-and-docker-env-override.md)
+
 ---
 
 ## LangGraph・Graph
