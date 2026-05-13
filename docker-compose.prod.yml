@@ -94,6 +94,8 @@ services:
       - APP_DIR=/app/apps
       - APP_PREFIX=/orochi
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # JWT 署名鍵 — .env 経由で固定。未設定なら jwt_utils.py が ~/.copilot_sdk/.jwt_secret に自動生成
+      - JWT_SECRET=${JWT_SECRET:-}
       # HTTP プロキシ runtime env — uv sync / httpx 経由のリクエストが honor
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}

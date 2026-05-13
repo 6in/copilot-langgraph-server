@@ -97,6 +97,8 @@ services:
       - APP_DIR=/app/apps
       - VITE_APP_BASE=${VITE_APP_BASE:-}
       - THREAD_FILES_DIR=/shared/thread-files   # Phase 37 D-04
+      # JWT 署名鍵 — .env 経由で固定。未設定なら jwt_utils.py が ~/.copilot_sdk/.jwt_secret に自動生成
+      - JWT_SECRET=${JWT_SECRET:-}
       # HTTP プロキシ runtime env — uv sync / httpx / Copilot SDK 経由 (subprocess に伝搬) 用
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
