@@ -56,3 +56,6 @@ frontend/node_modules/
 config/db_pools.yaml
 # graphify build cache (canonical output lives in .planning/graphs/)
 graphify-out/
+
+# Backup snapshots (scripts/db-backup.sh — quick-260514-05h)
+/backups/
