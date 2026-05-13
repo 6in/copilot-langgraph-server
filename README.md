@@ -8,15 +8,27 @@ GitHub Copilot を [LangGraph](https://github.com/langchain-ai/langgraph) の AI
 - **認証:** GitHub Device Flow のみ（PAT 方式はサポートしない）
 - **Copilot SDK:** Technical Preview のため、外部インターフェースは薄いラッパーで隔離
 
+## ドキュメントの読み方
+
+「自分の目的にどのドキュメントから読めばいいか」は **[docs/getting-started/index.md](docs/getting-started/index.md)** に reading order を整理している。最初の 1 ファイル目はそこを開くこと。
+
+利用者向け 3 点セット:
+
+- **[docs/getting-started/apps-guide.md](docs/getting-started/apps-guide.md)** — 5 アプリの判断フローと典型ユースケース
+- **[docs/getting-started/agents.md](docs/getting-started/agents.md)** — SuperChat で選べるエージェントカタログ
+- **[docs/getting-started/tools-for-users.md](docs/getting-started/tools-for-users.md)** — AI が裏で使えるツールの利用者視点ガイド
+
 ## 主要アプリ
 
 | アプリ | 役割 |
 |--------|------|
 | **Chat** | 通常の 1:1 チャット。LangGraph の checkpointer でスレッド永続化 |
-| **SuperChat** | ルーター + SubAgent（code-reviewer / general-assistant / sql-analyst 等）を自動選択するマルチエージェント チャット |
+| **SuperChat** | ルーター + SubAgent（code-reviewer / general-assistant / sql-analyst / codeact）を自動選択するマルチエージェント チャット |
 | **Gems** | システムプロンプトを事前定義した「Gem」を作成し、SuperChat の会話に参加させる |
 | **Canvas** | `iframe` で動くミニアプリ（Canvas アプリ）に対して、チャットから JSON-RPC 経由で操作を指示できる |
 | **DebateChat** | 複数エージェントに同じ議題を順番に話させる討論モード |
+
+各アプリの詳細・判断フロー・典型ユースケースは [docs/getting-started/apps-guide.md](docs/getting-started/apps-guide.md) を参照。
 
 ## アーキテクチャ
 
@@ -159,8 +171,13 @@ docker compose exec worker bash
 
 ## 関連資料
 
-- `CLAUDE.md` — プロジェクトの AI 協業ガイド（Claude Code 向け）
-- `docs/slides/architecture.pptx` — アーキテクチャスライド
+- **`docs/getting-started/index.md`** — ドキュメント全体の reading order (まずここ)
+- `docs/getting-started/apps-guide.md` / `agents.md` / `tools-for-users.md` — 利用者向け 3 点セット
+- `docs/mcp-tools.md` — MCP ツール技術仕様 (自動生成)
+- `docs/mcp-tool-add-manual.md` — MCP ツール追加手順
 - `docs/nginx.md` — nginx プレフィックス strip の仕組み
 - `docs/archi/` — シーケンス図・プロセス図
+- `docs/trace-query-recipes.md` — observability trace ログのクエリ集
+- `docs/slides/architecture.pptx` — アーキテクチャスライド
+- `CLAUDE.md` — プロジェクトの AI 協業ガイド（Claude Code 向け）
 - `.planning/` — GSD ワークフローによるフェーズ計画・roadmap

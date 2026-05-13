@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 51 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 52 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -77,6 +77,7 @@
 | [0035](0035-architecture-slides-generated-by-python-pptx.md) | アーキテクチャ説明資料を python-pptx で生成する | 2026-04-15 |
 | [0047](0047-milestone-cleanup-phase-pattern.md) | Milestone cleanup phase — 帳簿整合 bookkeeping を独立 decimal phase に分離 | 2026-04-20 |
 | [0054](0054-dev-server-watch-scope-narrowing-for-gsd-worktrees.md) | dev server の watch スコープを GSD worktree から隔離する | 2026-05-13 |
+| [0055](0055-docs-getting-started-subfolder-convention.md) | docs/getting-started/ サブフォルダで onboarding ドキュメントを集約する | 2026-05-13 |
 
 ## Data・Persistence
 
