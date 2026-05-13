@@ -130,7 +130,12 @@ def expired_jwt_token():
 
 
 async def test_auth_status_no_cookie(api_client):
-    """GET /api/auth/status with no cookie returns authenticated=False."""
+    """GET /api/auth/status with no cookie returns authenticated=False.
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
+    api_client.cookies.clear()
     resp = await api_client.get("/api/auth/status")
     assert resp.status_code == 200
     data = resp.json()
@@ -163,7 +168,12 @@ async def test_auth_status_with_expired_jwt(api_client, expired_jwt_token):
 
 
 async def test_chat_returns_401_without_cookie(api_client):
-    """POST /api/chat with no session cookie returns 401."""
+    """POST /api/chat with no session cookie returns 401.
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
+    api_client.cookies.clear()
     resp = await api_client.post(
         "/api/chat",
         json={"message": "hello", "thread_id": "test-thread", "model": "gpt-4.1"},

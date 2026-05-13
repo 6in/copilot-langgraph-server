@@ -79,9 +79,14 @@ async def test_get_models_returns_list_from_llm(api_client, jwt_cookie, mock_llm
 
 @pytest.mark.asyncio
 async def test_get_models_requires_auth(api_client, mock_llm_list):
-    """cookie なしで GET /api/models → 401 auth_required."""
+    """cookie なしで GET /api/models → 401 auth_required.
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
     _reset_cache()
     api_client._transport.app.state.llm = mock_llm_list
+    api_client.cookies.clear()
 
     resp = await api_client.get("/api/models")
     assert resp.status_code == 401

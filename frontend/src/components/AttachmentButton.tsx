@@ -7,6 +7,7 @@ import { useRef, type ChangeEvent } from 'react';
 export interface AttachmentButtonProps {
   onFilesSelected: (files: File[]) => void;
   disabled?: boolean;
+  disabledReason?: 'thinking' | 'no-thread';  // Phase 39-05 D-11: tooltip 出し分け
   acceptedExtensions?: string[];  // HTML accept 属性（.png / .jpg / .webp / text/* / etc）
 }
 
@@ -20,6 +21,7 @@ const DEFAULT_ACCEPT = [
 export function AttachmentButton({
   onFilesSelected,
   disabled,
+  disabledReason,
   acceptedExtensions,
 }: AttachmentButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,8 +44,20 @@ export function AttachmentButton({
         type="button"
         onClick={handleClick}
         disabled={disabled}
-        aria-label={disabled ? '添付を追加できません（送信中）' : 'ファイルを添付'}
-        title="ファイルを添付（最大 100MB / 画像は 10MB × 5 枚まで）"
+        aria-label={
+          disabled
+            ? (disabledReason === 'no-thread'
+                ? 'スレッドが未作成のため添付できません'
+                : '添付を追加できません（送信中）')
+            : 'ファイルを添付'
+        }
+        title={
+          disabled
+            ? (disabledReason === 'no-thread'
+                ? 'スレッドを作成してから添付してください'
+                : '送信中は添付できません')
+            : 'ファイルを添付（最大 100MB / 画像は 10MB × 5 枚まで）'
+        }
         className="chat-attach-btn"
         style={{
           width: 36,

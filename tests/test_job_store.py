@@ -42,31 +42,7 @@ async def test_get_missing(mock_redis):
 
 @pytest.mark.asyncio
 async def test_notify_no_queue(mock_redis):
-    """JobStore.notify() with no registered SSE queue does not raise (ASYNC-05)."""
+    """JobStore.notify() is a no-op stub and does not raise (Phase 39 UIFIX-03 D-06 — no-op stub 契約)."""
     store = JobStore(mock_redis)
     # Must not raise
     await store.notify("no-such-job", "done")
-
-
-@pytest.mark.asyncio
-async def test_register_and_notify(mock_redis):
-    """register_sse() returns a Queue; notify() puts event on that queue (ASYNC-05)."""
-    store = JobStore(mock_redis)
-
-    q = store.register_sse("j1")
-    await store.notify("j1", "thinking")
-
-    event = q.get_nowait()
-    assert event == {"status": "thinking"}
-
-
-@pytest.mark.asyncio
-async def test_unregister_sse(mock_redis):
-    """After unregister_sse(), notify() is a no-op and queue stays empty (ASYNC-05)."""
-    store = JobStore(mock_redis)
-
-    q = store.register_sse("j1")
-    store.unregister_sse("j1")
-    await store.notify("j1", "done")
-
-    assert q.empty()

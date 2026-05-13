@@ -1,4 +1,3 @@
-import asyncio
 import json
 from typing import Optional
 
@@ -6,21 +5,15 @@ from redis.asyncio import Redis
 
 
 class JobStore:
-    """Stores job results in Redis and manages asyncio.Queue signals for SSE."""
+    """Stores job results in Redis.
+
+    SSE は Redis polling 経路に統一済 (Phase 39 / UIFIX-03)。in-memory queue
+    経路 (旧 register / unregister API) は dead code として削除済。notify()
+    のみ notifier.py 経由の呼び出し互換のため no-op stub で残置。
+    """
 
     def __init__(self, redis: Redis):
         self.redis = redis
-        self.queues: dict[str, asyncio.Queue] = {}
-
-    def register_sse(self, job_id: str) -> asyncio.Queue:
-        """Create and register an asyncio.Queue for SSE signalling. Returns the queue."""
-        queue: asyncio.Queue = asyncio.Queue()
-        self.queues[job_id] = queue
-        return queue
-
-    def unregister_sse(self, job_id: str) -> None:
-        """Remove the SSE queue for job_id (call in finally on disconnect)."""
-        self.queues.pop(job_id, None)
 
     async def save_result(self, job_id: str, result: str) -> None:
         """Persist the job result to Redis with a 1-hour TTL."""
@@ -31,10 +24,13 @@ class JobStore:
         )
 
     async def notify(self, job_id: str, status: str, **extra) -> None:
-        """Put a status event onto the SSE queue if one is registered."""
-        if job_id in self.queues:
-            event = {"status": status, **extra}
-            await self.queues[job_id].put(event)
+        """No-op stub (Phase 39 UIFIX-03 D-06).
+
+        in-memory queue 経路は廃止済。notifier.py が表面 API 維持のため
+        progress() / done() から呼び出しているが、production SSE は Redis
+        polling (app/api/routes/chat.py:219-251) で完結している。
+        """
+        return None
 
     async def push_turn(self, job_id: str, name: str, content: str) -> None:
         """Append a debate turn to a Redis list (cross-process safe, polled by SSE)."""

@@ -39,11 +39,15 @@ def test_catalog_exports_available_tools():
     assert text.count("export const AVAILABLE_TOOLS = [") == 1
 
 
-def test_catalog_contains_six_tools():
+def test_catalog_contains_eight_tools():
     text = CATALOG_PATH.read_text(encoding="utf-8")
-    # 6 つの `name: "...` エントリ（JSON object リテラル内）
+    # 8 つの `name: "...` エントリ（JSON object リテラル内）
+    # YAML 順: ping, web_search, db_query, claude_code, execute_python,
+    #          get_current_datetime, attachments_list, attachments_extract
     count = len(re.findall(r'\{\s*name:\s*"', text))
-    assert count == 6, f"expected 6 tool entries, got {count}"
+    assert count == 8, f"expected 8 tool entries, got {count}"
+    assert 'name: "attachments_list"' in text
+    assert 'name: "attachments_extract"' in text
 
 
 def test_catalog_privileged_tools_flagged():

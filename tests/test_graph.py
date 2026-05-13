@@ -1,7 +1,7 @@
 """Tests for LangGraph conversation graph (GRPH-01, GRPH-02, GRPH-03)."""
 import pytest
-from unittest.mock import AsyncMock
-from langchain_core.messages import AIMessage, HumanMessage
+from unittest.mock import AsyncMock, MagicMock
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.graph.builder import build_graph
@@ -9,9 +9,20 @@ from app.graph.builder import build_graph
 
 @pytest.fixture
 def mock_llm():
-    """Mock BaseChatModel that returns a fixed AIMessage."""
+    """Mock BaseChatModel that exposes ainvoke + astream.
+
+    Phase 31 以降、chatbot_node は llm.astream() を async for で iterate する
+    (token streaming 経路の標準パターン)。AsyncMock では `async for` 不可なので
+    astream は async generator を返す MagicMock(side_effect=...) で構築する。
+    side_effect を使う理由は call_args_list を保持して呼び出し履歴の検証ができるため。
+    """
     llm = AsyncMock()
     llm.ainvoke = AsyncMock(return_value=AIMessage(content="mocked response"))
+
+    async def _astream_gen(*args, **kwargs):
+        yield AIMessage(content="mocked response")
+
+    llm.astream = MagicMock(side_effect=_astream_gen)
     return llm
 
 
@@ -29,12 +40,16 @@ async def test_messages_accumulate(graph, mock_llm):
     await graph.ainvoke({"messages": [HumanMessage(content="hello")]}, config=config)
     await graph.ainvoke({"messages": [HumanMessage(content="follow-up")]}, config=config)
 
-    second_call_messages = mock_llm.ainvoke.call_args_list[1][0][0]
-    assert len(second_call_messages) == 3
-    assert isinstance(second_call_messages[0], HumanMessage)
-    assert isinstance(second_call_messages[1], AIMessage)
-    assert isinstance(second_call_messages[2], HumanMessage)
-    assert second_call_messages[2].content == "follow-up"
+    # chatbot_node は llm.astream() を呼ぶので呼び出し履歴は astream.call_args_list で検証する。
+    # 実装は system_messages を先頭に prepend するため、SystemMessage を filter して
+    # 蓄積された会話履歴 (Human/AI/Human) だけを検証する。
+    second_call_messages = mock_llm.astream.call_args_list[1][0][0]
+    history = [m for m in second_call_messages if not isinstance(m, SystemMessage)]
+    assert len(history) == 3
+    assert isinstance(history[0], HumanMessage)
+    assert isinstance(history[1], AIMessage)
+    assert isinstance(history[2], HumanMessage)
+    assert history[2].content == "follow-up"
 
 
 @pytest.mark.asyncio

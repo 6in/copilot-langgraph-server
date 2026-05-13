@@ -19,6 +19,7 @@ interface UseThreadsReturn {
   switchThread: (threadId: string) => Promise<void>;
   createNewThread: (gemId?: string | null) => Promise<string>;
   removeThread: (threadId: string) => Promise<void>;
+  bulkRemoveThreads: (threadIds: string[]) => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   refreshThreads: () => Promise<void>;
 }

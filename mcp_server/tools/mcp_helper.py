@@ -94,17 +94,22 @@ def get_datetime() -> dict:
 
 
 def list_attachments() -> list[dict]:
-    """添付ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+    """添付ファイル + AI 生成ファイル一覧を返す。引数なし (thread は RPCContext 解決)。
+
+    各エントリには kind フィールドが付与され、user upload と worker 生成を判別できる。
+    - kind: "user_upload"  → ユーザーがアップロードした添付 (Phase 36)
+    - kind: "generated"    → execute_python / claude_code が生成した出力 (Phase 38)
 
     Returns:
-        [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>, "ext": ".pdf", "mime_type": "..."}, ...]
+        [{"name": "report.pdf", "size": 1234, "modified_at": <float epoch sec>,
+          "ext": ".pdf", "mime_type": "...", "kind": "user_upload" | "generated"}, ...]
         ファイルが存在しない場合は []
 
     Example:
         from mcp_helper import list_attachments
         files = list_attachments()
         for f in files:
-            print(f["name"], f["size"])
+            print(f["name"], f["kind"], f["size"])
     """
     return _call_tool("attachments_list")
 

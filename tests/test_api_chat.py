@@ -24,7 +24,12 @@ async def test_post_chat_returns_job_id(api_client, mock_arq_redis, jwt_cookie):
 
 
 async def test_chat_requires_auth(api_client):
-    """POST /api/chat without session cookie returns 401 auth_required."""
+    """POST /api/chat without session cookie returns 401 auth_required.
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
+    api_client.cookies.clear()
     resp = await api_client.post("/api/chat", json={
         "message": "Hello",
         "thread_id": "test-thread-1",
@@ -147,9 +152,34 @@ async def test_list_threads_empty(api_client):
 
 
 async def test_delete_thread_calls_adelete(api_client):
-    """DELETE /api/threads/{id} calls checkpointer.adelete_thread (CKPT-04)."""
+    """DELETE /api/threads/{id} calls checkpointer.adelete_thread (CKPT-04).
+
+    Phase 39 UIFIX-04 D-10 Pattern B — psycopg AsyncConnection.cursor() を
+    `mock_conn.cursor = MagicMock(return_value=cursor_ctx)` 形式の async
+    context manager で mock する (実装は `async with conn.cursor() as cur:` を
+    使うため、cursor() は同期呼び出しで ACM を返す必要がある)。
+    fetchone は ownership check を通すため jwt_cookie fixture と同じ
+    github_login='unknown' を返す。
+    """
+    from unittest.mock import patch, AsyncMock, MagicMock
     from app.api.main import app
-    resp = await api_client.delete("/api/threads/test-thread-123")
+
+    mock_cursor = AsyncMock()
+    mock_cursor.execute = AsyncMock(return_value=None)
+    mock_cursor.fetchone = AsyncMock(return_value={"github_login": "unknown"})
+
+    cursor_ctx = AsyncMock()
+    cursor_ctx.__aenter__ = AsyncMock(return_value=mock_cursor)
+    cursor_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    mock_conn = AsyncMock()
+    mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_conn.__aexit__ = AsyncMock(return_value=None)
+    mock_conn.cursor = MagicMock(return_value=cursor_ctx)
+    mock_conn.commit = AsyncMock()
+
+    with patch("psycopg.AsyncConnection.connect", return_value=mock_conn):
+        resp = await api_client.delete("/api/threads/test-thread-123")
     assert resp.status_code == 204
     app.state.checkpointer.adelete_thread.assert_called_once_with("test-thread-123")
 
@@ -165,18 +195,30 @@ async def test_list_threads_app_id_filter(api_client, jwt_cookie):
 
     Phase 10 behavior: threads table has app_id column; GET /api/threads accepts
     a ?app_id query param and filters results accordingly.
+
+    Phase 39 UIFIX-04 D-10 Pattern B — psycopg AsyncConnection.cursor() を
+    同期呼び出し + async context manager で mock する。
+    `mock_conn.cursor.return_value.__aenter__` 形式は `mock_conn.cursor` が
+    AsyncMock として coroutine を返してしまい、`async with conn.cursor() as cur:`
+    が AsyncMock 内部の coroutine を await し損ねて fetchall が空 MagicMock を
+    返す問題があったため `MagicMock(return_value=cursor_ctx)` 形式へ修正。
     """
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import patch, AsyncMock, MagicMock
 
     superchat_thread_id = "test-superchat-thread-001"
     chat_thread_id = "test-chat-thread-001"
 
-    mock_conn = AsyncMock()
     mock_cursor = AsyncMock()
+    mock_cursor.execute = AsyncMock(return_value=None)
+
+    cursor_ctx = AsyncMock()
+    cursor_ctx.__aenter__ = AsyncMock(return_value=mock_cursor)
+    cursor_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    mock_conn = AsyncMock()
     mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
     mock_conn.__aexit__ = AsyncMock(return_value=None)
-    mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
-    mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
+    mock_conn.cursor = MagicMock(return_value=cursor_ctx)
 
     superchat_row = {
         "thread_id": superchat_thread_id,
@@ -217,15 +259,24 @@ async def test_list_threads_app_id_filter(api_client, jwt_cookie):
 
 
 async def test_list_threads_no_app_id_returns_all(api_client, jwt_cookie):
-    """GET /api/threads without ?app_id returns all threads (backward compat, API-02)."""
-    from unittest.mock import patch, AsyncMock
+    """GET /api/threads without ?app_id returns all threads (backward compat, API-02).
+
+    Phase 39 UIFIX-04 D-10 Pattern B — psycopg AsyncConnection.cursor() を
+    同期呼び出し + async context manager で mock する (see test_list_threads_app_id_filter)。
+    """
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    mock_cursor = AsyncMock()
+    mock_cursor.execute = AsyncMock(return_value=None)
+
+    cursor_ctx = AsyncMock()
+    cursor_ctx.__aenter__ = AsyncMock(return_value=mock_cursor)
+    cursor_ctx.__aexit__ = AsyncMock(return_value=None)
 
     mock_conn = AsyncMock()
-    mock_cursor = AsyncMock()
     mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
     mock_conn.__aexit__ = AsyncMock(return_value=None)
-    mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
-    mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
+    mock_conn.cursor = MagicMock(return_value=cursor_ctx)
 
     all_rows = [
         {"thread_id": "thread-chat-001", "app_id": "chat", "label": "Chat 2026-04-04", "updated_at": None},
@@ -298,15 +349,22 @@ async def test_list_threads_left_join(api_client, jwt_cookie):
 
     Phase 10 uses LEFT JOIN from threads to checkpoints so threads without
     checkpoints yet are still returned.
+
+    Phase 39 UIFIX-04 D-10 Pattern B — psycopg AsyncConnection.cursor() を
+    同期呼び出し + async context manager で mock する (see test_list_threads_app_id_filter)。
     """
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    mock_cursor = AsyncMock()
+
+    cursor_ctx = AsyncMock()
+    cursor_ctx.__aenter__ = AsyncMock(return_value=mock_cursor)
+    cursor_ctx.__aexit__ = AsyncMock(return_value=None)
 
     mock_conn = AsyncMock()
-    mock_cursor = AsyncMock()
     mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
     mock_conn.__aexit__ = AsyncMock(return_value=None)
-    mock_conn.cursor.return_value.__aenter__ = AsyncMock(return_value=mock_cursor)
-    mock_conn.cursor.return_value.__aexit__ = AsyncMock(return_value=None)
+    mock_conn.cursor = MagicMock(return_value=cursor_ctx)
 
     thread_no_checkpoint = {
         "thread_id": "thread-no-checkpoint-001",
@@ -317,11 +375,10 @@ async def test_list_threads_left_join(api_client, jwt_cookie):
     mock_cursor.fetchall = AsyncMock(return_value=[thread_no_checkpoint])
 
     executed_sqls = []
-    original_execute = mock_cursor.execute
 
     async def capture_execute(sql, params=None):
         executed_sqls.append(sql)
-        return await original_execute(sql, params)
+        return None
 
     mock_cursor.execute = capture_execute
 

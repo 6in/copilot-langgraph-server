@@ -1,5 +1,7 @@
 ---
 created: 2026-04-16T10:08:34.157Z
+resolved: 2026-05-13
+resolution: Phase 39 Plan 39-02 (D-01) で「ドキュメント化のみ」と decision を確定し ADR-0053 (`docs/adr/0053-mermaid-source-default-rationale.md`) に明文化。`'source'` default を恒久化する根拠が記録され、MermaidBlock.tsx 冒頭コメントから 1-hop でリンク。View hang の本質調査・修正は v6.1+ spike として STATE.md "Hand-offs to next phases" に defer 済。
 title: Mermaid View デフォルト時の OS ハング問題を調査・修正
 area: ui
 files:

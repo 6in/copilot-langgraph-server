@@ -59,8 +59,15 @@ export interface ChatMessage {
 
 // --- Phase 36: Attachments ---
 
+// Phase 38 D-30 案 A: discriminator で user_upload (Phase 36) と generated (Phase 38) を識別。
+// UI / API / hook 全レイヤーで同一 identity 文字列を扱う single discriminator (CONTEXT.md D-06)。
+// 既存 'file' リテラル DTO 識別子は廃止 — 後方互換性破壊リスクなし
+// (ChatApp.tsx:147 の item.kind === 'file' は DataTransferItem.kind であり別 namespace)。
+export type AIMessageAttachmentsKind = 'user_upload' | 'generated';
+
 export interface AttachmentMeta {
-  kind: 'file';
+  // Phase 38 D-30 案 A: discriminator で user_upload (Phase 36) と generated (Phase 38) を識別
+  kind: 'user_upload' | 'generated';
   name: string;
   storage_name: string;
   path: string;

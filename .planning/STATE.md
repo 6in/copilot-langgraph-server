@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
-status: Phase 35 + 36 main へ squash merge 完了 — 次フェーズ待機中
-stopped_at: Phase 35 + 36 squash merge 完了 (commit e5c2454), Phase 35/36 ブランチ + agent worktree 全削除
-last_updated: "2026-05-11T08:00:00.000Z"
-last_activity: 2026-05-11
+status: executing
+stopped_at: Phase 39 complete (UIFIX-01..04 すべて [x]、ROADMAP/REQUIREMENTS/STATE 同期済、39-VERIFICATION.md PASS)
+last_updated: "2026-05-13T08:53:06.856Z"
+last_activity: 2026-05-13 -- Phase 40 planning complete
 progress:
-  total_phases: 8
-  completed_phases: 3
-  total_plans: 20
-  completed_plans: 20
-  percent: 100
+  total_phases: 9
+  completed_phases: 5
+  total_plans: 41
+  completed_plans: 35
+  percent: 85
 ---
 
 # Project State
@@ -21,27 +21,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — v6.0 UI/AI Experience kickoff)
 
 **Core value:** Copilot の JSON-RPC ベース SDK を LangChain 互換プロバイダーとして動かし、アプリケーション（Chat / SuperChat / Gems / Canvas / DebateChat）＋ユーザーという単位でスレッドを管理できるチャット UI から使えること
-**Current focus:** v6.0 milestone 待機中 (Phase 35/36/37 完了、次候補: Phase 32/33/34/38/39)
+**Current focus:** Phase 39 closed — next: Phase 32 (AI-UI 操作基盤) or v6.0 残 phase (32/33/34) 着手判断
 
 ## Current Position
 
-Phase: (待機中 — 次フェーズ未着手)
-Plan: -
-Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs)
-Status: Phase 35 + 36 main へ squash merge 完了 (commit e5c2454)、verifier PASS、manual operation check 25/25 PASS、agent worktree 全削除
-Progress: 3/8 phases complete (Phase 35 + Phase 36 + Phase 37) · `[███░░░░░] 38%`
-Last activity: 2026-05-11
-Resume file: .planning/ROADMAP.md (次フェーズ選定)
+Phase: 39
+Plan: Not started
+Milestone: v6.0 UI/AI Experience (Phases 32–39, 20 REQ-IDs) — 5/8 v6.0 phases complete (35/36/37/38/39)
+Status: Ready to execute
+Progress: 38/40 phases complete · `[████████░] 95%`
+Last activity: 2026-05-13 -- Phase 40 planning complete
+Resume file: .planning/ROADMAP.md (next: Phase 32 or 33 or 34 を選んで /gsd-discuss-phase 起動)
 Hand-offs to next phases:
-  - Phase 34/39 候補: AskMe button regression (5 chat apps) — `.planning/todos/pending/2026-04-23-fix-askme-button-regression-...md`
-  - Phase 34/v6.1 候補: 📎 入口段差 (activeThreadId disabled UX) — `.planning/phases/36-text-code-image-multimodal/deferred-items.md`
-  - Phase 38 候補: AI 生成ファイル inline プレビュー + DL + 永続化 — 同上 deferred-items.md
+
+  - v6.1+ 候補: MermaidBlock 周辺の TS error 残り 4 件 (Plan 39-05 で deferred、本 phase 開始時の bun install 後 0 件で観察ベース、再発時のみ再 triage)
+  - v6.1+ 候補: Phase 38 由来の orchestrator (SuperChat) bundle 対応 / 横断 "My Files" 画面 / individual delete UI — `.planning/phases/36-text-code-image-multimodal/deferred-items.md` Phase 38 完了報告ブロック
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 32 (v5.0)
+- Total plans completed: 47 (v5.0)
 - Average duration: -
 - Total execution time: -
 
@@ -54,6 +54,8 @@ Hand-offs to next phases:
 | 31 | 8 | - | - |
 | 37 | 5 | - | - |
 | 35 | 8 | - | - |
+| 38 | 6 | - | - |
+| 39 | 9 | - | - |
 
 **Recent Trend:**
 
@@ -229,6 +231,13 @@ Recent decisions affecting current work:
 - [Phase 30-03]: `from A import x` 形式で bind されるシンボルは呼び出し側モジュールに固定されるため、テストは patch.object(mcp_helper, ...) で差し替える — mcp_helper_utils 側を patch しても反映されない
 - [Phase 30-03]: Plan 03 の drift 保証は helper 単体に限定 — scripts/generate_mcp_artifacts.py --check の全体 exit 0 は Plan 04 (js) + Plan 06 (docs) 完了時に達成される設計
 
+- [Phase 39]: D-10 全 5 パターン (A: JWT cookie / B: psycopg AsyncMock / C: LLM astream / D: mock 経路 / E: tool catalog drift) を user decision で scope 内完遂方針に転換 — defer 経路撤廃、target failed: 27 → 0 達成
+- [Phase 39-04]: D-04 dead code 削除戦略 — JobStore.register_sse / unregister_sse / self.queues を削除しつつ notify() を no-op stub で残し signature 互換維持。notifier.py 無変更で API 表面を温存
+- [Phase 39-05]: D-08 TS error 7 件は bulkRemoveThreads 6 + Theme export 1 の 2 系統に分類、useThreads return 型に bulkRemoveThreads 追加 + ThemeContext.ts で Theme を export type で公開する 2 修正で解消
+- [Phase 39-07]: Pattern A の API テスト群 (test_api_chat 6 + test_api_jobs 2) は api_client fixture に jwt_cookie bake-in で fan-out 解決、認証なしテスト 7 件は副作用として cookies.clear() で打ち消す共通パターンを確立 (D-12 D-on't-Hand-Roll 遵守、新規 fixture ゼロ)
+- [Phase 39-08]: process_chat 系テストの patch path を `app.jobs.worker.*` から `app.jobs.handlers.langgraph_handler.*` へ移行 — Phase 11+ で handler dispatch アーキに変わったが mock が旧 path を見ていたため。LLM astream を `MagicMock(side_effect=async_gen_func)` で async generator 化する Pattern C 標準パターンを確立
+- [Phase 39-09]: ROADMAP frontmatter / STATE.md の数値更新は absolute target ベース (本文 grep 結果との整合を 3 軸で検証) — 相対加算で発生する drift を防止
+
 ### Roadmap Evolution
 
 - Phase 4 added: 非同期ジョブキュー + SSE ストリーミング移行（Redis Worker / JobStore / Notifier パターン）
@@ -258,14 +267,19 @@ Recent decisions affecting current work:
 - Cache GEM data in Redis in OrchestratorHandler — api
 - AI が操作しやすい画面構成を考える（data-ai-role 属性の導入） — ui
 - claude_code MCP ツールに spirit-room 方式の認証バインドとセキュリティ改善を適用 — general
-- Mermaid View デフォルト時の OS ハング問題を調査・修正 — ui
 - チャット入力欄からファイルアップロード + Worker 生成ファイルのダウンロード — ui
 - MCP サーバーゲートウェイ機能 — 別の MCP サーバーのツールを中継 — api
 - エージェント実行・MCP ツール利用の observability 基盤 — api
 - Docker 外部から trace ログを検索できるラッパースクリプトを整備 — tooling
-- AskMe ボタンが全チャットアプリで描画されない regression を修正 — ui
+- Gems/Canvas 画面の戻るボタン位置を Chat/SuperChat と揃える — ui
+- AttachmentButton を SuperChat/Gem/Canvas/Debate にも展開 — ui
+- Chat/SuperChat 初回表示時に「新しいチャット」と同じ初期化を自動実行 — ui
+- Canvas Editor に「現在 HTML vs デプロイ済 HTML」の Diff タブを追加 — ui
+- Debate Chat の各エージェント会話バルーンが重なって表示される — ui
+- Debate Chat で URL 直接アクセス時に過去スレッドの履歴を復元する — ui
+- SuperChat の URL から冗長な default app slug を省く (/superchat/superchat → /superchat) — ui
 
-<!-- 10/10 pending (2026-04-18: MCP ツール追加時の consumer 伝播・管理方法を整理する → completed via Phase 30; 2026-04-20: Phase 31 振り返りで host-side trace wrapper を追加; 2026-04-23: Phase 35 InputBar/MessageArea split regression - AskMe button wiring lost in 5 chat apps) -->
+<!-- 15/15 pending (resolved: 2026-04-16 Mermaid View OS hang → Phase 39 Plan 39-02 で ADR-0053 化、v6.1+ spike defer; 2026-04-23 AskMe regression → Phase 39 Plan 39-05 commit fcd4534) -->
 
 ### Quick Tasks Completed
 
@@ -301,6 +315,7 @@ Recent decisions affecting current work:
 | 260415-mbc | Canvas アプリから呼び出す AI リクエストにモデル指定機能を追加する | 2026-04-15 | 3185a82 | [260415-mbc-canvas-ai](.planning/quick/260415-mbc-canvas-ai/) |
 | 260418-f7w | チャット履歴クリック時に白画面 — ReactMarkdown に object が渡される不具合を修正 | 2026-04-18 | 250b234 | [260418-f7w-reactmarkdown-object](.planning/quick/260418-f7w-reactmarkdown-object/) |
 | 260418-tin | docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加 | 2026-04-18 | a079372 | [260418-tin-docker-compose-yml-max-size-max-file](.planning/quick/260418-tin-docker-compose-yml-max-size-max-file/) |
+| 260513-e7g | dev server (uvicorn / Vite) から .claude/worktrees/ を除外 (Phase 39 worktree 並列実行で発火した watch noise を抑止) | 2026-05-13 | 99171dd | [260513-e7g-dev-server-claude-worktrees](.planning/quick/260513-e7g-dev-server-claude-worktrees/) |
 
 ### Blockers/Concerns
 
@@ -309,10 +324,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-04-21 — Phase 37 discuss-phase 完了 (CONTEXT.md + DISCUSSION-LOG.md)
-Last session: 2026-04-23T03:44:23.422Z
-Stopped at: Phase 36 context gathered
-Resume file: .planning/phases/37-pdf-office-mcp/37-CONTEXT.md — next action: `/gsd-plan-phase 37`
+Last activity: 2026-05-13 — quick task 260513-e7g 完了 (dev server から .claude/worktrees/ を除外)
+Last session: 2026-05-13T05:30:00.000Z
+Stopped at: Phase 39 complete (UIFIX-01..04 すべて [x]、ROADMAP/REQUIREMENTS/STATE 同期済、39-VERIFICATION.md PASS)
+Resume file: .planning/ROADMAP.md — next action: Phase 32 / 33 / 34 のいずれかを選び `/gsd:discuss-phase <N>` で再開 (v6.0 milestone close 前提条件)
 
 ## Deferred Items
 

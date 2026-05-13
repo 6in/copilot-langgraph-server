@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: UI/AI Experience
 status: active
-last_updated: "2026-04-21T00:00:00.000Z"
+last_updated: "2026-05-13T00:00:00.000Z"
 progress:
   total_phases: 40
-  completed_phases: 32
-  total_plans: 91
-  completed_plans: 91
-  percent: 80
+  completed_phases: 38
+  total_plans: 134
+  completed_plans: 134
+  percent: 95
 ---
 
 # Roadmap: Copilot LangGraph Chat
@@ -106,8 +106,8 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
 - [x] **Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一** — メニュー画面のダッシュボード再設計とモバイル幅・ダークモード・クロスブラウザ対応の統一 (completed 2026-04-23)
 - [x] **Phase 36: ファイル入力 — text/code + image multimodal** — チャット添付からテキスト/コード系ファイル + 画像 (multimodal) を LLM コンテキストへ流し込む基盤 (completed 2026-05-11)
 - [x] **Phase 37: ファイル入力 — PDF/Office 抽出 + MCP ツール参照** — PDF / Office ファイルのテキスト抽出と、添付ファイルを execute_python / claude_code 等の MCP ツールから参照可能にする (completed 2026-04-22)
-- [ ] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装
-- [ ] **Phase 39: UI バグ潰し + Polish 枠** — Mermaid hang・CollapsibleCodeBlock バルーン・test_sse hang/JobStore dead code を整理し、開発中に発覚した小バグをまとめて潰す
+- [x] **Phase 38: ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持** — execute_python / claude_code 生成物の DL・チャット内プレビュー・ユーザー別ストレージ保持を一括実装 (completed 2026-05-12)
+- [x] **Phase 39: UI バグ潰し + Polish 枠** — Mermaid hang・CollapsibleCodeBlock バルーン・test_sse hang/JobStore dead code を整理し、開発中に発覚した小バグをまとめて潰す (completed 2026-05-13)
 
 ## Phase Details
 
@@ -120,7 +120,17 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
   2. AI または開発者が「現在表示中のページにどんな data-ai-role 要素があるか」を JSON で取得できる API（例: `GET /api/ui/inspect` または iframe RPC `ui_inspect`）が動作する
   3. 探索 API が要素の role 名・親子関係・可視性・テキストラベルを構造化して返し、後続 MCP ツールが targeting に使える形式になっている
   4. data-ai-role 付与によるレンダリング負荷増・DOM 肥大が体感できないレベルに抑えられている (200名規模で UX 劣化なし)
-**Plans**: TBD
+**Plans:** 9 plans
+Plans:
+- [x] 39-01-PLAN.md — Wave 0 baseline + deferred-items scaffold
+- [x] 39-02-PLAN.md — UIFIX-01 Mermaid ADR-0053 + 冒頭コメント
+- [x] 39-03-PLAN.md — UIFIX-02 CollapsibleCodeBlock CSS override
+- [x] 39-04-PLAN.md — UIFIX-03 JobStore dead code + test_sse JWT cookie
+- [x] 39-05-PLAN.md — UIFIX-04 D-07/D-08/D-11 (AskMe + TS types + 📎 tooltip)
+- [x] 39-06-PLAN.md — UIFIX-04 D-09 + D-10 Pattern E (mcp catalog drift)
+- [x] 39-07-PLAN.md — UIFIX-04 D-10 Pattern A 8 件 + Pattern B test_api_chat 3 件
+- [x] 39-08-PLAN.md — UIFIX-04 D-10 Pattern C+D 11 件 + Pattern B test_worker 1 件
+- [x] 39-09-PLAN.md — Close (verification + ROADMAP/STATE)
 **UI hint**: yes
 
 ### Phase 33: AI-UI 操作 MCP ツール + trace/人間承認
@@ -132,7 +142,17 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
   2. 新規 MCP ツールが `config/mcp_tools.yaml` に宣言され、`/add-mcp-tool` フローで追加され、自動生成された helper / JS カタログ / docs と整合している
   3. UI 操作が `RPCContext.correlation_id` を `trace_id` とする stdout JSONL trace に span として記録され、`scripts/trace_query.py` で検索できる
   4. 破壊的操作 (削除・送信・デプロイ等) は実行前に確認ダイアログを表示し、ユーザーが明示的に承認しない限り blocking する
-**Plans**: TBD
+**Plans:** 9 plans
+Plans:
+- [x] 39-01-PLAN.md — Wave 0 baseline + deferred-items scaffold
+- [x] 39-02-PLAN.md — UIFIX-01 Mermaid ADR-0053 + 冒頭コメント
+- [x] 39-03-PLAN.md — UIFIX-02 CollapsibleCodeBlock CSS override
+- [x] 39-04-PLAN.md — UIFIX-03 JobStore dead code + test_sse JWT cookie
+- [x] 39-05-PLAN.md — UIFIX-04 D-07/D-08/D-11 (AskMe + TS types + 📎 tooltip)
+- [x] 39-06-PLAN.md — UIFIX-04 D-09 + D-10 Pattern E (mcp catalog drift)
+- [x] 39-07-PLAN.md — UIFIX-04 D-10 Pattern A 8 件 + Pattern B test_api_chat 3 件
+- [x] 39-08-PLAN.md — UIFIX-04 D-10 Pattern C+D 11 件 + Pattern B test_worker 1 件
+- [ ] 39-09-PLAN.md — Close (verification + ROADMAP/STATE)
 **UI hint**: yes
 
 ### Phase 34: チャット操作性 + スレッド/アプリ探索性
@@ -144,7 +164,17 @@ See [v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full phase details.
   2. ストリーミング表示があり、AI 応答が逐次更新されているように見える (Copilot SDK 制約下のベスト実装)
   3. ユーザーがスレッド一覧を検索 / フィルタ / 最近アクセス順などで絞り込め、目的のスレッドにすぐ到達できる
   4. 新規スレッドのタイトルが会話内容から自動生成され、無題スレッドが大量に並ばない
-**Plans**: TBD
+**Plans:** 9 plans
+Plans:
+- [x] 39-01-PLAN.md — Wave 0 baseline + deferred-items scaffold
+- [x] 39-02-PLAN.md — UIFIX-01 Mermaid ADR-0053 + 冒頭コメント
+- [x] 39-03-PLAN.md — UIFIX-02 CollapsibleCodeBlock CSS override
+- [x] 39-04-PLAN.md — UIFIX-03 JobStore dead code + test_sse JWT cookie
+- [x] 39-05-PLAN.md — UIFIX-04 D-07/D-08/D-11 (AskMe + TS types + 📎 tooltip)
+- [x] 39-06-PLAN.md — UIFIX-04 D-09 + D-10 Pattern E (mcp catalog drift)
+- [x] 39-07-PLAN.md — UIFIX-04 D-10 Pattern A 8 件 + Pattern B test_api_chat 3 件
+- [x] 39-08-PLAN.md — UIFIX-04 D-10 Pattern C+D 11 件 + Pattern B test_worker 1 件
+- [ ] 39-09-PLAN.md — Close (verification + ROADMAP/STATE)
 **UI hint**: yes
 
 ### Phase 35: ダッシュボード化 + レスポンシブ/デザイン統一
@@ -216,7 +246,21 @@ Plans:
   3. 画像 / CSV / Markdown 等の生成ファイルは DL せずチャット画面上でプレビューできる
   4. 生成ファイルがユーザー別ストレージに保持され、過去スレッドや一覧画面から再取得できる
   5. ユーザー A のファイルにユーザー B が API 直接叩きでもアクセスできない (multi-user isolation)
-**Plans**: TBD
+**Plans:** 6/6 plans complete
+Plans:
+**Wave 1**
+- [x] 38-01-PLAN.md — types.ts kind enum 化 (D-30 案 A) + AIMessage round-trip risk-gate + テスト scaffold (Wave 0)
+- [x] 38-02-PLAN.md — outputs route + MCP attachments_list kind/_generated/ + YAML SSoT 再生成 (Wave 1)
+- [x] 38-03-PLAN.md — execute_python cwd 切替 + claude_code cwd 引数削除 + post-process snapshot-diff rename (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 38-04-PLAN.md — attachments_helper 拡張 + langgraph_handler turn-delta bundle + API legacy 正規化 (Wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 38-05-PLAN.md — AttachmentModal + 4 renderer + AttachmentChipRow kind 拡張 (Wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 38-06-PLAN.md — E2E acceptance + ADR-0052 + patterns.md + VALIDATION close (Wave 4)
 **UI hint**: yes
 
 ### Phase 39: UI バグ潰し + Polish 枠
@@ -224,20 +268,60 @@ Plans:
 **Depends on**: Phase 38 (ファイル出力 — v6.0 主要機能完了後の polish phase として配置)
 **Requirements**: UIFIX-01, UIFIX-02, UIFIX-03, UIFIX-04
 **Success Criteria** (what must be TRUE):
-  1. Mermaid View デフォルト表示時の OS レベル hang が再現条件と回避策付きで解消されている (or 恒久修正適用)
-  2. CollapsibleCodeBlock のバルーン幅 chatscope fit-content 問題が、chat 内コードブロックが縦長で潰れず横幅が安定する形で解消されている
-  3. `tests/test_sse.py::test_sse_done_signal` の hang が修正または削除され、JobStore.register_sse / unregister_sse の dead code が整理されている
-  4. v6.0 期間中に発覚した小 UI バグが一覧化され、polish 枠で消化済み or 明示的に v6.1+ defer 判断されている
-**Plans**: TBD
+  1. [x] Mermaid View デフォルト表示時の OS レベル hang が再現条件と回避策付きで解消されている (or 恒久修正適用)
+  2. [x] CollapsibleCodeBlock のバルーン幅 chatscope fit-content 問題が、chat 内コードブロックが縦長で潰れず横幅が安定する形で解消されている
+  3. [x] `tests/test_sse.py::test_sse_done_signal` の hang が修正または削除され、JobStore.register_sse / unregister_sse の dead code が整理されている
+  4. [x] v6.0 期間中に発覚した小 UI バグが一覧化され、polish 枠で消化済み or 明示的に v6.1+ defer 判断されている
+**Plans:** 9/9 plans complete
+Plans:
+**Wave 1**
+- [x] 39-01-PLAN.md — Wave 0 baseline + deferred-items scaffold
+- [x] 39-02-PLAN.md — UIFIX-01 Mermaid ADR-0053 + 冒頭コメント
+- [x] 39-03-PLAN.md — UIFIX-02 CollapsibleCodeBlock CSS override
+- [x] 39-04-PLAN.md — UIFIX-03 JobStore dead code + test_sse JWT cookie
+- [x] 39-05-PLAN.md — UIFIX-04 D-07/D-08/D-11 (AskMe + TS types + 📎 tooltip)
+- [x] 39-06-PLAN.md — UIFIX-04 D-09 + D-10 Pattern E (mcp catalog drift)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 39-07-PLAN.md — UIFIX-04 D-10 Pattern A 8 件 + Pattern B test_api_chat 3 件
+- [x] 39-08-PLAN.md — UIFIX-04 D-10 Pattern C+D 11 件 + Pattern B test_worker 1 件
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 39-09-PLAN.md — Close (verification + ROADMAP/STATE)
 **Hand-offs from earlier phases (Phase 39 着手時の必読 input):**
   - **Phase 35 起因 — AskMe button regression (5 chat apps)**: `.planning/todos/pending/2026-04-23-fix-askme-button-regression-in-chat-apps-after-phase-35-inpu.md` 参照。`35-03-messagearea-inputbar-split` で InputBar 分離時に 5 アプリ全てで `<MessageArea onAskMe={...} />` 配線が欠落。1 行追加 ×5 ファイルの軽微 fix
   - **Phase 36 起因 — 📎 入口段差** (option): `.planning/phases/36-text-code-image-multimodal/deferred-items.md` 参照。`activeThreadId === null` 時の `AttachmentButton` disabled tooltip 文言改善 (Phase 34 lazy auto-create の方が筋なら Phase 34 で扱う)
 **UI hint**: yes
 
+### Phase 40: UI Polish Round 2 (frontend-only)
+
+**Goal**: Phase 39 milestone close 後に蓄積した UI todo 5 件 (#9/#10/#12/#13/#15) を frontend のみで片付け、v6.0 期間中のユーザー報告 polish を完全に消化する
+**Depends on**: Phase 39 (UI バグ潰し + Polish 枠) — 同じ milestone v6.0 の延長
+**Requirements**: 既存 todo 5 件 (`.planning/todos/pending/2026-05-13-*.md`):
+  - `align-back-button-position-in-gems-and-canvas-screens-with-c.md` (#9)
+  - `auto-create-new-thread-on-chat-superchat-initial-render.md` (#10)
+  - `fix-overlapping-agent-message-balloons-in-debate-chat.md` (#12)
+  - `propagate-attachmentbutton-to-superchat-gem-canvas-debate-ch.md` (#13, **Debate 除外**)
+  - `simplify-superchat-url-to-omit-redundant-default-app-slug.md` (#15, 後方互換性なし)
+
+**Success Criteria** (what must be TRUE):
+  1. [ ] Gems / Canvas Screen の戻るボタンが Chat/SuperChat の Header と同位置・同スタイルに揃っている
+  2. [ ] Chat / SuperChat 初回表示時 (URL に threadId なし & activeThreadId null & messages 空) に新しい thread が自動作成され、リロード / 戻る / 既存スレッド開閉時に新規 thread が二重作成されない
+  3. [ ] Debate Chat のエージェントメッセージで chatscope デフォルト bubble (薄青) と Phase 35 エージェント別カラー wrapper の 2 層重ねが解消されている
+  4. [ ] SuperChat / Gem / Canvas に AttachmentButton が追加され、Phase 36 の既存 attachments パイプラインで動作する (Debate は Phase 41 へ defer 明記)
+  5. [ ] SuperChat URL が `/superchat` (default app) と `/superchat/<other-slug>` の 2 パターンで動き、`/superchat/superchat` の二段は新規生成されない (古い URL の互換性は不要)
+
+**Out of Scope**:
+  - Backend schema 変更 (Canvas deployed_html / Debate config 永続化 → Phase 41+ で個別検討)
+  - Debate Chat 添付対応 (PDF/PPTX content extraction を含む大きめスコープなので独立 Phase 41 Debate Document Review として後追い)
+  - 既存 URL `/superchat/superchat/<uuid>` への redirect (ユーザー判断で互換性不要)
+
+**UI hint**: yes (純粋 UI / routing / CSS のみ)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 → 39
+Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 → 39 → 40
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -280,5 +364,5 @@ Phases execute in numeric order: 32 → 33 → 34 → 35 → 36 → 37 → 38 �
 | 35. ダッシュボード化 + レスポンシブ/デザイン統一 | v6.0 | 8/8 | Complete    | 2026-04-23 |
 | 36. ファイル入力 — text/code + image multimodal | v6.0 | 7/7 | Complete   | 2026-05-11 |
 | 37. ファイル入力 — PDF/Office 抽出 + MCP ツール参照 | v6.0 | 5/5 | Complete    | 2026-04-22 |
-| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 0/TBD | Not started | - |
-| 39. UI バグ潰し + Polish 枠 | v6.0 | 0/TBD | Not started | - |
+| 38. ファイル出力 — worker 生成 DL + プレビュー + ユーザー別保持 | v6.0 | 6/6 | Complete    | 2026-05-12 |
+| 39. UI バグ潰し + Polish 枠 | v6.0 | 9/9 | Complete    | 2026-05-13 |

@@ -5,6 +5,17 @@ export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_APP_BASE ?? '/',
   server: {
+    // Phase 39 quick-260513-e7g: GSD worktree 並列実行で .claude/worktrees/agent-* に大量の
+    // 一時ファイルが作成・削除されると Vite の transform cache が破損し、ハードリロードしても
+    // 古いバンドルが配信され続ける (AskMe ボタン消失で発覚)。watch 対象から除外して noise を止める。
+    watch: {
+      ignored: [
+        '**/.claude/**',
+        '**/.planning/**',
+        '**/.git/**',
+        '**/node_modules/**',
+      ],
+    },
     // VITE_APP_BASE=/orochi in .env to dev with prefix; rewrite strips it before forwarding
     proxy: {
       [`${process.env.VITE_APP_BASE ?? ''}/api`]: {

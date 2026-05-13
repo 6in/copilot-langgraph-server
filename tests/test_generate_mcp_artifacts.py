@@ -34,10 +34,10 @@ def _get_tool(tools: list[dict], name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_load_tools_has_six_tools():
-    """実 YAML を読み込んで 6 ツールが返る。"""
+def test_load_tools_has_eight_tools():
+    """実 YAML を読み込んで 8 ツールが返る。"""
     tools = gen.load_tools()
-    assert len(tools) == 6
+    assert len(tools) == 8
     names = [t["name"] for t in tools]
     assert names == [
         "ping",
@@ -46,6 +46,8 @@ def test_load_tools_has_six_tools():
         "claude_code",
         "execute_python",
         "get_current_datetime",
+        "attachments_list",
+        "attachments_extract",
     ]
 
 
@@ -62,8 +64,9 @@ def test_build_helper_header_and_imports():
     assert "from mcp_helper_utils import _call_tool, _clean_content" in text
 
 
-def test_build_helper_has_four_functions():
-    """build_helper 出力に search / query_db / get_datetime / ping の 4 関数が生成される。
+def test_build_helper_has_six_functions():
+    """build_helper 出力に search / query_db / get_datetime / ping /
+    list_attachments / extract_attachment の 6 関数が生成される。
 
     claude_code / execute_python は python_wrapper が無いので含まれない。
     """
@@ -74,12 +77,14 @@ def test_build_helper_has_four_functions():
     assert re.search(r"^def query_db\(", text, re.MULTILINE), "query_db function missing"
     assert re.search(r"^def get_datetime\(", text, re.MULTILINE), "get_datetime function missing"
     assert re.search(r"^def ping\(", text, re.MULTILINE), "ping function missing"
+    assert re.search(r"^def list_attachments\(", text, re.MULTILINE), "list_attachments function missing"
+    assert re.search(r"^def extract_attachment\(", text, re.MULTILINE), "extract_attachment function missing"
     # claude_code / execute_python は含まれない
     assert "def claude_code" not in text
     assert "def execute_python" not in text
-    # ちょうど 4 つ
+    # ちょうど 6 つ
     def_count = len(re.findall(r"^def ", text, re.MULTILINE))
-    assert def_count == 4, f"expected 4 top-level defs, got {def_count}"
+    assert def_count == 6, f"expected 6 top-level defs, got {def_count}"
 
 
 def test_build_helper_web_search_uses_clean_content():
@@ -132,6 +137,8 @@ def test_build_js_order():
         "claude_code",
         "execute_python",
         "get_current_datetime",
+        "attachments_list",
+        "attachments_extract",
     ], f"unexpected JS array order: {found}"
 
 
@@ -141,7 +148,7 @@ def test_build_js_order():
 
 
 def test_build_docs_header_and_table():
-    """build_docs 出力が HTML コメント DO NOT EDIT で始まり、6 セクションを含む。"""
+    """build_docs 出力が HTML コメント DO NOT EDIT で始まり、8 セクションを含む。"""
     tools = gen.load_tools()
     text = gen.build_docs(tools)
     assert text.startswith("<!-- DO NOT EDIT"), f"docs should start with HTML DO NOT EDIT: {text[:60]!r}"
@@ -155,6 +162,8 @@ def test_build_docs_header_and_table():
         "claude_code",
         "execute_python",
         "get_current_datetime",
+        "attachments_list",
+        "attachments_extract",
     ], f"unexpected docs sections order: {sections}"
 
 

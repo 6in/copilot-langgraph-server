@@ -3,9 +3,14 @@
 
 D-03 準拠: ADR 本文は一切変更しない。
 D-04 準拠: 欠番 0015-0017 を「欠番」として明示記録する。
+
+Usage:
+    python3 scripts/generate_adr_index.py          # 通常生成 (INDEX.md を上書き)
+    python3 scripts/generate_adr_index.py --check  # drift 検査のみ。差分があれば exit 1
 """
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -97,8 +102,29 @@ def build_index(adr_dir: Path, categories_data: dict) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="生成内容と既存 INDEX.md の差分を検査するのみ。差分があれば exit 1。",
+    )
+    args = parser.parse_args()
+
     data = load_categories()
     content = build_index(ADR_DIR, data)
+
+    if args.check:
+        current = INDEX_MD.read_text(encoding="utf-8") if INDEX_MD.exists() else ""
+        if current == content:
+            print(f"OK: {INDEX_MD.relative_to(REPO_ROOT)} is up to date.")
+            return 0
+        sys.stderr.write(
+            f"DRIFT: {INDEX_MD.relative_to(REPO_ROOT)} は最新ではありません。\n"
+            "    再生成して再ステージしてください:\n"
+            "        python3 scripts/generate_adr_index.py\n"
+        )
+        return 1
+
     INDEX_MD.write_text(content, encoding="utf-8")
     print(f"Generated {INDEX_MD.relative_to(REPO_ROOT)} ({len(content)} bytes)")
     return 0

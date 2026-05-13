@@ -343,11 +343,13 @@ export function ChatApp({ selectedModel, onModelChange }: ChatAppProps) {
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
               activeThreadId={activeThreadId}
+              onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
               // Phase 36: AttachmentButton / AttachmentChips を InputBar slot に差し込む
               inputToolbarSlot={
                 <AttachmentButton
                   onFilesSelected={(files) => attachments.upload(files)}
                   disabled={isThinking || !activeThreadId}
+                  disabledReason={!activeThreadId ? 'no-thread' : 'thinking'}
                 />
               }
               inputPreviewSlot={

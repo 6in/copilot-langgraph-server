@@ -212,6 +212,7 @@ export function GemChatApp({ gem, selectedModel, onBack }: GemChatAppProps) {
               onCancel={cancelJob}
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
+              onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
             />
           )}
         </MainContainer>

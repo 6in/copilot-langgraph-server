@@ -11,8 +11,54 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
+# ---------------------------------------------------------------------------
+# Helpers — process_chat は LangGraphHandler に dispatch する設計 (Phase 11+)
+# 直接 LLM や graph を扱わないため、handler 内の依存を patch する。
+# ---------------------------------------------------------------------------
+
+def _make_handler_mocks(
+    *,
+    ainvoke_return=None,
+    ainvoke_side_effect=None,
+):
+    """LangGraphHandler 内部依存の mock セットを構築する。
+
+    graph.astream_events は空 async generator (handler が必ず async for で iterate するため)、
+    graph.aget_state は None (fallback の ainvoke 経路に流す)、
+    graph.ainvoke は test ごとに success/error を切り替える。
+    """
+    mock_graph = AsyncMock()
+
+    async def _empty_events_gen(*args, **kwargs):
+        if False:  # pragma: no cover — async generator marker
+            yield None
+
+    mock_graph.astream_events = MagicMock(side_effect=_empty_events_gen)
+    mock_graph.aget_state = AsyncMock(return_value=None)
+    if ainvoke_side_effect is not None:
+        mock_graph.ainvoke = AsyncMock(side_effect=ainvoke_side_effect)
+    else:
+        mock_graph.ainvoke = AsyncMock(return_value=ainvoke_return)
+
+    mock_llm = AsyncMock()
+    mock_llm.close = AsyncMock()
+    mock_llm.is_vision_model = AsyncMock(return_value=True)
+
+    mock_checkpointer = AsyncMock()
+    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
+    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+    mock_checkpointer.setup = AsyncMock()
+
+    return mock_graph, mock_llm, mock_checkpointer
+
+
 async def test_process_chat_saves_result():
-    """process_chat calls job_store.save_result then notifier.done (success path)."""
+    """process_chat → LangGraphHandler.handle: save_result + notifier.done (success path).
+
+    Phase 11+ アーキ: process_chat は TASK_HANDLERS["langgraph"] (LangGraphHandler) に
+    dispatch する。LLM / build_graph / AsyncPostgresSaver は handler module に属するため
+    patch path も langgraph_handler 配下に揃える。
+    """
     from app.jobs.worker import process_chat
 
     mock_job_store = AsyncMock()
@@ -23,17 +69,14 @@ async def test_process_chat_saves_result():
     mock_message.content = "AI reply"
     mock_result = {"messages": [mock_message]}
 
-    mock_graph = AsyncMock()
-    mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+    mock_graph, mock_llm, mock_checkpointer = _make_handler_mocks(ainvoke_return=mock_result)
 
-    mock_llm = AsyncMock()
-    mock_checkpointer = AsyncMock()
-    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
-    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
-
-    with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
-         patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
+    with patch("app.jobs.handlers.langgraph_handler.ChatCopilot", return_value=mock_llm), \
+         patch("app.jobs.handlers.langgraph_handler.build_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.build_canvas_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer), \
+         patch("app.jobs.handlers.langgraph_handler._get_gem_info", new=AsyncMock(return_value=(None, None, None, None, None))), \
+         patch("app.jobs.handlers.langgraph_handler.scan_thread_attachments", return_value=[]):
 
         result = await process_chat(
             ctx,
@@ -45,7 +88,7 @@ async def test_process_chat_saves_result():
         )
 
     mock_job_store.save_result.assert_called_once_with("j1", "AI reply")
-    # notifier.done() calls job_store.notify — verify it was called
+    # WebNotifier.done() calls job_store.notify(job_id, "done") — verify it was called
     mock_job_store.notify.assert_called()
     assert result == {"job_id": "j1", "status": "done"}
 
@@ -57,17 +100,16 @@ async def test_process_chat_error_handling():
     mock_job_store = AsyncMock()
     ctx = {"job_store": mock_job_store}
 
-    mock_graph = AsyncMock()
-    mock_graph.ainvoke = AsyncMock(side_effect=RuntimeError("boom"))
+    mock_graph, mock_llm, mock_checkpointer = _make_handler_mocks(
+        ainvoke_side_effect=RuntimeError("boom"),
+    )
 
-    mock_llm = AsyncMock()
-    mock_checkpointer = AsyncMock()
-    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
-    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
-
-    with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
-         patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
+    with patch("app.jobs.handlers.langgraph_handler.ChatCopilot", return_value=mock_llm), \
+         patch("app.jobs.handlers.langgraph_handler.build_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.build_canvas_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer), \
+         patch("app.jobs.handlers.langgraph_handler._get_gem_info", new=AsyncMock(return_value=(None, None, None, None, None))), \
+         patch("app.jobs.handlers.langgraph_handler.scan_thread_attachments", return_value=[]):
 
         await process_chat(
             ctx,
@@ -95,17 +137,16 @@ async def test_process_chat_closes_llm():
     mock_job_store = AsyncMock()
     ctx = {"job_store": mock_job_store}
 
-    mock_graph = AsyncMock()
-    mock_graph.ainvoke = AsyncMock(side_effect=RuntimeError("force error"))
+    mock_graph, mock_llm, mock_checkpointer = _make_handler_mocks(
+        ainvoke_side_effect=RuntimeError("force error"),
+    )
 
-    mock_llm = AsyncMock()
-    mock_checkpointer = AsyncMock()
-    mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
-    mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
-
-    with patch("app.jobs.worker.ChatCopilot", return_value=mock_llm), \
-         patch("app.jobs.worker.build_graph", return_value=mock_graph), \
-         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
+    with patch("app.jobs.handlers.langgraph_handler.ChatCopilot", return_value=mock_llm), \
+         patch("app.jobs.handlers.langgraph_handler.build_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.build_canvas_graph", return_value=mock_graph), \
+         patch("app.jobs.handlers.langgraph_handler.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer), \
+         patch("app.jobs.handlers.langgraph_handler._get_gem_info", new=AsyncMock(return_value=(None, None, None, None, None))), \
+         patch("app.jobs.handlers.langgraph_handler.scan_thread_attachments", return_value=[]):
 
         await process_chat(
             ctx,
@@ -120,7 +161,13 @@ async def test_process_chat_closes_llm():
 
 
 async def test_startup_creates_redis_and_jobstore():
-    """startup(ctx) populates ctx['redis_client'] and ctx['job_store']."""
+    """startup(ctx) populates ctx['redis_client'] and ctx['job_store'].
+
+    Phase 18 (db_pools) 以降 startup は AsyncConnectionPool を実 DB に open しようとするので
+    AsyncConnectionPool も mock しないと PoolTimeout (30 秒) になる。
+    Phase 21 (MCP) の MultiServerMCPClient は ImportError で握りつぶされる DEGRADED 経路を
+    そのまま流す (mcp_tools=[])。
+    """
     from app.jobs.worker import startup
 
     ctx: dict = {}
@@ -131,8 +178,13 @@ async def test_startup_creates_redis_and_jobstore():
     mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
     mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
 
+    # Phase 18: AsyncConnectionPool — pool.open を AsyncMock にして実 DB 接続を回避
+    mock_pool = AsyncMock()
+    mock_pool.open = AsyncMock()
+
     with patch("app.jobs.worker.Redis") as mock_redis_class, \
-         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer):
+         patch("app.jobs.worker.AsyncPostgresSaver.from_conn_string", return_value=mock_checkpointer), \
+         patch("app.jobs.worker.AsyncConnectionPool", return_value=mock_pool):
         mock_redis_class.from_url = MagicMock(return_value=mock_redis)
         await startup(ctx)
 
@@ -164,6 +216,15 @@ async def test_orchestrator_handler_uses_checkpointer():
     Verifies:
     - build_orchestrator_graph is called with a non-None checkpointer argument
     - graph.ainvoke is called with config={"configurable": {"thread_id": thread_id}}
+
+    Phase 31 以降の経路: orchestrator_handler は graph.astream_events で SSE token を
+    流したあと、最終結果が取れなかった場合のみ graph.aget_state → graph.ainvoke fallback
+    に流れる。テスト側では astream_events を空 async generator、aget_state を None にして
+    ainvoke fallback を確実に発火させる。
+
+    agents_filter を ["agent-one"] で明示するのは APP.md から自動ロードされる
+    superchat agents 一覧 (["code-reviewer", ...]) と registry.agents={"agent-one":...}
+    の不一致による "No matching agents" を回避するため。
     """
     from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 
@@ -174,7 +235,8 @@ async def test_orchestrator_handler_uses_checkpointer():
         "github_token": "ghu_test_token",
         "reply_to": {"type": "web", "job_id": "job-orch-001"},
         "thread_id": thread_id,
-        "agents": None,
+        # APP.md からの agents 上書きを回避するため明示指定
+        "agents": ["agent-one"],
     }
 
     mock_job_store = AsyncMock()
@@ -182,6 +244,13 @@ async def test_orchestrator_handler_uses_checkpointer():
 
     # Mock the graph that build_orchestrator_graph returns
     mock_graph = AsyncMock()
+
+    async def _empty_events_gen(*args, **kwargs):
+        if False:  # pragma: no cover
+            yield None
+
+    mock_graph.astream_events = MagicMock(side_effect=_empty_events_gen)
+    mock_graph.aget_state = AsyncMock(return_value=None)
     mock_graph.ainvoke = AsyncMock(return_value={
         "output": "Orchestrator reply",
         "messages": [],
@@ -198,8 +267,14 @@ async def test_orchestrator_handler_uses_checkpointer():
     mock_checkpointer = AsyncMock()
     mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
     mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+    mock_checkpointer.setup = AsyncMock()
     mock_saver_class = MagicMock()
     mock_saver_class.from_conn_string = MagicMock(return_value=mock_checkpointer)
+
+    # Vision check 用 ChatCopilot を mock (実 SDK 起動回避)
+    mock_vision_llm = AsyncMock()
+    mock_vision_llm.is_vision_model = AsyncMock(return_value=True)
+    mock_vision_llm.close = AsyncMock()
 
     captured_build_args = {}
 
@@ -209,7 +284,9 @@ async def test_orchestrator_handler_uses_checkpointer():
 
     with patch("app.jobs.handlers.orchestrator_handler.build_orchestrator_graph", side_effect=capture_build_orchestrator_graph), \
          patch("app.jobs.handlers.orchestrator_handler.SubAgentRegistry", return_value=mock_registry), \
-         patch("app.jobs.handlers.orchestrator_handler.AsyncPostgresSaver", mock_saver_class):
+         patch("app.jobs.handlers.orchestrator_handler.AsyncPostgresSaver", mock_saver_class), \
+         patch("app.providers.copilot.ChatCopilot", return_value=mock_vision_llm), \
+         patch("app.jobs.handlers.orchestrator_handler.scan_thread_attachments", return_value=[]):
 
         handler = OrchestratorHandler()
         await handler.handle(ctx, job)
@@ -220,7 +297,7 @@ async def test_orchestrator_handler_uses_checkpointer():
     assert captured_build_args["checkpointer"] is not None, \
         "checkpointer passed to build_orchestrator_graph must not be None"
 
-    # Verify graph.ainvoke was called with thread_id in config
+    # Verify graph.ainvoke was called with thread_id in config (fallback 経路)
     mock_graph.ainvoke.assert_called_once()
     call_args = mock_graph.ainvoke.call_args
     # ainvoke is called as ainvoke(initial, config={"configurable": {"thread_id": ...}})

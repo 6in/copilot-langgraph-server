@@ -5,6 +5,9 @@
 // Default: Source mode with editable Monaco Editor.
 // View mode renders on demand using dangerouslySetInnerHTML.
 // Source edits are local only — not persisted to chat messages.
+//
+// Why source-default: View-default で複数 mermaid ブロック同時 render が OS-level hang
+// を起こすため (Phase 39 / UIFIX-01)。恒久修正候補は ADR-0053 参照、v6.1+ spike 予定。
 
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import Editor from '@monaco-editor/react';

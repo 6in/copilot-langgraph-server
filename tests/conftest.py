@@ -50,8 +50,6 @@ def mock_job_store():
     store.get = AsyncMock(return_value=None)  # default: pending
     store.save_result = AsyncMock()
     store.notify = AsyncMock()
-    store.register_sse = MagicMock()
-    store.unregister_sse = MagicMock()
     return store
 
 
@@ -64,10 +62,12 @@ def mock_arq_redis():
 
 
 @pytest.fixture
-async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_redis):
+async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_redis, jwt_cookie):
     """Async HTTP client for testing FastAPI routes with mocked dependencies.
 
     Lifespan does NOT fire with ASGITransport — inject mocks directly into app.state.
+    JWT cookie は jwt_cookie fixture (L8-12) 経由で自動注入される
+    (Phase 39 UIFIX-04 D-10 Pattern A — JWT cookie 不足の 8 件 fan-out 解決)。
     """
     from app.api.main import app
 
@@ -87,7 +87,7 @@ async def api_client(mock_graph, mock_auth_manager, mock_job_store, mock_arq_red
     app.state.arq_redis = mock_arq_redis
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="http://test", cookies={"session": jwt_cookie}) as client:
         yield client
 
 

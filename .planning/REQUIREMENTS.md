@@ -32,17 +32,17 @@
 
 ### ファイル出力（worker 生成 DL）
 
-- [ ] **FOUT-01**: execute_python sandbox で生成されたファイル（PDF / 画像 / CSV 等）をユーザーがチャット UI からダウンロードできる
-- [ ] **FOUT-02**: claude_code 実行の workspace 成果物をユーザーがチャット UI から取得できる
-- [ ] **FOUT-03**: 生成ファイル（画像・CSV・Markdown 等）をダウンロードせずにチャット画面上でプレビューできる
-- [ ] **FOUT-04**: 生成ファイルがユーザー別ストレージに保持され、過去の生成成果を一覧・再取得できる
+- [x] **FOUT-01**: execute_python sandbox で生成されたファイル（PDF / 画像 / CSV 等）をユーザーがチャット UI からダウンロードできる
+- [x] **FOUT-02**: claude_code 実行の workspace 成果物をユーザーがチャット UI から取得できる
+- [x] **FOUT-03**: 生成ファイル（画像・CSV・Markdown 等）をダウンロードせずにチャット画面上でプレビューできる
+- [x] **FOUT-04**: 生成ファイルがユーザー別ストレージに保持され、過去の生成成果を一覧・再取得できる
 
 ### 既存 UI バグ潰し
 
-- [ ] **UIFIX-01**: Mermaid View デフォルト表示時の OS レベル hang を再現・調査し、恒久的な回避策または修正を適用する
-- [ ] **UIFIX-02**: CollapsibleCodeBlock のバルーン幅が chatscope の fit-content 問題で崩れる現象を解消する
-- [ ] **UIFIX-03**: `tests/test_sse.py::test_sse_done_signal` の hang を修正または削除し、JobStore の dead code（register_sse/unregister_sse）を整理する
-- [ ] **UIFIX-04**: 開発中に発覚する「小さな UI バグ」用に polish phase の枠を確保し、v6.0 close 前にまとめて潰す
+- [x] **UIFIX-01**: Mermaid View デフォルト表示時の OS レベル hang を再現・調査し、恒久的な回避策または修正を適用する
+- [x] **UIFIX-02**: CollapsibleCodeBlock のバルーン幅が chatscope の fit-content 問題で崩れる現象を解消する
+- [x] **UIFIX-03**: `tests/test_sse.py::test_sse_done_signal` の hang を修正または削除し、JobStore の dead code（register_sse/unregister_sse）を整理する
+- [x] **UIFIX-04**: 開発中に発覚する「小さな UI バグ」用に polish phase の枠を確保し、v6.0 close 前にまとめて潰す
 
 ---
 
@@ -90,10 +90,10 @@
 | FOUT-02 | Phase 38 | active |
 | FOUT-03 | Phase 38 | active |
 | FOUT-04 | Phase 38 | active |
-| UIFIX-01 | Phase 39 | active |
-| UIFIX-02 | Phase 39 | active |
-| UIFIX-03 | Phase 39 | active |
-| UIFIX-04 | Phase 39 | active |
+| UIFIX-01 | Phase 39 | complete |
+| UIFIX-02 | Phase 39 | complete |
+| UIFIX-03 | Phase 39 | complete |
+| UIFIX-04 | Phase 39 | complete |
 
 **Coverage:** 20/20 v6.0 requirements mapped to phases (no orphans, no duplicates).
 
@@ -113,4 +113,4 @@
 
 ---
 
-*Last updated: 2026-04-21 — v6.0 roadmap drafted (Phases 32-39, 20 REQ-IDs mapped)*
+*Last updated: 2026-05-13 — Phase 39 (UI バグ潰し + Polish 枠) closed, UIFIX-01..04 complete*

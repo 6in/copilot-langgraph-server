@@ -1,5 +1,7 @@
 ---
 created: 2026-04-23T06:09:19.635Z
+resolved: 2026-05-13
+resolution: Phase 39 Plan 39-05 (D-07) で完全修正。5 chat apps (Chat/SuperChat/Gem/Canvas/Debate) の `<MessageArea>` に `onAskMe={() => {}}` 配線を復活させ commit `fcd4534` で landed。実機検証も完了 (chrome-devtools で .chat-askme-btn 描画確認済)。
 title: AskMe ボタンが全チャットアプリで描画されない regression を修正
 area: ui
 files:

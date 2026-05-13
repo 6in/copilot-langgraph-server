@@ -98,6 +98,15 @@ hardcoded allowlist は持たず、SDK `list_models()` 経由でモデル能力 
 を新規 field で運ぶ (`additional_kwargs` / 新規 reducer) / `BaseMessage` の追加属性 / 外部 SDK の Technical Preview API 依存。
 関連 ADR: [0051](../docs/adr/0051-multi-app-rollout-process-patterns.md), [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
 
+### AIMessage.additional_kwargs.attachments で AI 生成ファイルを turn 単位で bundle
+Phase 36 で HumanMessage 側に確立した `additional_kwargs` envelope パターンを AIMessage 側にも適用する。
+turn 完了時 (final_state 確定直後) に handler が `_generated/` の delta を再 scan し、
+final AIMessage の `additional_kwargs` に `{"attachments": [...]}` を None-guard + dict union (`existing or {} | {…}`) で merge する。
+`AsyncPostgresSaver` の JSONB に round-trip 保存され、スレッド再オープン時に frontend へ自動復元される。
+Wave 0 (Plan 01) で AIMessage 側 round-trip を独立検証することで、AIMessage.name 喪失問題 (ADR-0038) と分離して扱える。
+tool wrapper 側の post-process rename とは独立 — handler は再 scan で kind=generated delta を抽出するのみで二重カウントしない。
+関連 ADR: [0052](../docs/adr/0052-worker-generated-outputs-storage-and-preview.md), [0050](../docs/adr/0050-copilot-sdk-multimodal-attachments.md), [0038](../docs/adr/0038-superchat-context-messages-and-agent-name-persistence.md)
+
 ---
 
 ## MCP・Tools
@@ -164,6 +173,16 @@ ToolEnabledSubAgent の ReAct ループ（軸 B 経路 1）に適用し、CodeAc
 ### MCP ツールの Cancel-safe 例外処理
 MCP ツールコア関数で長時間非同期処理を囲むときは `except BaseException` を使わない。Python 3.8+ で `asyncio.CancelledError` は `BaseException` 直下のため arq worker キャンセルを握り潰して協調シャットダウンを壊す。`except asyncio.CancelledError: raise` + `except Exception` の 2 段構えを契約とし、さらに `_classify_error` 系で返すメッセージには内部例外の `str(exc)` を埋め込まない（LLM コンテキストに内部パスが漏れるため）。
 関連 ADR: [0049](../docs/adr/0049-per-job-mcp-client-lifecycle-and-cancel-safe-exceptions.md)
+
+### snapshot-diff 方式の post-process rename パターン
+sandbox subprocess (execute_python / claude_code) が cwd に書いた新規ファイルを、
+MCP tool wrapper が実行前後の `os.listdir` snapshot 差分で検出して `{ts}_{basename}` にリネームする。
+mtime 判定は Docker volume の NFS / 9p mount で 1s 解像度に劣化する既知問題で取りこぼしが出るため不採用、
+inotify は Linux 専用で過剰。snapshot diff は ≤ 20 LOC で実装でき、`.pyc` / symlink / 既に prefix 付きファイル を 3 段ガードで除外する。
+tool wrapper のみが authoritative — handler 側 (turn-delta scan) と二重 rename しないよう責務を分離。
+fallback 経路 (`/tmp` 等) では set diff が爆発しないよう `if folder != "/tmp"` ガードを必ず置く。
+helper 重複定義を避け、execute_python.py を single source of truth として claude_code.py から import 再利用する DRY 構造。
+関連 ADR: [0052](../docs/adr/0052-worker-generated-outputs-storage-and-preview.md)
 
 ---
 
@@ -253,6 +272,17 @@ LangGraph チェックポイントから復元される `AIMessage.content` は 
 削除も同 hook の `remove(storage_name)` から `DELETE /api/threads/{tid}/attachments/{name}` 1 本に集約され、staging chip × ボタンと履歴非破壊の両立を担保する。
 関連 ADR: [0050](../docs/adr/0050-copilot-sdk-multimodal-attachments.md), [0048](../docs/adr/0048-thread-files-folder-convention.md)
 
+### kind discriminator による input/output 統一 UX (チップ + モーダルプレビュー)
+`AttachmentMeta` に `kind: 'user_upload' | 'generated'` 単一 discriminator を持たせ、
+MCP 戻り値 (`attachments_list`) / SystemMessage prepend / AIMessage bundle / AttachmentChipRow props / URL 解決すべてで同 enum を通す。
+URL 解決は `kind === 'generated' ? '/outputs/' : '/attachments/'` の segment 切替で 1 関数 (`buildFileUrl`) に集約、
+AI 応答テキスト内の inline 描画 (`![]()` 経路) は明示的に避けて Phase 36 アップロード添付との UX 不連続を解消する。
+4 種 renderer (image=`<img>` / markdown=react-markdown / csv=ag-grid / text=Monaco) を `React.lazy` + Suspense で dispatch、
+MarkdownPreview は重い MarkdownMessage を呼ばず react-markdown を薄ラッパーで直接呼ぶ (preview 用は軽量化)。
+新規 npm dep ゼロ / 新規 CSS 変数ゼロ で実装可能 (既存 token と Phase 35/36 で導入済 dep のみ流用)。
+チップに `[✨ AI 生成]` / `[📎 添付]` micro-badge を出して input/output 属性を視覚化、accent-subtle vs surface-elevated の弱コントラストペアで「同重要度の属性タグ」として位置づける。
+関連 ADR: [0052](../docs/adr/0052-worker-generated-outputs-storage-and-preview.md)
+
 ---
 
 ## Infra・Deploy
@@ -287,6 +317,12 @@ VALIDATION.md の遡及 `status: validated` 更新は「VERIFICATION.md が PASS
 Audit レポート本体は不変（時点スナップショット）、解消は target artifact 側のみで表現。
 関連 ADR: [0047](../docs/adr/0047-milestone-cleanup-phase-pattern.md)
 
+### dev server の watch スコープを GSD worktree から隔離
+GSD `isolation="worktree"` で `.claude/worktrees/agent-*` 配下にファイルが大量に生成・削除されると、`uvicorn --reload` がリロード暴発 (60s で 136 events → 401 連発 → JWT 失効)、Vite WatchFiles が transform cache 破損 (古いバンドル配信) を起こす。
+api 側は `--reload-dir app` で `/app/app` のみ watch するホワイトリスト化、frontend 側は `vite.config.ts` の `server.watch.ignored` に `.claude/.planning/.git/node_modules` を明示。
+`--reload-exclude` (fnmatch) は絶対パスへの再帰マッチが弱いので不採用。`docker compose restart` では `command:` 変更は反映されないため `up -d` (recreate) が必須なのも併せて記録。
+関連 ADR: [0054](../docs/adr/0054-dev-server-watch-scope-narrowing-for-gsd-worktrees.md)
+
 ---
 
 ## Data・Persistence
@@ -317,3 +353,13 @@ api:RW / mcp-server:RW / worker:RO。thread 削除 (`adelete_thread` 直後の r
 抽出失敗 0 文字 PDF は `error` ではなく `content: ""` を返す (D-08)。
 Phase 36 (アップロード UI) / Phase 38 (出力ストレージ) が同じ規約で接続する。
 関連 ADR: [0048](../docs/adr/0048-thread-files-folder-convention.md)
+
+### thread-files `_generated/` サブフォルダで input/output を分離
+Phase 37 で確立した `/shared/thread-files/<login>/<tid>/` 規約 (ADR-0048) を `_generated/` サブフォルダで拡張し、
+ユーザーアップロード (Phase 36 入力側) と AI 生成成果物 (Phase 38 出力側) を **同 volume 内で明示分離** する。
+ライフサイクルは親フォルダ単位 — thread 削除 hook (chat.delete_thread → shutil.rmtree) で `_generated/` も一括削除、新規 hook 不要。
+命名規約 `YYYYMMDDTHHMMSS_{name}` は MCP tool wrapper の post-process で必ず付与し、
+AI / UI / API レイヤーで同一 identity 文字列を扱う (timestamp prefix が AI 応答 / Modal URL / DL filename で共通)。
+multi-user isolation は Phase 36 helper (`_resolve_thread_folder` / `_safe_resolve_file`) を outputs route が import 再利用するだけで自動継承される。
+Pitfall 10 対策で `os.path.join(thread_folder, "_generated")` を `_safe_resolve_file` に渡し realpath prefix guard を `_generated/` 配下に絞る。
+関連 ADR: [0052](../docs/adr/0052-worker-generated-outputs-storage-and-preview.md), [0048](../docs/adr/0048-thread-files-folder-convention.md)

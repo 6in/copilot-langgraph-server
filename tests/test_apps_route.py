@@ -56,7 +56,12 @@ async def test_get_apps_returns_list(api_client, jwt_cookie, tmp_path):
 # ---------------------------------------------------------------------------
 
 async def test_get_apps_requires_jwt(api_client, tmp_path):
-    """GET /api/apps without session cookie returns 401 auth_required."""
+    """GET /api/apps without session cookie returns 401 auth_required.
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
+    api_client.cookies.clear()
     with patch.dict(os.environ, {"APP_DIR": str(tmp_path)}):
         resp = await api_client.get("/api/apps")
 

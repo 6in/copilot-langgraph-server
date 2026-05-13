@@ -56,6 +56,9 @@ async def test_get_me_success(api_client, jwt_cookie):
 
 @pytest.mark.asyncio
 async def test_get_me_no_cookie(api_client):
+    """Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。"""
+    api_client.cookies.clear()
     resp = await api_client.get("/api/me")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"

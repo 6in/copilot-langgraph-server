@@ -1,6 +1,6 @@
 # ADR Index
 
-**Total:** 48 件（欠番 3 件: 0015, 0016, 0017）
+**Total:** 51 件（欠番 3 件: 0015, 0016, 0017）
 
 > このファイルは `scripts/generate_adr_index.py` により自動生成されます。手動編集しないこと。
 
@@ -66,6 +66,7 @@
 | [0039](0039-askuserquestion-auq-protocol.md) | AskUserQuestion — AI-UI 対話的質問プロトコル | 2026-04-18 |
 | [0040](0040-ui-improvements-batch-mermaid-copy-thread-grouping-authflow.md) | UI 改善バッチ — Mermaid 画像コピー・スレッド日付グループ・Device Flow UX・ツールカタログ埋め込み | 2026-04-17 |
 | [0043](0043-chat-history-content-normalization-defense-in-depth.md) | チャット履歴の BaseMessage.content 正規化と ReactMarkdown 防御ガード（defense-in-depth） | 2026-04-18 |
+| [0053](0053-mermaid-source-default-rationale.md) | Mermaid View デフォルトを Source 固定とする (UIFIX-01) | 2026-05-13 |
 
 ## Infra・Deploy
 
@@ -75,6 +76,7 @@
 | [0034](0034-adr-catalog-patterns-md-gsd-integration.md) | ADR カタログ化と patterns.md による GSD プランニング統合 | 2026-04-15 |
 | [0035](0035-architecture-slides-generated-by-python-pptx.md) | アーキテクチャ説明資料を python-pptx で生成する | 2026-04-15 |
 | [0047](0047-milestone-cleanup-phase-pattern.md) | Milestone cleanup phase — 帳簿整合 bookkeeping を独立 decimal phase に分離 | 2026-04-20 |
+| [0054](0054-dev-server-watch-scope-narrowing-for-gsd-worktrees.md) | dev server の watch スコープを GSD worktree から隔離する | 2026-05-13 |
 
 ## Data・Persistence
 
@@ -85,6 +87,7 @@
 | [0032](0032-db-pools-yaml-driven-tuning-params.md) | db_pools.yaml 駆動の接続プールチューニングパラメータ | 2026-04-15 |
 | [0045](0045-phase-31-observability-jsonl.md) | Phase 31 — エージェント実行・MCP ツール利用の observability 基盤 (stdout JSONL + OTEL span-like schema) | 2026-04-18 |
 | [0048](0048-thread-files-folder-convention.md) | thread-files 共有フォルダ規約 (Phase 37) | 2026-04-21 |
+| [0052](0052-worker-generated-outputs-storage-and-preview.md) | Worker Generated Outputs — Storage / Preview / Per-User Persistence | 2026-05-12 |
 
 ## 欠番
 

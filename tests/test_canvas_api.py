@@ -110,6 +110,11 @@ async def test_list_canvas_apps_no_filter(api_client, jwt_cookie):
 
 @pytest.mark.asyncio
 async def test_list_canvas_apps_requires_auth(api_client):
-    """GET /api/canvas/apps は JWT なしで 401 を返す。"""
+    """GET /api/canvas/apps は JWT なしで 401 を返す。
+
+    Phase 39 UIFIX-04 D-10 Pattern A: api_client fixture が JWT cookie を bake in
+    するようになったため、無認証ケースは明示的に cookie を消去して再現する。
+    """
+    api_client.cookies.clear()
     resp = await api_client.get("/api/canvas/apps")
     assert resp.status_code == 401

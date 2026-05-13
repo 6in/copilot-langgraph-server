@@ -102,7 +102,8 @@ export function useAttachments(
       const localId = crypto.randomUUID();
       const ctrl = new AbortController();
       setItems((prev) => [...prev, {
-        kind: 'file',
+        // Phase 38 D-30 案 A: staging はアップロード由来なので常に 'user_upload'
+        kind: 'user_upload',
         name: f.name,
         storage_name: '',
         path: '',

@@ -69,7 +69,14 @@ services:
   api:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     working_dir: /app
-    command: uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+    # --reload-dir: dev server が watch する範囲を app/ のみに限定 (ホワイトリスト方式)
+    # Phase 39 で worktree 並列実行時にリロード暴発 (60s で 136 events) → 401 連発 / JWT 失効が起きたため。
+    # --reload-exclude (fnmatch) では絶対パスに対するマッチが弱く、深い階層を確実に除外できない。
+    # --reload-dir で /app/app のみ watch すれば .claude/ .planning/ frontend/ tests/ などは
+    # 物理的に watcher の対象外になる (Phase 39 quick-260513-e7g)
+    command: >-
+      uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+      --reload-dir app
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable

@@ -28,6 +28,15 @@ async def test_orchestrator_handler_injects_context():
     - The context is an RPCContext with user_id matching github_login from the job
     - context.app_id == "superchat" (OrchestratorHandler always sets this)
     - context.thread_id matches the job's thread_id
+
+    Phase 31 以降の経路: handler は graph.astream_events で SSE token を流したあと、
+    最終結果が取れなかった場合のみ graph.aget_state → graph.ainvoke fallback に流れる。
+    capture したい initial state は ainvoke の引数で取れるので、astream_events は空
+    async generator、aget_state は None で fallback を発火させる。
+
+    agents_filter を ['general-assistant'] で指定するのは APP.md superchat agents の
+    自動ロード ([\"code-reviewer\", ...]) と registry.agents={\"general-assistant\":...}
+    の不一致による \"No matching agents\" を回避するため。
     """
     from app.jobs.handlers.orchestrator_handler import OrchestratorHandler
 
@@ -39,17 +48,22 @@ async def test_orchestrator_handler_injects_context():
         "github_token": "ghu_test_token",
         "reply_to": {"type": "web", "job_id": "job-integration-001"},
         "thread_id": thread_id,
-        "agents": None,
+        # APP.md からの agents 上書きを回避するため明示指定
+        "agents": ["general-assistant"],
         "github_login": github_login,
     }
 
     mock_job_store = AsyncMock()
     ctx = {"job_store": mock_job_store}
 
-    # Capture the initial state passed to graph.ainvoke
+    # Capture the initial state passed to graph.ainvoke (fallback 経路)
     captured_initial: dict = {}
 
     mock_graph = AsyncMock()
+
+    async def _empty_events_gen(*args, **kwargs):
+        if False:  # pragma: no cover
+            yield None
 
     async def capture_ainvoke(initial, config=None):
         captured_initial.update(initial)
@@ -59,6 +73,8 @@ async def test_orchestrator_handler_injects_context():
             "next": "",
         }
 
+    mock_graph.astream_events = MagicMock(side_effect=_empty_events_gen)
+    mock_graph.aget_state = AsyncMock(return_value=None)
     mock_graph.ainvoke = capture_ainvoke
 
     # Mock registry with at least one agent
@@ -71,12 +87,20 @@ async def test_orchestrator_handler_injects_context():
     mock_checkpointer = AsyncMock()
     mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
     mock_checkpointer.__aexit__ = AsyncMock(return_value=None)
+    mock_checkpointer.setup = AsyncMock()
     mock_saver_class = MagicMock()
     mock_saver_class.from_conn_string = MagicMock(return_value=mock_checkpointer)
 
+    # Vision check 用 ChatCopilot を mock (実 SDK 起動回避)
+    mock_vision_llm = AsyncMock()
+    mock_vision_llm.is_vision_model = AsyncMock(return_value=True)
+    mock_vision_llm.close = AsyncMock()
+
     with patch("app.jobs.handlers.orchestrator_handler.build_orchestrator_graph", return_value=mock_graph), \
          patch("app.jobs.handlers.orchestrator_handler.SubAgentRegistry", return_value=mock_registry), \
-         patch("app.jobs.handlers.orchestrator_handler.AsyncPostgresSaver", mock_saver_class):
+         patch("app.jobs.handlers.orchestrator_handler.AsyncPostgresSaver", mock_saver_class), \
+         patch("app.providers.copilot.ChatCopilot", return_value=mock_vision_llm), \
+         patch("app.jobs.handlers.orchestrator_handler.scan_thread_attachments", return_value=[]):
 
         handler = OrchestratorHandler()
         await handler.handle(ctx, job)

@@ -290,7 +290,7 @@ async def test_claude_code_env_sanitized():
         "HOME": "/root",
     }):
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
-            await claude_code(prompt="test", cwd="/tmp")
+            await claude_code(prompt="test")
 
     _args, kwargs = mock_exec.call_args
     env = kwargs.get("env", {})
@@ -313,7 +313,7 @@ async def test_claude_code_returns_output():
     mock_proc.returncode = 0
 
     with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
-        result = await claude_code(prompt="test", cwd="/tmp")
+        result = await claude_code(prompt="test")
 
     assert result == {
         "output": "hello world",
@@ -338,7 +338,7 @@ async def test_claude_code_timeout_terminate():
     mock_proc.kill = MagicMock()
 
     with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
-        result = await claude_code(prompt="test", cwd="/tmp")
+        result = await claude_code(prompt="test")
 
     mock_proc.terminate.assert_called_once()
     mock_proc.kill.assert_not_called()
@@ -369,7 +369,7 @@ async def test_claude_code_timeout_kill_escalation():
     mock_proc.kill = MagicMock()
 
     with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
-        result = await claude_code(prompt="test", cwd="/tmp")
+        result = await claude_code(prompt="test")
 
     mock_proc.kill.assert_called_once()
     assert "Timeout after 60s" in result.get("error", "")
@@ -391,7 +391,7 @@ async def test_claude_code_truncation():
     fake_file_path = "/shared/claude-code-outputs/20260413_abcdef12.txt"
     with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
         with patch("tools.claude_code._save_overflow_output", return_value=fake_file_path) as mock_save:
-            result = await claude_code(prompt="test", cwd="/tmp")
+            result = await claude_code(prompt="test")
 
     assert result["truncated"] is True
     assert len(result["output"]) == 4000
@@ -407,7 +407,7 @@ async def test_claude_code_cli_missing():
     from tools.claude_code import claude_code
 
     with patch("asyncio.create_subprocess_exec", side_effect=FileNotFoundError("claude not found")):
-        result = await claude_code(prompt="test", cwd="/tmp")
+        result = await claude_code(prompt="test")
 
     assert "claude CLI not found in PATH" in result.get("error", "")
     assert result["exit_code"] == -1

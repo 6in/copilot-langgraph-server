@@ -84,10 +84,21 @@ def test_tool_registry_real_yaml_contract():
 
     registry = ToolRegistry(str(real_yaml))
 
-    expected = {"ping", "web_search", "db_query", "claude_code", "execute_python", "get_current_datetime"}
+    # Phase 37 で attachments_list / attachments_extract が追加され 6 → 8 ツール構成に。
+    expected = {
+        "ping",
+        "web_search",
+        "db_query",
+        "claude_code",
+        "execute_python",
+        "get_current_datetime",
+        "attachments_list",
+        "attachments_extract",
+    }
     assert registry.expected_tool_names() == frozenset(expected)
 
     # ADR 0023/0024: privileged は claude_code と execute_python のみ
+    # (attachments_list / attachments_extract は privileged: false)
     assert registry.privileged_tool_names() == frozenset({"claude_code", "execute_python"})
 
 

@@ -300,6 +300,7 @@ export function SuperChatApp({ selectedModel, appId, appName: _appName, appAgent
               enableResend
               pendingQuestion={pendingQuestion}
               onQuestionSubmit={handleQuestionSubmit}
+              onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
             />
           )}
         </div>

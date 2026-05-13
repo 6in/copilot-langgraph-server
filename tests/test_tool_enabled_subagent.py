@@ -88,7 +88,11 @@ async def test_tool_enabled_subagent_runs_react_loop(mock_copilot_cls):
     state = make_state("ping test")
     result = await agent.run(state)
 
-    assert result["output"] == "pong result", f"Got: {result['output']}"
+    # Phase 31 以降、_build_rich_output が tool 実行履歴 (ToolMessage の content) と
+    # 最終 AIMessage を '---' で連結した rich output を返すため、最終 AI 応答が
+    # 含まれることと、ToolMessage 経由のツール結果 ('pong') も含まれることを検証する。
+    assert "pong result" in result["output"], f"Got: {result['output']}"
+    assert "pong" in result["output"], f"Tool result missing in output: {result['output']}"
     assert result["agent_name"] == "test-agent"
     # TOOL-03: ToolMessage must be in messages
     assert any(isinstance(m, ToolMessage) for m in result["messages"]), (

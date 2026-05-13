@@ -788,6 +788,7 @@ function DebateChatPanel({ config, selectedModel }: DebateChatPanelProps) {
                   placeholder={inputPlaceholder}
                   pendingQuestion={pendingQuestion}
                   onQuestionSubmit={handleQuestionSubmit}
+                  onAskMe={() => { /* AUQ trigger flag — handler は MessageArea/InputBar 内で完結 */ }}
                 />
                 {awaitingExtension && (
                   <div style={{ padding: '0 8px 0' }}>

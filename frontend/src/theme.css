@@ -168,6 +168,14 @@
   max-width: 100%;
 }
 
+/* Phase 39 UIFIX-02: CollapsibleCodeBlock 等の最外 div が
+   .cs-message__custom-content の display:flex / fit-content 子要素として
+   潰れる現象を防ぐ担保。incoming bubble 内の table / blockquote /
+   Mermaid 親 div にも同じく作用してフル幅一貫表示になる。 */
+.cs-message--incoming .cs-message__custom-content > div {
+  width: 100%;
+}
+
 /* ============================================================
    DARK MODE — chatscope container overrides
    (verify class names on @chatscope upgrade)

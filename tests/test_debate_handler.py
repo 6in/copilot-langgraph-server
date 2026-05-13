@@ -57,26 +57,26 @@ def _make_ctx(job_store=None):
 
 @pytest.mark.asyncio
 async def test_handle_calls_build_debate_graph():
-    """handle() が build_debate_graph を呼び出し、結果を job_store.save_result に保存する。"""
+    """handle() が build_debate_graph を呼び出し、結果を job_store.save_result に保存する。
+
+    Phase 17 以降の経路: handler は graph.astream() を async for で iterate して
+    各 state_chunk から AIMessage を all_turns に蓄積する (graph.ainvoke は呼ばれない)。
+    AsyncMock では async for 不可なので async generator pattern で書く。
+    """
     from app.jobs.handlers.debate_handler import DebateHandler
+    from langchain_core.messages import AIMessage
 
-    # Mock 結果: graph.ainvoke が返すダミー DebateState
-    mock_ai_message = MagicMock()
-    mock_ai_message.__class__.__name__ = "AIMessage"
-    mock_ai_message.content = "エージェントAの発言"
+    # debate_handler は AIMessage 実型を見て all_turns に蓄積するので
+    # MagicMock ではなく実 AIMessage を使う。
+    ai_msg = AIMessage(content="エージェントAの発言", name="agent_a")
 
-    fake_result = {
-        "messages": [mock_ai_message],
-        "turn": 3,
-        "max_turns": 3,
-        "pattern": "debate",
-        "participants": ["agent_a", "agent_b"],
-        "current_agent_idx": 0,
-        "awaiting_extension": False,
-    }
+    # graph.astream は async for で iterate するため async generator にする。
+    # yield する dict は {node_name: state_delta} 形式 (stream_mode='updates' デフォルト)。
+    async def _astream_gen(*args, **kwargs):
+        yield {"agent_a": {"messages": [ai_msg], "turn": 1}}
 
     mock_graph = AsyncMock()
-    mock_graph.ainvoke = AsyncMock(return_value=fake_result)
+    mock_graph.astream = MagicMock(side_effect=_astream_gen)
 
     mock_registry = MagicMock()
     mock_registry.agents = {"agent_a": MagicMock(), "agent_b": MagicMock()}
@@ -107,8 +107,8 @@ async def test_handle_calls_build_debate_graph():
     # build_debate_graph が呼ばれた
     mock_bdg.assert_called_once()
 
-    # mock_graph.ainvoke が呼ばれた
-    mock_graph.ainvoke.assert_called_once()
+    # mock_graph.astream が呼ばれた (handler は astream のみ使用、ainvoke は呼ばない)
+    mock_graph.astream.assert_called_once()
 
     # save_result が呼ばれた
     job_store.save_result.assert_called_once()
