@@ -313,6 +313,7 @@ Recent decisions affecting current work:
 | 260418-tin | docker-compose.yml に全サービスのログローテーション設定（max-size/max-file）を追加 | 2026-04-18 | a079372 | [260418-tin-docker-compose-yml-max-size-max-file](.planning/quick/260418-tin-docker-compose-yml-max-size-max-file/) |
 | 260513-e7g | dev server (uvicorn / Vite) から .claude/worktrees/ を除外 (Phase 39 worktree 並列実行で発火した watch noise を抑止) | 2026-05-13 | 99171dd | [260513-e7g-dev-server-claude-worktrees](.planning/quick/260513-e7g-dev-server-claude-worktrees/) |
 | 260514-05h | PostgreSQL + 生成ファイル + Canvas デプロイの 3 層バックアップ/リストアスクリプトを作成 (db-backup.sh / db-restore.sh / db-backup-prune.sh + 共通 lib + docs/backup-restore.md、dev/prod 切替対応、Canvas dual-source rebuild 込み) | 2026-05-13 | a27e0a1 | [260514-05h-canvas](.planning/quick/260514-05h-canvas/) |
+| 260514-djz | Copilot OAuth トークン失効を friendly に検知 — CopilotAuthExpired 例外追加 + _astream の SESSION_IDLE 0-chunk fallback で「再ログインしてください」メッセージを yield | 2026-05-14 | bbc5ed6 | [260514-djz-copilot-auth-friendly-error](.planning/quick/260514-djz-copilot-auth-friendly-error/) |
 
 ### Blockers/Concerns
 

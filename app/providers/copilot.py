@@ -43,6 +43,42 @@ from copilot import (  # type: ignore[import-untyped]
 from copilot.generated.session_events import SessionEventType  # type: ignore[import-untyped]
 
 
+# GitHub OAuth `ghu_` トークン失効時、Copilot SDK subprocess は以下の文字列を
+# 含むエラーを上げて即拒否する。Device Flow は refresh token を持たないため
+# 自動更新は不可能 — 検出後はユーザーに再ログインを促す必要がある。
+_AUTH_EXPIRED_MARKER = "Session was not created with authentication info"
+
+
+class CopilotAuthExpired(RuntimeError):
+    """Copilot の認証セッションが失効した状態で SDK 呼び出しが失敗した時に raise する。
+
+    既定メッセージは UI にそのまま表示される想定。原因例外は ``__cause__`` で
+    保持し、トレースが必要な場面 (ログ/トレース) で参照できるようにする。
+    """
+
+    DEFAULT_MESSAGE = (
+        "Copilot の認証セッションが無効になりました。"
+        "一度ログアウトして再ログインしてください。"
+    )
+
+    def __init__(self, message: Optional[str] = None, *, cause: Optional[BaseException] = None):
+        super().__init__(message or self.DEFAULT_MESSAGE)
+        if cause is not None:
+            self.__cause__ = cause
+
+
+def _is_auth_expired(exc: BaseException) -> bool:
+    """``exc`` (またはその ``__cause__`` 連鎖) が auth-expired パターンか判定する。"""
+    seen: set[int] = set()
+    cur: Optional[BaseException] = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if _AUTH_EXPIRED_MARKER in str(cur):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
 class ChatCopilot(BaseChatModel):
     """LangChain-compatible wrapper for the GitHub Copilot SDK.
 
@@ -205,13 +241,15 @@ class ChatCopilot(BaseChatModel):
                     ChatGeneration(message=AIMessage(content=content))
                 ]
             )
-        except Exception:
+        except Exception as exc:
             # Reset client so next call will re-initialise cleanly
             try:
                 await self._client.stop()
             except Exception:
                 pass
             self._client = None
+            if _is_auth_expired(exc):
+                raise CopilotAuthExpired(cause=exc) from exc
             raise
 
     async def _astream(
@@ -268,9 +306,21 @@ class ChatCopilot(BaseChatModel):
                     # Phase 31 Plan 04: capture usage tokens for SubAgent span emit.
                     self._store_usage(getattr(event, "data", None))
                 elif event_type == SessionEventType.SESSION_IDLE:
-                    # If no deltas arrived, emit the full message as a single chunk
-                    if not has_deltas[0] and fallback_content[0]:
-                        loop.call_soon_threadsafe(queue.put_nowait, fallback_content[0])
+                    # If no deltas arrived, emit the full message as a single chunk.
+                    # 0-chunk fallback: SDK が ASSISTANT_MESSAGE_DELTA も ASSISTANT_MESSAGE も
+                    # emit せず SESSION_IDLE で終了するケース (典型例: OAuth token 失効で
+                    # SDK subprocess が auth 拒否) では generate_from_stream が
+                    # ValueError("No generations found in stream.") を投げてしまうため、
+                    # friendly な再ログイン誘導メッセージを 1 chunk yield して救済する。
+                    if not has_deltas[0]:
+                        if fallback_content[0]:
+                            loop.call_soon_threadsafe(queue.put_nowait, fallback_content[0])
+                        else:
+                            loop.call_soon_threadsafe(
+                                queue.put_nowait,
+                                "Copilot から応答が得られませんでした。"
+                                "一度ログアウトして再ログインしてください。",
+                            )
                     loop.call_soon_threadsafe(queue.put_nowait, None)
 
             # Register handler BEFORE send() to avoid missing early delta events
@@ -286,13 +336,15 @@ class ChatCopilot(BaseChatModel):
 
             await session.disconnect()
 
-        except Exception:
+        except Exception as exc:
             # Reset client so next call will re-initialise cleanly
             try:
                 await self._client.stop()
             except Exception:
                 pass
             self._client = None
+            if _is_auth_expired(exc):
+                raise CopilotAuthExpired(cause=exc) from exc
             raise
 
     # ------------------------------------------------------------------
