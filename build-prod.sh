@@ -1,11 +1,13 @@
 #!/bin/bash
 # 本番モードのビルド＆起動スクリプト
 # 使い方:
-#   ./build-prod.sh          # ビルドして起動（フォアグラウンド）
-#   ./build-prod.sh -d       # ビルドして起動（バックグラウンド）
-#   ./build-prod.sh --down   # 停止＆ボリューム削除なしで終了
-#   ./build-prod.sh logs     # ログを tail
-#   ./build-prod.sh ps       # サービス状態を表示
+#   ./build-prod.sh                    # ビルドして起動（フォアグラウンド）
+#   ./build-prod.sh -d                 # ビルドして起動（バックグラウンド）
+#   ./build-prod.sh --down             # 停止＆ボリューム削除なしで終了
+#   ./build-prod.sh logs               # ログを tail
+#   ./build-prod.sh ps                 # サービス状態を表示
+#   ./build-prod.sh restart            # 全サービス再起動
+#   ./build-prod.sh restart api worker # 指定サービスのみ再起動
 #
 # 補足: 同ディレクトリに `docker-compose.prod.override.yml` があれば
 # 自動で `-f` で連結する (README.prod.md §4 の 127.0.0.1:18080 bind パターン用)。
@@ -52,6 +54,15 @@ case "${1}" in
     ;;
   ps)
     $COMPOSE ps
+    ;;
+  restart)
+    shift
+    if [ $# -eq 0 ]; then
+      echo ">>> 本番コンテナを再起動します (全サービス)..."
+    else
+      echo ">>> 本番コンテナを再起動します ($*)..."
+    fi
+    $COMPOSE restart "$@"
     ;;
   *)
     echo ">>> 本番モードでビルド＆起動..."

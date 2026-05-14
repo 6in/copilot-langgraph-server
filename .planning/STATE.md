@@ -314,6 +314,7 @@ Recent decisions affecting current work:
 | 260513-e7g | dev server (uvicorn / Vite) から .claude/worktrees/ を除外 (Phase 39 worktree 並列実行で発火した watch noise を抑止) | 2026-05-13 | 99171dd | [260513-e7g-dev-server-claude-worktrees](.planning/quick/260513-e7g-dev-server-claude-worktrees/) |
 | 260514-05h | PostgreSQL + 生成ファイル + Canvas デプロイの 3 層バックアップ/リストアスクリプトを作成 (db-backup.sh / db-restore.sh / db-backup-prune.sh + 共通 lib + docs/backup-restore.md、dev/prod 切替対応、Canvas dual-source rebuild 込み) | 2026-05-13 | a27e0a1 | [260514-05h-canvas](.planning/quick/260514-05h-canvas/) |
 | 260514-djz | Copilot OAuth トークン失効を friendly に検知 — CopilotAuthExpired 例外追加 + _astream の SESSION_IDLE 0-chunk fallback で「再ログインしてください」メッセージを yield | 2026-05-14 | bbc5ed6 | [260514-djz-copilot-auth-friendly-error](.planning/quick/260514-djz-copilot-auth-friendly-error/) |
+| 260514-e0g | build-prod.sh に restart サブコマンドを追加 — `./build-prod.sh restart [service...]` で全サービス or 指定サービスのみ再起動 (override.yml 自動連結ロジックを共有) | 2026-05-14 | 721b121 | [260514-e0g-build-prod-restart](.planning/quick/260514-e0g-build-prod-restart/) |
 
 ### Blockers/Concerns
 
