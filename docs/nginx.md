@@ -81,7 +81,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "127.0.0.1:18080:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

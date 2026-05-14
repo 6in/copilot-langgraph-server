@@ -23,8 +23,10 @@ if [ -f docker-compose.prod.override.yml ]; then
   echo "(override) docker-compose.prod.override.yml を検出 — 自動で連結します"
 fi
 
-# 起動完了メッセージで表示する URL を override の bind から推定
-ACCESS_HINT="http://localhost/orochi/"
+# 起動完了メッセージで表示する URL — デフォルトは 127.0.0.1:18080
+# (docker-compose.prod.yml の nginx ports に対応)。
+# override.yml で別 port にしている場合はそこから抽出する。
+ACCESS_HINT="http://127.0.0.1:18080/orochi/"
 if [ -f docker-compose.prod.override.yml ]; then
   # 127.0.0.1:NNNN:80 形式から port を抽出
   PORT=$(grep -oE '127\.0\.0\.1:[0-9]+:80' docker-compose.prod.override.yml | head -1 | cut -d: -f2)

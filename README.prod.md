@@ -49,7 +49,7 @@ Docker 側の nginx を撤去して frontend/api を直接 expose する案も�
 | プロセス | ホストポート | 公開範囲 |
 |---------|-------------|---------|
 | Server nginx | 443 (HTTPS), 80 (リダイレクト) | パブリック |
-| Docker nginx | **127.0.0.1:18080** | **localhost のみ** (本書では port を変更する手順を含む) |
+| Docker nginx | **127.0.0.1:18080** | **localhost のみ** (デフォルトでこの port にバインド済み。別 port にしたい場合は §4) |
 | api / frontend / mcp-server / postgres / redis / worker | — | コンテナ間 internal のみ |
 
 ---
@@ -166,23 +166,25 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml \
 
 ---
 
-## 4. ポート設定の変更 (公開しないため)
+## 4. ポート設定 (デフォルト: 127.0.0.1:18080)
 
-サーバ側に既に nginx が動いているので、Docker nginx は **`127.0.0.1` の高位ポート** にだけ bind する。
+`docker-compose.prod.yml` の nginx は **デフォルトで `127.0.0.1:18080:80` にバインド済み** (localhost からのみアクセス可能、ホストの port 80 とも衝突しない)。サーバ側の nginx (HTTPS 終端) からは `proxy_pass http://127.0.0.1:18080/orochi/` で受ける構成 — 追加設定なしで動く。
 
-`docker-compose.prod.override.yml` を新規作成 (本ファイルを使うと元の `docker-compose.prod.yml` を改変せず override 可能):
+### 別 port を使いたい場合
+
+`docker-compose.prod.override.yml` を新規作成すると、`-f` で連結された時に nginx の ports を上書きできる:
 
 ```yaml
-# docker-compose.prod.override.yml
+# docker-compose.prod.override.yml — 例: 18090 にしたい場合
 services:
   nginx:
     ports: !override
-      - "127.0.0.1:18080:80"
+      - "127.0.0.1:18090:80"
 ```
 
-`!override` で元の `"80:80"` を完全に置き換える (空配列 + push ではなくフルリプレース)。
+`!override` で元の `"127.0.0.1:18080:80"` を完全に置き換える (空配列 + push ではなくフルリプレース)。
 
-> 起動時に `-f docker-compose.prod.yml -f docker-compose.prod.override.yml` を両方指定すれば自動で merge される。
+> 起動時に `-f docker-compose.prod.yml -f docker-compose.prod.override.yml` を両方指定すれば自動で merge される。`build-prod.sh` ラッパーは override.yml が存在すれば自動で連結する。
 
 ---
 
@@ -197,9 +199,13 @@ cd ~/copilot-langgraph
 ./build-prod.sh -d
 ```
 
-直接コマンドを叩く場合 (どちらでも可):
+直接コマンドを叩く場合 (override.yml を使わない / 使う):
 
 ```bash
+# デフォルト (override.yml 不要)
+docker compose -f docker-compose.prod.yml up --build -d
+
+# override.yml で port などをカスタムしている場合
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.override.yml up --build -d
 ```
 

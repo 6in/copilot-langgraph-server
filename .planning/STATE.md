@@ -315,6 +315,7 @@ Recent decisions affecting current work:
 | 260514-05h | PostgreSQL + 生成ファイル + Canvas デプロイの 3 層バックアップ/リストアスクリプトを作成 (db-backup.sh / db-restore.sh / db-backup-prune.sh + 共通 lib + docs/backup-restore.md、dev/prod 切替対応、Canvas dual-source rebuild 込み) | 2026-05-13 | a27e0a1 | [260514-05h-canvas](.planning/quick/260514-05h-canvas/) |
 | 260514-djz | Copilot OAuth トークン失効を friendly に検知 — CopilotAuthExpired 例外追加 + _astream の SESSION_IDLE 0-chunk fallback で「再ログインしてください」メッセージを yield | 2026-05-14 | bbc5ed6 | [260514-djz-copilot-auth-friendly-error](.planning/quick/260514-djz-copilot-auth-friendly-error/) |
 | 260514-e0g | build-prod.sh に restart サブコマンドを追加 — `./build-prod.sh restart [service...]` で全サービス or 指定サービスのみ再起動 (override.yml 自動連結ロジックを共有) | 2026-05-14 | 721b121 | [260514-e0g-build-prod-restart](.planning/quick/260514-e0g-build-prod-restart/) |
+| 260514-ecs | PROD のデフォルトポートを 127.0.0.1:18080 に変更 — docker-compose.prod.yml / build-prod.sh / README.prod.md を更新。override.yml は別 port 用 escape hatch に位置付け | 2026-05-14 | c0cc2e0 | [260514-ecs-prod-default-port-18080](.planning/quick/260514-ecs-prod-default-port-18080/) |
 
 ### Blockers/Concerns
 

@@ -187,7 +187,11 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "80:80"
+      # 127.0.0.1 にのみ bind — 本番では server-side nginx (HTTPS 終端) から
+      # http://127.0.0.1:18080/ にフォワードされる前提。ローカル開発機でも
+      # port 80 と衝突せずそのまま起動できる。別 port にしたい場合は
+      # docker-compose.prod.override.yml で上書き (README.prod.md §4)。
+      - "127.0.0.1:18080:80"
     depends_on:
       - frontend
       - api
